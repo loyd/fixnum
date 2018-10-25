@@ -18,6 +18,7 @@ pub struct FixedPoint(i64);
 
 impl FixedPoint {
     pub const ZERO: FixedPoint = FixedPoint(0);
+    pub const ONE: FixedPoint = FixedPoint(FIXED_POINT_COEF as i64);
     pub const MIN: FixedPoint = FixedPoint(i64::MIN);
     pub const MAX: FixedPoint = FixedPoint(i64::MAX);
 
