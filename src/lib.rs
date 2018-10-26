@@ -6,8 +6,8 @@ use serde_derive::{Deserialize, Serialize};
 
 use crate::Decimal;
 
-const FIXED_POINT_EXP: i32 = -9;
-const FIXED_POINT_COEF: i64 = 1_000_000_000;
+const EXP: i32 = -9;
+const COEF: i64 = 1_000_000_000;
 
 /// Abstraction over fixed point floating numbers.
 ///
@@ -18,12 +18,12 @@ pub struct FixedPoint(i64);
 
 impl FixedPoint {
     pub const ZERO: FixedPoint = FixedPoint(0);
-    pub const ONE: FixedPoint = FixedPoint(FIXED_POINT_COEF);
+    pub const ONE: FixedPoint = FixedPoint(COEF);
     pub const MIN: FixedPoint = FixedPoint(i64::MIN);
     pub const MAX: FixedPoint = FixedPoint(i64::MAX);
 
     pub fn from_decimal(decimal: &Decimal) -> Result<FixedPoint, FixedPointFromDecimalError> {
-        if decimal.exponent != FIXED_POINT_EXP {
+        if decimal.exponent != EXP {
             return Err(FixedPointFromDecimalError::UnsupportedExponent);
         }
 
@@ -66,7 +66,7 @@ impl Into<Decimal> for FixedPoint {
     fn into(self) -> Decimal {
         Decimal {
             mantissa: self.0,
-            exponent: FIXED_POINT_EXP,
+            exponent: EXP,
         }
     }
 }
@@ -74,7 +74,7 @@ impl Into<Decimal> for FixedPoint {
 /// Returns `FixedPoint` corresponding to the integer `value`.
 impl From<i64> for FixedPoint {
     fn from(value: i64) -> Self {
-        FixedPoint(value.checked_mul(FIXED_POINT_COEF).expect("overflow"))
+        FixedPoint(value.checked_mul(COEF).expect("overflow"))
     }
 }
 
@@ -91,7 +91,7 @@ fn fixed_point_from_str(str: &str) -> Result<i64, &'static str> {
         Some(index) => index,
         None => {
             let integral: i64 = str.parse().map_err(|_| "can't parse integral part")?;
-            return integral.checked_mul(FIXED_POINT_COEF).ok_or("overflow");
+            return integral.checked_mul(COEF).ok_or("overflow");
         }
     };
 
@@ -104,13 +104,13 @@ fn fixed_point_from_str(str: &str) -> Result<i64, &'static str> {
         return Err("fractional part can only contain digits");
     }
 
-    if fractional_str.len() > FIXED_POINT_EXP.abs() as usize {
+    if fractional_str.len() > EXP.abs() as usize {
         return Err("precision is too high");
     }
 
     let exp = 10i64.pow(fractional_str.len() as u32);
 
-    if exp >= FIXED_POINT_COEF {
+    if exp >= COEF {
         return Err("precision is too high");
     }
 
@@ -118,8 +118,8 @@ fn fixed_point_from_str(str: &str) -> Result<i64, &'static str> {
         .parse()
         .map_err(|_| "can't parse fractional part")?;
 
-    let final_integral = integral.checked_mul(FIXED_POINT_COEF).ok_or("overflow")?;
-    let final_fractional = integral.signum() * FIXED_POINT_COEF / exp * fractional;
+    let final_integral = integral.checked_mul(COEF).ok_or("overflow")?;
+    let final_fractional = integral.signum() * COEF / exp * fractional;
 
     final_integral
         .checked_add(final_fractional)
@@ -192,8 +192,8 @@ mod tests {
 
     #[test]
     fn exp_and_coef_should_agree() {
-        assert!(FIXED_POINT_EXP < 0);
-        assert_eq!(FIXED_POINT_COEF, 10i128.pow(-FIXED_POINT_EXP as u32));
+        assert!(EXP < 0);
+        assert_eq!(COEF, 10i128.pow(-EXP as u32));
     }
 
     #[test]
