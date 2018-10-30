@@ -62,7 +62,7 @@ impl FixedPoint {
     }
 }
 
-#[derive(Debug, Fail)]
+#[derive(Debug, Fail, PartialEq)]
 pub enum FixedPointFromDecimalError {
     #[fail(display = "unsupported exponent")]
     UnsupportedExponent,
@@ -118,7 +118,7 @@ fn fixed_point_from_str(str: &str) -> Result<i64, &'static str> {
 
     let exp = 10i64.pow(fractional_str.len() as u32);
 
-    if exp >= COEF {
+    if exp > COEF {
         return Err("precision is too high");
     }
 
@@ -134,7 +134,7 @@ fn fixed_point_from_str(str: &str) -> Result<i64, &'static str> {
         .ok_or("overflow")
 }
 
-#[cfg(tests)]
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -217,23 +217,7 @@ mod tests {
     #[test]
     fn exp_and_coef_should_agree() {
         assert!(EXP < 0);
-        assert_eq!(COEF, 10i128.pow(-EXP as u32));
-    }
-
-    #[test]
-    fn some_ops() {
-        let p1: FixedPoint = "5.0".into();
-        let p2: FixedPoint = "20.0".into();
-        let delta = p2.difference(p1).unwrap();
-
-        assert_eq!(delta, "15.0".into());
-        assert_eq!(p1.checked_add(delta).unwrap(), p2);
-        assert_eq!(
-            p1.checked_add(delta.checked_neg().unwrap()).unwrap(),
-            "-10".into(),
-        );
-
-        assert_eq!(delta.checked_neg().unwrap(), "-15".into());
+        assert_eq!(COEF, 10i64.pow(-EXP as u32));
     }
 
     #[test]
