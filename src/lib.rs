@@ -23,11 +23,13 @@ impl FixedPoint {
     pub const MAX: FixedPoint = FixedPoint(i64::MAX);
 
     pub fn from_decimal(decimal: &Decimal) -> Result<FixedPoint, FixedPointFromDecimalError> {
-        if decimal.exponent != EXP {
+        if decimal.exponent < EXP {
             return Err(FixedPointFromDecimalError::UnsupportedExponent);
         }
 
-        Ok(FixedPoint(decimal.mantissa))
+        let multiplier = 10i64.pow((decimal.exponent - EXP) as u32);
+
+        Ok(FixedPoint(multiplier * decimal.mantissa))
     }
 
     #[inline]
@@ -145,8 +147,24 @@ mod tests {
             }
         );
 
-        let p2 = FixedPoint::from_decimal(&decimal).unwrap();
-        assert_eq!(p1, p2);
+        let p2 = FixedPoint::from_decimal(&decimal);
+        assert_eq!(Ok(p1), p2);
+    }
+
+    #[test]
+    fn from_less_accurate_decimal() {
+        let d0 = Decimal {
+            mantissa: 1,
+            exponent: 0,
+        };
+
+        let d1 = Decimal {
+            mantissa: 1,
+            exponent: 1,
+        };
+
+        assert_eq!(FixedPoint::from_decimal(&d0), Ok(FixedPoint::from(1)));
+        assert_eq!(FixedPoint::from_decimal(&d1), Ok(FixedPoint::from(10)));
     }
 
     #[test]
