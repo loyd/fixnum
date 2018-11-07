@@ -29,7 +29,11 @@ impl FixedPoint {
 
         let multiplier = 10i64.pow((decimal.exponent - EXP) as u32);
 
-        Ok(FixedPoint(multiplier * decimal.mantissa))
+        decimal
+            .mantissa
+            .checked_mul(multiplier)
+            .map(FixedPoint)
+            .map_or_else(|| Err(FixedPointFromDecimalError::TooBigMantissa), Ok)
     }
 
     #[inline]
@@ -62,6 +66,8 @@ impl FixedPoint {
 pub enum FixedPointFromDecimalError {
     #[fail(display = "unsupported exponent")]
     UnsupportedExponent,
+    #[fail(display = "too big mantissa")]
+    TooBigMantissa,
 }
 
 impl Into<Decimal> for FixedPoint {
