@@ -23,7 +23,7 @@ impl FixedPoint {
     pub const MAX: FixedPoint = FixedPoint(i64::MAX);
 
     pub fn from_decimal(decimal: &Decimal) -> Result<FixedPoint, FixedPointFromDecimalError> {
-        if decimal.exponent < EXP {
+        if decimal.exponent < EXP || decimal.exponent > 10 {
             return Err(FixedPointFromDecimalError::UnsupportedExponent);
         }
 
