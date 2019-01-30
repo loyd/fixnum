@@ -1,6 +1,5 @@
 use std::i64;
 
-use derive_more::Into;
 use failure::Fail;
 use serde_derive::{Deserialize, Serialize};
 
@@ -13,7 +12,7 @@ const COEF: i64 = 1_000_000_000;
 ///
 /// The internal representation is a fixed point decimal number,
 /// i.e. a value pre-multiplied by 10^N, where N is a pre-defined number.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Into, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct FixedPoint(i64);
 
 impl FixedPoint {
@@ -37,13 +36,13 @@ impl FixedPoint {
     }
 
     #[inline]
-    pub fn checked_add(self, rhs: impl Into<i64>) -> Option<FixedPoint> {
-        self.0.checked_add(rhs.into()).map(FixedPoint)
+    pub fn checked_add(self, rhs: FixedPoint) -> Option<FixedPoint> {
+        self.0.checked_add(rhs.0).map(FixedPoint)
     }
 
     #[inline]
-    pub fn checked_sub(self, rhs: impl Into<i64>) -> Option<FixedPoint> {
-        self.0.checked_sub(rhs.into()).map(FixedPoint)
+    pub fn checked_sub(self, rhs: FixedPoint) -> Option<FixedPoint> {
+        self.0.checked_sub(rhs.0).map(FixedPoint)
     }
 
     #[inline]
@@ -57,8 +56,8 @@ impl FixedPoint {
     }
 
     #[inline]
-    pub fn checked_mul(self, rhs: impl Into<i64>) -> Option<FixedPoint> {
-        self.0.checked_mul(rhs.into()).map(FixedPoint)
+    pub fn checked_mul(self, rhs: i64) -> Option<FixedPoint> {
+        self.0.checked_mul(rhs).map(FixedPoint)
     }
 }
 
