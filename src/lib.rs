@@ -59,6 +59,22 @@ impl FixedPoint {
     pub fn checked_mul(self, rhs: i64) -> Option<FixedPoint> {
         self.0.checked_mul(rhs).map(FixedPoint)
     }
+
+    #[inline]
+    pub fn checked_float_mul(self, rhs: FixedPoint) -> Option<FixedPoint> {
+        const COEF_128: i128 = COEF as i128;
+
+        let value = i128::from(self.0).checked_mul(i128::from(rhs.0))?;
+        let rem = value.checked_rem(COEF_128)?;
+
+        if rem != 0 {
+            return None;
+        }
+
+        let res = value.checked_div(COEF_128)?;
+
+        Some(FixedPoint(res as i64))
+    }
 }
 
 #[derive(Debug, Fail, PartialEq)]
