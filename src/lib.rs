@@ -62,6 +62,8 @@ impl FixedPoint {
 
     #[inline]
     pub fn checked_float_mul(self, rhs: FixedPoint) -> Option<FixedPoint> {
+        // TODO(loyd): avoid 128bit arithmetic when possible.
+
         const COEF_128: i128 = COEF as i128;
 
         let value = i128::from(self.0).checked_mul(i128::from(rhs.0))?;
@@ -244,5 +246,31 @@ mod tests {
 
         let result = FixedPoint::MAX.checked_mul(i64::MIN);
         assert_eq!(result, None);
+    }
+
+    #[test]
+    fn float_mul() {
+        let a = FixedPoint::from(525);
+        let b = FixedPoint::from(10);
+        assert_eq!(a.checked_float_mul(b), Some(FixedPoint::from(5250)));
+
+        let a = FixedPoint::from(525);
+        let b = FixedPoint::from("0.0001");
+        assert_eq!(a.checked_float_mul(b), Some(FixedPoint::from("0.0525")));
+
+        let a = FixedPoint::MAX;
+        let b = FixedPoint::from(1);
+        assert_eq!(a.checked_float_mul(b), Some(FixedPoint::MAX));
+
+        let a = FixedPoint(i64::MAX / 10 * 10);
+        let b = FixedPoint::from("0.1");
+        assert_eq!(a.checked_float_mul(b), Some(FixedPoint(i64::MAX / 10)));
+    }
+
+    #[test]
+    fn float_mul_overflow() {
+        let a = FixedPoint::MAX;
+        let b = FixedPoint::from("0.1");
+        assert_eq!(a.checked_float_mul(b), None);
     }
 }
