@@ -67,15 +67,18 @@ impl FixedPoint {
         const COEF_128: i128 = COEF as i128;
 
         let value = i128::from(self.0).checked_mul(i128::from(rhs.0))?;
-        let rem = value.checked_rem(COEF_128)?;
 
-        if rem != 0 {
+        if value % COEF_128 != 0 {
             return None;
         }
 
-        let res = value.checked_div(COEF_128)?;
+        let result = value / COEF_128;
 
-        Some(FixedPoint(res as i64))
+        if i128::from(result as i64) != result {
+            return None;
+        }
+
+        Some(FixedPoint(result as i64))
     }
 }
 
@@ -271,6 +274,13 @@ mod tests {
     fn float_mul_overflow() {
         let a = FixedPoint::MAX;
         let b = FixedPoint::from("0.1");
+        assert_eq!(a.checked_float_mul(b), None);
+
+        let a = FixedPoint::from(140000);
+        assert_eq!(a.checked_float_mul(a), None);
+
+        let a = FixedPoint::from(-140000);
+        let b = FixedPoint::from(140000);
         assert_eq!(a.checked_float_mul(b), None);
     }
 }
