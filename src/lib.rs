@@ -276,11 +276,11 @@ mod tests {
         let b = FixedPoint::from("0.1");
         assert_eq!(a.checked_mul(b), None);
 
-        let a = FixedPoint::from(140000);
+        let a = FixedPoint::from(140_000);
         assert_eq!(a.checked_mul(a), None);
 
-        let a = FixedPoint::from(-140000);
-        let b = FixedPoint::from(140000);
+        let a = FixedPoint::from(-140_000);
+        let b = FixedPoint::from(140_000);
         assert_eq!(a.checked_mul(b), None);
     }
 }
