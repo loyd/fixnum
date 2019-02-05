@@ -56,12 +56,12 @@ impl FixedPoint {
     }
 
     #[inline]
-    pub fn checked_mul(self, rhs: i64) -> Option<FixedPoint> {
+    pub fn checked_imul(self, rhs: i64) -> Option<FixedPoint> {
         self.0.checked_mul(rhs).map(FixedPoint)
     }
 
     #[inline]
-    pub fn checked_float_mul(self, rhs: FixedPoint) -> Option<FixedPoint> {
+    pub fn checked_mul(self, rhs: FixedPoint) -> Option<FixedPoint> {
         // TODO(loyd): avoid 128bit arithmetic when possible.
 
         const COEF_128: i128 = COEF as i128;
@@ -244,10 +244,10 @@ mod tests {
 
     #[test]
     fn mul_overflow() {
-        let result = FixedPoint::MAX.checked_mul(i64::MAX);
+        let result = FixedPoint::MAX.checked_imul(i64::MAX);
         assert_eq!(result, None);
 
-        let result = FixedPoint::MAX.checked_mul(i64::MIN);
+        let result = FixedPoint::MAX.checked_imul(i64::MIN);
         assert_eq!(result, None);
     }
 
@@ -255,32 +255,32 @@ mod tests {
     fn float_mul() {
         let a = FixedPoint::from(525);
         let b = FixedPoint::from(10);
-        assert_eq!(a.checked_float_mul(b), Some(FixedPoint::from(5250)));
+        assert_eq!(a.checked_mul(b), Some(FixedPoint::from(5250)));
 
         let a = FixedPoint::from(525);
         let b = FixedPoint::from("0.0001");
-        assert_eq!(a.checked_float_mul(b), Some(FixedPoint::from("0.0525")));
+        assert_eq!(a.checked_mul(b), Some(FixedPoint::from("0.0525")));
 
         let a = FixedPoint::MAX;
         let b = FixedPoint::from(1);
-        assert_eq!(a.checked_float_mul(b), Some(FixedPoint::MAX));
+        assert_eq!(a.checked_mul(b), Some(FixedPoint::MAX));
 
         let a = FixedPoint(i64::MAX / 10 * 10);
         let b = FixedPoint::from("0.1");
-        assert_eq!(a.checked_float_mul(b), Some(FixedPoint(i64::MAX / 10)));
+        assert_eq!(a.checked_mul(b), Some(FixedPoint(i64::MAX / 10)));
     }
 
     #[test]
     fn float_mul_overflow() {
         let a = FixedPoint::MAX;
         let b = FixedPoint::from("0.1");
-        assert_eq!(a.checked_float_mul(b), None);
+        assert_eq!(a.checked_mul(b), None);
 
         let a = FixedPoint::from(140000);
-        assert_eq!(a.checked_float_mul(a), None);
+        assert_eq!(a.checked_mul(a), None);
 
         let a = FixedPoint::from(-140000);
         let b = FixedPoint::from(140000);
-        assert_eq!(a.checked_float_mul(b), None);
+        assert_eq!(a.checked_mul(b), None);
     }
 }
