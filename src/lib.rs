@@ -147,7 +147,7 @@ fn fixed_point_from_str(str: &str) -> Result<i64, &'static str> {
         .map_err(|_| "can't parse fractional part")?;
 
     let final_integral = integral.checked_mul(COEF).ok_or("overflow")?;
-    let signum = if integral == 0 { 1 } else { integral.signum() };
+    let signum = if str.as_bytes()[0] == b'-' { -1 } else { 1 };
     let final_fractional = signum * COEF / exp * fractional;
 
     final_integral
@@ -210,6 +210,7 @@ mod tests {
             Ok(9_223_372_036_854_775_807)
         );
         assert_eq!(fixed_point_from_str("0.1234"), Ok(123_400_000));
+        assert_eq!(fixed_point_from_str("-0.1234"), Ok(-123_400_000));
     }
 
     #[test]
