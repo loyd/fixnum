@@ -90,10 +90,10 @@ pub enum FixedPointFromDecimalError {
     TooBigMantissa,
 }
 
-impl Into<Decimal> for FixedPoint {
-    fn into(self) -> Decimal {
+impl From<FixedPoint> for Decimal {
+    fn from(fp: FixedPoint) -> Decimal {
         Decimal {
-            mantissa: self.0,
+            mantissa: fp.0,
             exponent: EXP,
         }
     }
