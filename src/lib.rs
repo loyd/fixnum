@@ -238,6 +238,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::assertions_on_constants)]
     fn exp_and_coef_should_agree() {
         assert!(EXP < 0);
         assert_eq!(COEF, 10i64.pow(-EXP as u32));
