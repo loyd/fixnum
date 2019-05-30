@@ -1,7 +1,7 @@
 use std::i64;
 
 use failure::Fail;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 use crate::Decimal;
 
