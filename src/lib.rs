@@ -21,20 +21,6 @@ impl FixedPoint {
     pub const MIN: FixedPoint = FixedPoint(i64::MIN);
     pub const MAX: FixedPoint = FixedPoint(i64::MAX);
 
-    pub fn from_decimal(decimal: &Decimal) -> Result<FixedPoint, FixedPointFromDecimalError> {
-        if decimal.exponent < EXP || decimal.exponent > 10 {
-            return Err(FixedPointFromDecimalError::UnsupportedExponent);
-        }
-
-        let multiplier = 10i64.pow((decimal.exponent - EXP) as u32);
-
-        decimal
-            .mantissa
-            .checked_mul(multiplier)
-            .map(FixedPoint)
-            .map_or_else(|| Err(FixedPointFromDecimalError::TooBigMantissa), Ok)
-    }
-
     #[inline]
     pub fn checked_add(self, rhs: FixedPoint) -> Option<FixedPoint> {
         self.0.checked_add(rhs.0).map(FixedPoint)
@@ -79,6 +65,22 @@ impl FixedPoint {
         }
 
         Some(FixedPoint(result as i64))
+    }
+}
+
+impl crate::FromDecimal for FixedPoint {
+    fn from_decimal(decimal: &Decimal) -> Result<FixedPoint, FixedPointFromDecimalError> {
+        if decimal.exponent < EXP || decimal.exponent > 10 {
+            return Err(FixedPointFromDecimalError::UnsupportedExponent);
+        }
+
+        let multiplier = 10i64.pow((decimal.exponent - EXP) as u32);
+
+        decimal
+            .mantissa
+            .checked_mul(multiplier)
+            .map(FixedPoint)
+            .map_or_else(|| Err(FixedPointFromDecimalError::TooBigMantissa), Ok)
     }
 }
 
@@ -160,6 +162,8 @@ mod tests {
     use super::*;
 
     use std::i64;
+
+    use crate::FromDecimal;
 
     #[test]
     fn from_decimal() {
