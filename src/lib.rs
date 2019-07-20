@@ -12,7 +12,7 @@ const COEF: i64 = 1_000_000_000;
 ///
 /// The internal representation is a fixed point decimal number,
 /// i.e. a value pre-multiplied by 10^N, where N is a pre-defined number.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct FixedPoint(i64);
 
 impl FixedPoint {
@@ -65,6 +65,35 @@ impl FixedPoint {
         }
 
         Some(FixedPoint(result as i64))
+    }
+}
+
+impl fmt::Debug for FixedPoint {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
+impl fmt::Display for FixedPoint {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let sign = self.0.signum();
+        let integral = (self.0 / COEF).abs();
+        let mut fractional = (self.0 % COEF).abs();
+        let mut frac_width = if fractional > 0 { -EXP as usize } else { 0 };
+
+        while fractional > 0 && fractional % 10 == 0 {
+            fractional /= 10;
+            frac_width -= 1;
+        }
+
+        write!(
+            f,
+            "{}{}.{:0width$}",
+            if sign < 0 { "-" } else { "" },
+            integral,
+            fractional,
+            width = frac_width
+        )
     }
 }
 
@@ -215,6 +244,38 @@ mod tests {
         );
         assert_eq!(fixed_point_from_str("0.1234"), Ok(123_400_000));
         assert_eq!(fixed_point_from_str("-0.1234"), Ok(-123_400_000));
+    }
+
+    #[test]
+    fn display() {
+        assert_eq!(
+            format!("{}", FixedPoint::from("10.042")),
+            String::from("10.042")
+        );
+        assert_eq!(
+            format!("{}", FixedPoint::from("10.042000")),
+            String::from("10.042")
+        );
+        assert_eq!(
+            format!("{}", FixedPoint::from("-10.042")),
+            String::from("-10.042")
+        );
+        assert_eq!(
+            format!("{}", FixedPoint::from("-10.042000")),
+            String::from("-10.042")
+        );
+        assert_eq!(
+            format!("{}", FixedPoint::from("0.000000001")),
+            String::from("0.000000001")
+        );
+        assert_eq!(
+            format!("{}", FixedPoint::from("-0.000000001")),
+            String::from("-0.000000001")
+        );
+        assert_eq!(
+            format!("{}", FixedPoint::from("-0.000")),
+            String::from("0.0")
+        );
     }
 
     #[test]
