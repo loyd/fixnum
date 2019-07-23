@@ -4,6 +4,7 @@ use std::{
 };
 
 use failure::Fail;
+use num::Zero;
 use serde::{Deserialize, Serialize};
 
 use base::ops::{RoundDiv, RoundMode, RoundMul};
@@ -29,6 +30,17 @@ impl FixedPoint {
     pub const ONE: FixedPoint = FixedPoint(COEF);
     pub const MIN: FixedPoint = FixedPoint(i64::MIN);
     pub const MAX: FixedPoint = FixedPoint(i64::MAX);
+}
+
+impl Zero for FixedPoint {
+    fn zero() -> Self {
+        FixedPoint::ZERO
+    }
+
+    #[inline]
+    fn is_zero(&self) -> bool {
+        self == FixedPoint::ZERO
+    }
 }
 
 impl Add for FixedPoint {
