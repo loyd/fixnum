@@ -1,8 +1,6 @@
-use std::{
-    fmt, i64,
-    ops::{Add, Mul, Sub},
-};
+use std::{fmt, i64, ops::Mul};
 
+use derive_more::{Add, Sub};
 use failure::Fail;
 use num::Zero;
 use serde::{Deserialize, Serialize};
@@ -15,14 +13,12 @@ const EXP: i32 = -9;
 const COEF: i64 = 1_000_000_000;
 const COEF_128: i128 = COEF as i128;
 
-// TODO: add Zero impl.
-
 /// Abstraction over fixed point floating numbers.
 ///
 /// The internal representation is a fixed point decimal number,
 /// i.e. a value pre-multiplied by 10^N, where N is a pre-defined number.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Add, Sub)]
 pub struct FixedPoint(i64);
 
 impl FixedPoint {
@@ -33,29 +29,14 @@ impl FixedPoint {
 }
 
 impl Zero for FixedPoint {
+    #[inline]
     fn zero() -> Self {
         FixedPoint::ZERO
     }
 
     #[inline]
     fn is_zero(&self) -> bool {
-        self == FixedPoint::ZERO
-    }
-}
-
-impl Add for FixedPoint {
-    type Output = FixedPoint;
-
-    fn add(self, rhs: FixedPoint) -> FixedPoint {
-        FixedPoint(self.0 + rhs.0)
-    }
-}
-
-impl Sub for FixedPoint {
-    type Output = FixedPoint;
-
-    fn sub(self, rhs: FixedPoint) -> FixedPoint {
-        FixedPoint(self.0 - rhs.0)
+        *self == FixedPoint::ZERO
     }
 }
 
