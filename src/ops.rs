@@ -1,4 +1,20 @@
+use std::i32;
+
 use failure::Fail;
+
+pub trait Numeric: Copy {
+    const ZERO: Self;
+    const ONE: Self;
+    const MIN: Self;
+    const MAX: Self;
+}
+
+impl Numeric for i32 {
+    const ZERO: i32 = 0;
+    const ONE: i32 = 1;
+    const MIN: i32 = i32::MIN;
+    const MAX: i32 = i32::MAX;
+}
 
 #[derive(Debug, PartialEq, Fail)]
 #[fail(display = "overflow")]
