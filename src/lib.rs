@@ -1,6 +1,5 @@
-use std::{fmt, i64, ops::Mul};
+use std::{fmt, i64};
 
-use derive_more::{Add, Sub};
 use failure::Fail;
 use serde::{Deserialize, Serialize};
 
@@ -17,7 +16,7 @@ const COEF_128: i128 = COEF as i128;
 /// The internal representation is a fixed point decimal number,
 /// i.e. a value pre-multiplied by 10^N, where N is a pre-defined number.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[derive(Serialize, Deserialize, Add, Sub)]
+#[derive(Serialize, Deserialize)]
 pub struct FixedPoint(i64);
 
 impl Numeric for FixedPoint {
@@ -72,23 +71,6 @@ impl RoundDiv for FixedPoint {
         }
 
         Ok(FixedPoint(result as i64))
-    }
-}
-
-impl Mul<i64> for FixedPoint {
-    type Output = FixedPoint;
-
-    #[inline]
-    fn mul(self, rhs: i64) -> FixedPoint {
-        FixedPoint(rhs * self.0)
-    }
-}
-
-impl Mul<FixedPoint> for i64 {
-    type Output = FixedPoint;
-
-    fn mul(self, rhs: FixedPoint) -> FixedPoint {
-        FixedPoint(rhs.0 * self)
     }
 }
 
