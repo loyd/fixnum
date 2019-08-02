@@ -58,39 +58,3 @@ pub trait RoundDiv<Rhs = Self> {
     #[must_use]
     fn rdiv(self, rhs: Rhs, mode: RoundMode) -> Result<Self::Output, Self::Error>;
 }
-
-// Impl for primitives (for tests).
-
-macro_rules! impl_for_int {
-    ($ty:ident) => {
-        use std::$ty;
-
-        impl Numeric for $ty {
-            const ZERO: $ty = 0;
-            const ONE: $ty = 1;
-            const MIN: $ty = $ty::MIN;
-            const MAX: $ty = $ty::MAX;
-        }
-
-        impl CheckedAdd for $ty {
-            type Output = $ty;
-            type Error = ();
-
-            fn cadd(self, rhs: $ty) -> Result<$ty, ()> {
-                self.checked_add(rhs).ok_or(())
-            }
-        }
-
-        impl CheckedSub for $ty {
-            type Output = $ty;
-            type Error = ();
-
-            fn csub(self, rhs: $ty) -> Result<$ty, ()> {
-                self.checked_sub(rhs).ok_or(())
-            }
-        }
-    };
-}
-
-impl_for_int!(i32);
-impl_for_int!(u32);
