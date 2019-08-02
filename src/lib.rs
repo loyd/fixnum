@@ -5,7 +5,7 @@ use failure::Fail;
 use num::Zero;
 use serde::{Deserialize, Serialize};
 
-use base::ops::{RoundDiv, RoundMode, RoundMul};
+use base::ops::{Overflow, RoundDiv, RoundMode, RoundMul};
 
 use crate::Decimal;
 
@@ -44,7 +44,7 @@ impl RoundMul for FixedPoint {
     type Output = FixedPoint;
 
     #[inline]
-    fn rmul(self, rhs: FixedPoint, mode: RoundMode) -> FixedPoint {
+    fn rmul(self, rhs: FixedPoint, mode: RoundMode) -> Result<FixedPoint, Overflow> {
         // TODO(loyd): avoid 128bit arithmetic when possible,
         //      because LLVM doesn't replace 128bit division by const with multiplication.
 
@@ -55,9 +55,11 @@ impl RoundMul for FixedPoint {
             result += value.signum();
         }
 
-        debug_assert_eq!(i128::from(result as i64), result, "overflow");
+        if i128::from(result as i64) != result {
+            return Err(Overflow);
+        }
 
-        FixedPoint(result as i64)
+        Ok(FixedPoint(result as i64))
     }
 }
 
@@ -65,7 +67,7 @@ impl RoundDiv for FixedPoint {
     type Output = FixedPoint;
 
     #[inline]
-    fn rdiv(self, rhs: FixedPoint, mode: RoundMode) -> FixedPoint {
+    fn rdiv(self, rhs: FixedPoint, mode: RoundMode) -> Result<FixedPoint, Overflow> {
         // TODO(loyd): avoid 128bit arithmetic when possible,
         //      because LLVM doesn't replace 128bit division by const with multiplication.
 
@@ -78,7 +80,11 @@ impl RoundDiv for FixedPoint {
             result += numerator.signum() * denominator.signum();
         }
 
-        FixedPoint(result as i64)
+        if i128::from(result as i64) != result {
+            return Err(Overflow);
+        }
+
+        Ok(FixedPoint(result as i64))
     }
 }
 
@@ -405,7 +411,7 @@ mod tests {
             // Check the commutative property.
             assert_eq!(a.rmul(b, RoundMode::$mode), b.rmul(a, RoundMode::$mode));
             // Check the result.
-            assert_eq!(a.rmul(b, RoundMode::$mode), FixedPoint::from($result));
+            assert_eq!(a.rmul(b, RoundMode::$mode), Ok(FixedPoint::from($result)));
         }};
     }
 
@@ -461,52 +467,54 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "overflow")]
     fn rmul_overflow() {
-        let _ = FixedPoint::MAX.rmul(FixedPoint::from(2), RoundMode::AwayFromZero);
+        assert_eq!(
+            FixedPoint::MAX.rmul(FixedPoint::from(2), RoundMode::AwayFromZero),
+            Err(Overflow)
+        );
     }
 
     #[test]
     fn rdiv_exact() {
         let (numer, denom) = (FixedPoint::from(5), FixedPoint::from(2));
         let result = FixedPoint::from("2.5");
-        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), result);
-        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), result);
+        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), Ok(result));
+        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), Ok(result));
 
         let (numer, denom) = (FixedPoint::from(-5), FixedPoint::from(2));
         let result = FixedPoint::from("-2.5");
-        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), result);
-        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), result);
+        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), Ok(result));
+        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), Ok(result));
 
         let (numer, denom) = (FixedPoint::from(-5), FixedPoint::from(-2));
         let result = FixedPoint::from("2.5");
-        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), result);
-        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), result);
+        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), Ok(result));
+        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), Ok(result));
 
         let (numer, denom) = (FixedPoint::from(5), FixedPoint::from(-2));
         let result = FixedPoint::from("-2.5");
-        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), result);
-        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), result);
+        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), Ok(result));
+        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), Ok(result));
 
         let (numer, denom) = (FixedPoint::MAX, FixedPoint::MAX);
         let result = FixedPoint::from(1);
-        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), result);
-        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), result);
+        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), Ok(result));
+        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), Ok(result));
 
         let (numer, denom) = (FixedPoint::from("5"), FixedPoint::from("0.2"));
         let result = FixedPoint::from(25);
-        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), result);
-        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), result);
+        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), Ok(result));
+        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), Ok(result));
 
         let (numer, denom) = (FixedPoint::from("0.00000001"), FixedPoint::from("10"));
         let result = FixedPoint::from("0.000000001");
-        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), result);
-        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), result);
+        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), Ok(result));
+        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), Ok(result));
 
         let (numer, denom) = (FixedPoint::from("0.00000001"), FixedPoint::from("0.1"));
         let result = FixedPoint::from("0.0000001");
-        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), result);
-        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), result);
+        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), Ok(result));
+        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), Ok(result));
     }
 
     #[test]
@@ -514,26 +522,34 @@ mod tests {
         let (numer, denom) = (FixedPoint::from(100), FixedPoint::from(3));
         let away_from = FixedPoint::from("33.333333334");
         let towards = FixedPoint::from("33.333333333");
-        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), away_from);
-        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), towards);
+        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), Ok(away_from));
+        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), Ok(towards));
 
         let (numer, denom) = (FixedPoint::from(-100), FixedPoint::from(3));
         let away_from = FixedPoint::from("-33.333333334");
         let towards = FixedPoint::from("-33.333333333");
-        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), away_from);
-        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), towards);
+        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), Ok(away_from));
+        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), Ok(towards));
 
         let (numer, denom) = (FixedPoint::from(-100), FixedPoint::from(-3));
         let away_from = FixedPoint::from("33.333333334");
         let towards = FixedPoint::from("33.333333333");
-        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), away_from);
-        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), towards);
+        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), Ok(away_from));
+        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), Ok(towards));
 
         let (numer, denom) = (FixedPoint::from(100), FixedPoint::from(-3));
         let away_from = FixedPoint::from("-33.333333334");
         let towards = FixedPoint::from("-33.333333333");
-        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), away_from);
-        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), towards);
+        assert_eq!(numer.rdiv(denom, RoundMode::AwayFromZero), Ok(away_from));
+        assert_eq!(numer.rdiv(denom, RoundMode::TowardsZero), Ok(towards));
+    }
+
+    #[test]
+    fn rdiv_overflow() {
+        assert_eq!(
+            FixedPoint::MAX.rdiv(FixedPoint::from("0.5"), RoundMode::AwayFromZero),
+            Err(Overflow)
+        );
     }
 
     #[test]
