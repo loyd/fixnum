@@ -1,3 +1,23 @@
+use failure::Fail;
+
+#[derive(Debug, PartialEq, Fail)]
+#[fail(display = "overflow")]
+pub struct Overflow;
+
+pub trait CheckedMul<Rhs = Self> {
+    type Output;
+
+    #[must_use]
+    fn cmul(self, rhs: Rhs) -> Result<Self::Output, Overflow>;
+}
+
+pub trait CheckedDiv<Rhs = Self> {
+    type Output;
+
+    #[must_use]
+    fn cdiv(self, rhs: Rhs) -> Result<Self::Output, Overflow>;
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum RoundMode {
     AwayFromZero,
