@@ -3,7 +3,7 @@ use std::{fmt, i64};
 use failure::Fail;
 use serde::{Deserialize, Serialize};
 
-use base::ops::{CheckedAdd, CheckedMul, CheckedSub, Numeric, RoundDiv, RoundMode, RoundMul};
+use base::ops::{CheckedAdd, CheckedMul, CheckedSub, Numeric, RoundMode, RoundingDiv, RoundingMul};
 
 use crate::Decimal;
 
@@ -34,7 +34,7 @@ impl Numeric for FixedPoint {
     const MAX: FixedPoint = FixedPoint(i64::MAX);
 }
 
-impl RoundMul for FixedPoint {
+impl RoundingMul for FixedPoint {
     type Output = FixedPoint;
     type Error = ArithmeticError;
 
@@ -58,7 +58,7 @@ impl RoundMul for FixedPoint {
     }
 }
 
-impl RoundDiv for FixedPoint {
+impl RoundingDiv for FixedPoint {
     type Output = FixedPoint;
     type Error = ArithmeticError;
 
