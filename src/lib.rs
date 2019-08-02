@@ -2,10 +2,9 @@ use std::{fmt, i64, ops::Mul};
 
 use derive_more::{Add, Sub};
 use failure::Fail;
-use num::Zero;
 use serde::{Deserialize, Serialize};
 
-use base::ops::{Overflow, RoundDiv, RoundMode, RoundMul};
+use base::ops::{Numeric, Overflow, RoundDiv, RoundMode, RoundMul};
 
 use crate::Decimal;
 
@@ -21,23 +20,11 @@ const COEF_128: i128 = COEF as i128;
 #[derive(Serialize, Deserialize, Add, Sub)]
 pub struct FixedPoint(i64);
 
-impl FixedPoint {
-    pub const ZERO: FixedPoint = FixedPoint(0);
-    pub const ONE: FixedPoint = FixedPoint(COEF);
-    pub const MIN: FixedPoint = FixedPoint(i64::MIN);
-    pub const MAX: FixedPoint = FixedPoint(i64::MAX);
-}
-
-impl Zero for FixedPoint {
-    #[inline]
-    fn zero() -> Self {
-        FixedPoint::ZERO
-    }
-
-    #[inline]
-    fn is_zero(&self) -> bool {
-        *self == FixedPoint::ZERO
-    }
+impl Numeric for FixedPoint {
+    const ZERO: FixedPoint = FixedPoint(0);
+    const ONE: FixedPoint = FixedPoint(COEF);
+    const MIN: FixedPoint = FixedPoint(i64::MIN);
+    const MAX: FixedPoint = FixedPoint(i64::MAX);
 }
 
 impl RoundMul for FixedPoint {
