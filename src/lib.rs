@@ -139,16 +139,6 @@ impl FixedPoint {
     }
 
     #[inline]
-    pub fn checked_neg(self) -> Option<FixedPoint> {
-        self.0.checked_neg().map(FixedPoint)
-    }
-
-    #[inline]
-    pub fn checked_abs(self) -> Option<FixedPoint> {
-        self.0.checked_abs().map(FixedPoint)
-    }
-
-    #[inline]
     pub fn checked_imul(self, rhs: i64) -> Option<FixedPoint> {
         self.0.checked_mul(rhs).map(FixedPoint)
     }
