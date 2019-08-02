@@ -4,6 +4,20 @@ use failure::Fail;
 #[fail(display = "overflow")]
 pub struct Overflow;
 
+pub trait CheckedAdd<Rhs = Self> {
+    type Output;
+
+    #[must_use]
+    fn cadd(self, rhs: Rhs) -> Result<Self::Output, Overflow>;
+}
+
+pub trait CheckedSub<Rhs = Self> {
+    type Output;
+
+    #[must_use]
+    fn csub(self, rhs: Rhs) -> Result<Self::Output, Overflow>;
+}
+
 pub trait CheckedMul<Rhs = Self> {
     type Output;
 
