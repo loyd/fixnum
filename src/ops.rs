@@ -1,5 +1,3 @@
-use std::i32;
-
 use failure::Fail;
 
 pub trait Numeric: Copy {
@@ -7,13 +5,6 @@ pub trait Numeric: Copy {
     const ONE: Self;
     const MIN: Self;
     const MAX: Self;
-}
-
-impl Numeric for i32 {
-    const ZERO: i32 = 0;
-    const ONE: i32 = 1;
-    const MIN: i32 = i32::MIN;
-    const MAX: i32 = i32::MAX;
 }
 
 #[derive(Debug, PartialEq, Fail)]
@@ -67,3 +58,37 @@ pub trait RoundDiv<Rhs = Self> {
     #[must_use]
     fn rdiv(self, rhs: Rhs, mode: RoundMode) -> Result<Self::Output, Overflow>;
 }
+
+// Impl for primitives (for tests).
+
+macro_rules! impl_for_int {
+    ($ty:ident) => {
+        use std::$ty;
+
+        impl Numeric for $ty {
+            const ZERO: $ty = 0;
+            const ONE: $ty = 1;
+            const MIN: $ty = $ty::MIN;
+            const MAX: $ty = $ty::MAX;
+        }
+
+        impl CheckedAdd for $ty {
+            type Output = $ty;
+
+            fn cadd(self, rhs: $ty) -> Result<$ty, Overflow> {
+                self.checked_add(rhs).ok_or(Overflow)
+            }
+        }
+
+        impl CheckedSub for $ty {
+            type Output = $ty;
+
+            fn csub(self, rhs: $ty) -> Result<$ty, Overflow> {
+                self.checked_sub(rhs).ok_or(Overflow)
+            }
+        }
+    };
+}
+
+impl_for_int!(i32);
+impl_for_int!(u32);
