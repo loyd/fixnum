@@ -3,7 +3,7 @@ use std::{fmt, i64};
 use failure::Fail;
 use serde::{Deserialize, Serialize};
 
-use base::ops::{CheckedAdd, CheckedSub, Numeric, RoundDiv, RoundMode, RoundMul};
+use base::ops::{CheckedAdd, CheckedMul, CheckedSub, Numeric, RoundDiv, RoundMode, RoundMul};
 
 use crate::Decimal;
 
@@ -109,6 +109,19 @@ impl CheckedSub for FixedPoint {
     fn csub(self, rhs: FixedPoint) -> Result<FixedPoint, ArithmeticError> {
         self.0
             .checked_sub(rhs.0)
+            .map(FixedPoint)
+            .ok_or(ArithmeticError::Overflow)
+    }
+}
+
+impl CheckedMul<i64> for FixedPoint {
+    type Output = FixedPoint;
+    type Error = ArithmeticError;
+
+    #[inline]
+    fn cmul(self, rhs: i64) -> Result<FixedPoint, ArithmeticError> {
+        self.0
+            .checked_mul(rhs)
             .map(FixedPoint)
             .ok_or(ArithmeticError::Overflow)
     }
