@@ -43,7 +43,7 @@ pub enum RoundMode {
     TowardsZero,
 }
 
-pub trait RoundMul<Rhs = Self> {
+pub trait RoundingMul<Rhs = Self> {
     type Output;
     type Error;
 
@@ -51,7 +51,7 @@ pub trait RoundMul<Rhs = Self> {
     fn rmul(self, rhs: Rhs, mode: RoundMode) -> Result<Self::Output, Self::Error>;
 }
 
-pub trait RoundDiv<Rhs = Self> {
+pub trait RoundingDiv<Rhs = Self> {
     type Output;
     type Error;
 
