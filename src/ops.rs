@@ -28,12 +28,12 @@ pub trait RoundMul<Rhs = Self> {
     type Output;
 
     #[must_use]
-    fn rmul(self, rhs: Rhs, mode: RoundMode) -> Self::Output;
+    fn rmul(self, rhs: Rhs, mode: RoundMode) -> Result<Self::Output, Overflow>;
 }
 
 pub trait RoundDiv<Rhs = Self> {
     type Output;
 
     #[must_use]
-    fn rdiv(self, rhs: Rhs, mode: RoundMode) -> Self::Output;
+    fn rdiv(self, rhs: Rhs, mode: RoundMode) -> Result<Self::Output, Overflow>;
 }
