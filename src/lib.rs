@@ -3,7 +3,7 @@ use std::{fmt, i64};
 use failure::Fail;
 use serde::{Deserialize, Serialize};
 
-use base::ops::{Numeric, Overflow, RoundDiv, RoundMode, RoundMul};
+use base::ops::{CheckedAdd, CheckedSub, Numeric, RoundDiv, RoundMode, RoundMul};
 
 use crate::Decimal;
 
@@ -19,6 +19,14 @@ const COEF_128: i128 = COEF as i128;
 #[derive(Serialize, Deserialize)]
 pub struct FixedPoint(i64);
 
+#[derive(Debug, PartialEq, Fail)]
+pub enum ArithmeticError {
+    #[fail(display = "overflow")]
+    Overflow,
+    #[fail(display = "division by zero")]
+    DivisionByZero,
+}
+
 impl Numeric for FixedPoint {
     const ZERO: FixedPoint = FixedPoint(0);
     const ONE: FixedPoint = FixedPoint(COEF);
@@ -28,9 +36,10 @@ impl Numeric for FixedPoint {
 
 impl RoundMul for FixedPoint {
     type Output = FixedPoint;
+    type Error = ArithmeticError;
 
     #[inline]
-    fn rmul(self, rhs: FixedPoint, mode: RoundMode) -> Result<FixedPoint, Overflow> {
+    fn rmul(self, rhs: FixedPoint, mode: RoundMode) -> Result<FixedPoint, ArithmeticError> {
         // TODO(loyd): avoid 128bit arithmetic when possible,
         //      because LLVM doesn't replace 128bit division by const with multiplication.
 
@@ -42,7 +51,7 @@ impl RoundMul for FixedPoint {
         }
 
         if i128::from(result as i64) != result {
-            return Err(Overflow);
+            return Err(ArithmeticError::Overflow);
         }
 
         Ok(FixedPoint(result as i64))
@@ -51,11 +60,16 @@ impl RoundMul for FixedPoint {
 
 impl RoundDiv for FixedPoint {
     type Output = FixedPoint;
+    type Error = ArithmeticError;
 
     #[inline]
-    fn rdiv(self, rhs: FixedPoint, mode: RoundMode) -> Result<FixedPoint, Overflow> {
+    fn rdiv(self, rhs: FixedPoint, mode: RoundMode) -> Result<FixedPoint, ArithmeticError> {
         // TODO(loyd): avoid 128bit arithmetic when possible,
         //      because LLVM doesn't replace 128bit division by const with multiplication.
+
+        if rhs == FixedPoint::ZERO {
+            return Err(ArithmeticError::DivisionByZero);
+        }
 
         let numerator = i128::from(self.0) * COEF_128;
         let denominator = i128::from(rhs.0);
@@ -67,10 +81,36 @@ impl RoundDiv for FixedPoint {
         }
 
         if i128::from(result as i64) != result {
-            return Err(Overflow);
+            return Err(ArithmeticError::Overflow);
         }
 
         Ok(FixedPoint(result as i64))
+    }
+}
+
+impl CheckedAdd for FixedPoint {
+    type Output = FixedPoint;
+    type Error = ArithmeticError;
+
+    #[inline]
+    fn cadd(self, rhs: FixedPoint) -> Result<FixedPoint, ArithmeticError> {
+        self.0
+            .checked_add(rhs.0)
+            .map(FixedPoint)
+            .ok_or(ArithmeticError::Overflow)
+    }
+}
+
+impl CheckedSub for FixedPoint {
+    type Output = FixedPoint;
+    type Error = ArithmeticError;
+
+    #[inline]
+    fn csub(self, rhs: FixedPoint) -> Result<FixedPoint, ArithmeticError> {
+        self.0
+            .checked_sub(rhs.0)
+            .map(FixedPoint)
+            .ok_or(ArithmeticError::Overflow)
     }
 }
 
@@ -439,7 +479,7 @@ mod tests {
     fn rmul_overflow() {
         assert_eq!(
             FixedPoint::MAX.rmul(FixedPoint::from(2), RoundMode::AwayFromZero),
-            Err(Overflow)
+            Err(ArithmeticError::Overflow)
         );
     }
 
@@ -514,10 +554,18 @@ mod tests {
     }
 
     #[test]
+    fn rdiv_division_by_zero() {
+        assert_eq!(
+            FixedPoint::MAX.rdiv(FixedPoint::from(0), RoundMode::AwayFromZero),
+            Err(ArithmeticError::DivisionByZero)
+        );
+    }
+
+    #[test]
     fn rdiv_overflow() {
         assert_eq!(
             FixedPoint::MAX.rdiv(FixedPoint::from("0.5"), RoundMode::AwayFromZero),
-            Err(Overflow)
+            Err(ArithmeticError::Overflow)
         );
     }
 
