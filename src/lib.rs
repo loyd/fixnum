@@ -163,6 +163,11 @@ impl FixedPoint {
 
         Some(FixedPoint(result as i64))
     }
+
+    #[inline]
+    pub fn recip(self, mode: RoundMode) -> Result<FixedPoint, ArithmeticError> {
+        Self::ONE.rdiv(self, mode)
+    }
 }
 
 impl fmt::Debug for FixedPoint {
