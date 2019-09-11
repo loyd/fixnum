@@ -172,6 +172,14 @@ impl FixedPoint {
     pub fn recip(self, mode: RoundMode) -> Result<FixedPoint, ArithmeticError> {
         Self::ONE.rdiv(self, mode)
     }
+
+    #[inline]
+    pub fn cneg(self) -> Result<FixedPoint, ArithmeticError> {
+        self.0
+            .checked_neg()
+            .map(FixedPoint)
+            .ok_or_else(|| ArithmeticError::Overflow)
+    }
 }
 
 impl fmt::Debug for FixedPoint {
