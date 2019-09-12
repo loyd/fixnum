@@ -46,7 +46,7 @@ impl RoundingMul for FixedPoint {
         let value = i128::from(self.0) * i128::from(rhs.0);
         let (mut result, loss) = (value / COEF_128, value % COEF_128);
 
-        if loss != 0 && mode as i128 == value.signum() {
+        if loss != 0 && mode as i32 == value.signum() as i32 {
             result += value.signum();
         }
 
