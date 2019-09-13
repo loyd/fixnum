@@ -39,8 +39,8 @@ pub trait CheckedDiv<Rhs = Self> {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum RoundMode {
-    AwayFromZero,
-    TowardsZero,
+    Ceil = 1,
+    Floor = -1,
 }
 
 pub trait RoundingMul<Rhs = Self> {
