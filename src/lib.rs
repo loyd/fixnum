@@ -19,6 +19,10 @@ const COEF_128: i128 = COEF as i128;
 #[derive(Serialize, Deserialize)]
 pub struct FixedPoint(i64);
 
+impl FixedPoint {
+    pub const MAX_MINUS_ONE: FixedPoint = FixedPoint(i64::MAX - 1);
+}
+
 #[derive(Debug, PartialEq, Fail)]
 pub enum ArithmeticError {
     #[fail(display = "overflow")]
