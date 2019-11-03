@@ -20,6 +20,7 @@ const COEF_128: i128 = COEF as i128;
 pub struct FixedPoint(i64);
 
 impl FixedPoint {
+    pub const HALF: FixedPoint = FixedPoint(COEF / 2);
     pub const MAX_MINUS_ONE: FixedPoint = FixedPoint(i64::MAX - 1);
 }
 
