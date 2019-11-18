@@ -96,6 +96,33 @@ impl RoundingDiv for FixedPoint {
     }
 }
 
+impl RoundingDiv<i64> for FixedPoint {
+    type Output = FixedPoint;
+    type Error = ArithmeticError;
+
+    #[inline]
+    fn rdiv(self, rhs: i64, mode: RoundMode) -> Result<FixedPoint, ArithmeticError> {
+        if rhs == 0 {
+            return Err(ArithmeticError::DivisionByZero);
+        }
+
+        let numerator = self.0;
+        let denominator = rhs;
+
+        let (mut result, loss) = (numerator / denominator, numerator % denominator);
+
+        if loss != 0 {
+            let sign = numerator.signum() * denominator.signum();
+
+            if mode as i64 == sign {
+                result += sign;
+            }
+        }
+
+        Ok(FixedPoint(result as i64))
+    }
+}
+
 impl CheckedAdd for FixedPoint {
     type Output = FixedPoint;
     type Error = ArithmeticError;
