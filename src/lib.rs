@@ -578,6 +578,30 @@ mod tests {
     }
 
     #[test]
+    fn rdiv_i64() {
+        fn assert_rdiv(a: &str, b: i64, mode: RoundMode, expected: &str) {
+            let a = FixedPoint::from(a);
+            let expected = FixedPoint::from(expected);
+            assert_eq!(a.rdiv(b, mode).unwrap(), expected);
+        }
+
+        assert_rdiv("2.4", 2, RoundMode::Ceil, "1.2");
+        assert_rdiv("7", 3, RoundMode::Floor, "2.333333333");
+        assert_rdiv("7", 3, RoundMode::Ceil, "2.333333334");
+        assert_rdiv("-7", 3, RoundMode::Floor, "-2.333333334");
+        assert_rdiv("-7", 3, RoundMode::Ceil, "-2.333333333");
+        assert_rdiv("-7", -3, RoundMode::Floor, "2.333333333");
+        assert_rdiv("-7", -3, RoundMode::Ceil, "2.333333334");
+        assert_rdiv("7", -3, RoundMode::Floor, "-2.333333334");
+        assert_rdiv("7", -3, RoundMode::Ceil, "-2.333333333");
+        assert_rdiv("0", 5, RoundMode::Ceil, "0");
+        assert_rdiv("0.000000003", 2, RoundMode::Ceil, "0.000000002");
+        assert_rdiv("0.000000003", 2, RoundMode::Floor, "0.000000001");
+        assert_rdiv("0.000000003", 7, RoundMode::Floor, "0");
+        assert_rdiv("0.000000003", 7, RoundMode::Ceil, "0.000000001");
+    }
+
+    #[test]
     fn rdiv_round() {
         let (numer, denom) = (FixedPoint::from(100), FixedPoint::from(3));
         let ceil = FixedPoint::from("33.333333334");
