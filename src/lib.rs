@@ -211,6 +211,13 @@ impl FixedPoint {
             .map(FixedPoint)
             .ok_or_else(|| ArithmeticError::Overflow)
     }
+
+    #[inline]
+    pub fn mid_point(a: FixedPoint, b: FixedPoint) -> FixedPoint {
+        // TODO: optimize
+        let sum = i128::from(a.0) + i128::from(b.0);
+        FixedPoint((sum / 2) as i64)
+    }
 }
 
 impl fmt::Debug for FixedPoint {
@@ -675,5 +682,27 @@ mod tests {
         let a = FixedPoint::from(-140_000);
         let b = FixedPoint::from(140_000);
         assert_eq!(a.checked_mul(b), None);
+    }
+
+    #[test]
+    fn mid_point() {
+        fn t(a: &str, b: &str, r: &str) {
+            let a = FixedPoint::from(a);
+            let b = FixedPoint::from(b);
+            let r = FixedPoint::from(r);
+            assert_eq!(FixedPoint::mid_point(a, b), r);
+        }
+
+        t("1", "3", "2");
+        t("1", "2", "1.5");
+        t("9000", "9050", "9025");
+        t("9000", "-9000", "0");
+        t("9000000000", "9000000002", "9000000001");
+        t(
+            "9000000000.000000001",
+            "-9000000000.000000005",
+            "-0.000000002",
+        );
+        t("7.123456789", "7.123456788", "7.123456788");
     }
 }
