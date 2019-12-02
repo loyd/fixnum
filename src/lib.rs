@@ -213,7 +213,7 @@ impl FixedPoint {
     }
 
     #[inline]
-    pub fn mid_point(a: FixedPoint, b: FixedPoint) -> FixedPoint {
+    pub fn half_sum(a: FixedPoint, b: FixedPoint) -> FixedPoint {
         // TODO: optimize
         let sum = i128::from(a.0) + i128::from(b.0);
         FixedPoint((sum / 2) as i64)
@@ -606,6 +606,7 @@ mod tests {
         assert_rdiv("0.000000003", 2, RoundMode::Floor, "0.000000001");
         assert_rdiv("0.000000003", 7, RoundMode::Floor, "0");
         assert_rdiv("0.000000003", 7, RoundMode::Ceil, "0.000000001");
+        assert_rdiv("0.000000001", 7, RoundMode::Ceil, "0.000000001");
     }
 
     #[test]
@@ -685,12 +686,12 @@ mod tests {
     }
 
     #[test]
-    fn mid_point() {
+    fn half_sum() {
         fn t(a: &str, b: &str, r: &str) {
             let a = FixedPoint::from(a);
             let b = FixedPoint::from(b);
             let r = FixedPoint::from(r);
-            assert_eq!(FixedPoint::mid_point(a, b), r);
+            assert_eq!(FixedPoint::half_sum(a, b), r);
         }
 
         t("1", "3", "2");
