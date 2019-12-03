@@ -219,6 +219,18 @@ impl FixedPoint {
         let sum = i128::from(a.0) + i128::from(b.0);
         FixedPoint((sum / 2) as i64)
     }
+
+    #[inline]
+    pub fn integral(self, mode: RoundMode) -> i64 {
+        let sign = self.0.signum();
+        let (int, frac) = (self.0 / COEF, self.0.abs() % COEF);
+
+        if mode as i64 == sign && frac > 0 {
+            int + sign
+        } else {
+            int
+        }
+    }
 }
 
 impl fmt::Debug for FixedPoint {
@@ -706,5 +718,20 @@ mod tests {
             "-0.000000002",
         );
         t("7.123456789", "7.123456788", "7.123456788");
+    }
+
+    #[test]
+    fn integral() {
+        let a = FixedPoint::from("0.0001");
+        assert_eq!(a.integral(RoundMode::Floor), 0);
+        assert_eq!(a.integral(RoundMode::Ceil), 1);
+
+        let b = FixedPoint::from("-0.0001");
+        assert_eq!(b.integral(RoundMode::Floor), -1);
+        assert_eq!(b.integral(RoundMode::Ceil), 0);
+
+        let c = FixedPoint::ZERO;
+        assert_eq!(c.integral(RoundMode::Floor), 0);
+        assert_eq!(c.integral(RoundMode::Ceil), 0);
     }
 }
