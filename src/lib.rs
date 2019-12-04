@@ -733,5 +733,13 @@ mod tests {
         let c = FixedPoint::ZERO;
         assert_eq!(c.integral(RoundMode::Floor), 0);
         assert_eq!(c.integral(RoundMode::Ceil), 0);
+
+        let d = FixedPoint::from("2.0001");
+        assert_eq!(d.integral(RoundMode::Floor), 2);
+        assert_eq!(d.integral(RoundMode::Ceil), 3);
+
+        let e = FixedPoint::from("-2.0001");
+        assert_eq!(e.integral(RoundMode::Floor), -3);
+        assert_eq!(e.integral(RoundMode::Ceil), -2);
     }
 }
