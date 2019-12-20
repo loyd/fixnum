@@ -1,7 +1,7 @@
 use std::{fmt, i64};
 
-use failure::Fail;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 use base::ops::{CheckedAdd, CheckedMul, CheckedSub, Numeric, RoundMode, RoundingDiv, RoundingMul};
 
@@ -24,11 +24,11 @@ impl FixedPoint {
     pub const MAX_MINUS_ONE: FixedPoint = FixedPoint(i64::MAX - 1);
 }
 
-#[derive(Debug, PartialEq, Fail)]
+#[derive(Debug, PartialEq, Error)]
 pub enum ArithmeticError {
-    #[fail(display = "overflow")]
+    #[error("overflow")]
     Overflow,
-    #[fail(display = "division by zero")]
+    #[error("division by zero")]
     DivisionByZero,
 }
 
@@ -278,11 +278,11 @@ impl crate::FromDecimal for FixedPoint {
     }
 }
 
-#[derive(Debug, Fail, PartialEq)]
+#[derive(Debug, PartialEq, Error)]
 pub enum FixedPointFromDecimalError {
-    #[fail(display = "unsupported exponent")]
+    #[error("unsupported exponent")]
     UnsupportedExponent,
-    #[fail(display = "too big mantissa")]
+    #[error("too big mantissa")]
     TooBigMantissa,
 }
 
