@@ -33,9 +33,6 @@ pub enum ArithmeticError {
     Overflow,
     #[error("division by zero")]
     DivisionByZero,
-    // TODO(hrls): add some description and/or inline details
-    #[error("internal error")]
-    Internal,
 }
 
 impl Numeric for FixedPoint {
@@ -306,18 +303,7 @@ pub enum ConvertError {
     #[error("overflow")]
     Overflow,
     #[error("other: {}", _0)]
-    Other(&'static str),
-    // TODO(hrls): inline some specifics from fixed_point_from_str
-}
-
-impl From<ConvertError> for ArithmeticError {
-    fn from(err: ConvertError) -> Self {
-        use ConvertError::*;
-        match err {
-            Overflow => Self::Overflow,
-            Other(_) => Self::Internal,
-        }
-    }
+    Other(String),
 }
 
 impl TryFrom<i64> for FixedPoint {
@@ -345,37 +331,44 @@ fn fixed_point_from_str(str: &str) -> Result<i64, ConvertError> {
     let index = match str.find('.') {
         Some(index) => index,
         None => {
-            let integral: i64 = str
-                .parse()
-                .map_err(|_| ConvertError::Other("can't parse integral part"))?;
+            let integral: i64 = str.parse().map_err(|_| {
+                ConvertError::Other(format!("can't parse integral part of {}", str))
+            })?;
             return integral.checked_mul(COEF).ok_or(ConvertError::Overflow);
         }
     };
 
     let integral: i64 = str[0..index]
         .parse()
-        .map_err(|_| ConvertError::Other("can't parse integral part"))?;
+        .map_err(|_| ConvertError::Other("can't parse integral part".to_string()))?;
     let fractional_str = &str[index + 1..];
 
     if !fractional_str.chars().all(|c| c.is_digit(10)) {
-        return Err(ConvertError::Other(
-            "fractional part can only contain digits",
-        ));
+        return Err(ConvertError::Other(format!(
+            "wrong {} fractional part can only contain digits",
+            str
+        )));
     }
 
     if fractional_str.len() > EXP.abs() as usize {
-        return Err(ConvertError::Other("precision is too high"));
+        return Err(ConvertError::Other(format!(
+            "precision of {} is too high",
+            str
+        )));
     }
 
     let exp = 10i64.pow(fractional_str.len() as u32);
 
     if exp > COEF {
-        return Err(ConvertError::Other("precision is too high"));
+        return Err(ConvertError::Other(format!(
+            "precision of {} is too high",
+            str
+        )));
     }
 
     let fractional: i64 = fractional_str
         .parse()
-        .map_err(|_| ConvertError::Other("can't parse fractional part"))?;
+        .map_err(|_| ConvertError::Other(format!("can't parse fractional part of {}", str)))?;
 
     let final_integral = integral.checked_mul(COEF).ok_or(ConvertError::Overflow)?;
     let signum = if str.as_bytes()[0] == b'-' { -1 } else { 1 };
@@ -740,7 +733,7 @@ mod tests {
     #[test]
     fn rdiv_division_by_zero() -> Result<(), ArithmeticError> {
         assert_eq!(
-            FixedPoint::MAX.rdiv(FixedPoint::try_from(0)?, RoundMode::Ceil),
+            FixedPoint::MAX.rdiv(FixedPoint::ZERO, RoundMode::Ceil),
             Err(ArithmeticError::DivisionByZero)
         );
 
