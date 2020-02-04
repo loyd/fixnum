@@ -9,7 +9,7 @@ use base::ops::{CheckedAdd, CheckedMul, CheckedSub, Numeric, RoundMode, Rounding
 
 use crate::Decimal;
 
-const EXP: i32 = -9;
+pub(crate) const EXP: i32 = -9;
 const COEF: i64 = 1_000_000_000;
 const COEF_128: i128 = COEF as i128;
 
