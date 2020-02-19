@@ -216,10 +216,11 @@ impl FixedPoint {
         }
 
         let lz = self.0.leading_zeros() as usize;
+        assert!(lz > 0, "unexpected negative value");
+
         let value = power_table::POWER_TABLE[lz];
 
         let value = if self.0 > value {
-            assert!(lz > 0, "unexpected negative value");
             power_table::POWER_TABLE[lz - 1]
         } else {
             value
@@ -810,7 +811,7 @@ mod tests {
         assert_eq!(fp("0.00000001")?.next_power_of_ten()?, fp("0.00000001")?);
         assert_eq!(fp("0.00000002")?.next_power_of_ten()?, fp("0.0000001")?);
         assert_eq!(fp("0.1")?.next_power_of_ten()?, fp("0.1")?);
-        assert_eq!(fp("0.2")?.next_power_of_ten()?, fp("1")?);
+        assert_eq!(fp("0.100000001")?.next_power_of_ten()?, fp("1")?);
         assert_eq!(fp("1")?.next_power_of_ten()?, fp("1")?);
         assert_eq!(fp("2")?.next_power_of_ten()?, fp("10")?);
         assert_eq!(fp("1234567")?.next_power_of_ten()?, fp("10000000")?);
@@ -834,7 +835,7 @@ mod tests {
         assert_eq!(fp("-0.1")?.next_power_of_ten()?, fp("-0.1")?);
         assert_eq!(fp("-0.2")?.next_power_of_ten()?, fp("-1")?);
         assert_eq!(fp("-1")?.next_power_of_ten()?, fp("-1")?);
-        assert_eq!(fp("-2")?.next_power_of_ten()?, fp("-10")?);
+        assert_eq!(fp("-0.100000001")?.next_power_of_ten()?, fp("-1")?);
         assert_eq!(fp("-1234567")?.next_power_of_ten()?, fp("-10000000")?);
         assert_eq!(
             fp("-923372036.854775808")?.next_power_of_ten()?,
