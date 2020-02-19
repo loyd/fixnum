@@ -202,6 +202,14 @@ impl FixedPoint {
         }
     }
 
+    #[inline]
+    pub fn round_towards_zero_by(self, prec: FixedPoint) -> FixedPoint {
+        self.0
+            .checked_div(prec.0)
+            .and_then(|v| v.checked_mul(prec.0))
+            .map_or(self, FixedPoint)
+    }
+
     pub fn next_power_of_ten(self) -> Result<FixedPoint, ArithmeticError> {
         if self < FixedPoint::ZERO {
             return self.cneg()?.next_power_of_ten()?.cneg();
@@ -763,6 +771,31 @@ mod tests {
         let e = fp("-2.0001")?;
         assert_eq!(e.integral(RoundMode::Floor), -3);
         assert_eq!(e.integral(RoundMode::Ceil), -2);
+
+        Ok(())
+    }
+
+    #[test]
+    fn round_towards_zero_by() -> Result<()> {
+        let a = fp("1234.56789")?;
+        assert_eq!(a.round_towards_zero_by(fp("100")?), fp("1200")?);
+        assert_eq!(a.round_towards_zero_by(fp("10")?), fp("1230")?);
+        assert_eq!(a.round_towards_zero_by(fp("1")?), fp("1234")?);
+        assert_eq!(a.round_towards_zero_by(fp("0.1")?), fp("1234.5")?);
+        assert_eq!(a.round_towards_zero_by(fp("0.01")?), fp("1234.56")?);
+        assert_eq!(a.round_towards_zero_by(fp("0.001")?), fp("1234.567")?);
+        assert_eq!(a.round_towards_zero_by(fp("0.0001")?), fp("1234.5678")?);
+        assert_eq!(a.round_towards_zero_by(fp("0.00001")?), fp("1234.56789")?);
+
+        let b = fp("-1234.56789")?;
+        assert_eq!(b.round_towards_zero_by(fp("100")?), fp("-1200")?);
+        assert_eq!(b.round_towards_zero_by(fp("10")?), fp("-1230")?);
+        assert_eq!(b.round_towards_zero_by(fp("1")?), fp("-1234")?);
+        assert_eq!(b.round_towards_zero_by(fp("0.1")?), fp("-1234.5")?);
+        assert_eq!(b.round_towards_zero_by(fp("0.01")?), fp("-1234.56")?);
+        assert_eq!(b.round_towards_zero_by(fp("0.001")?), fp("-1234.567")?);
+        assert_eq!(b.round_towards_zero_by(fp("0.0001")?), fp("-1234.5678")?);
+        assert_eq!(b.round_towards_zero_by(fp("0.00001")?), fp("-1234.56789")?);
 
         Ok(())
     }
