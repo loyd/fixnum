@@ -9,6 +9,8 @@ use base::ops::{CheckedAdd, CheckedMul, CheckedSub, Numeric, RoundMode, Rounding
 
 use crate::Decimal;
 
+mod power_table;
+
 pub(crate) const EXP: i32 = -9;
 const COEF: i64 = 1_000_000_000;
 const COEF_128: i128 = COEF as i128;
@@ -22,6 +24,7 @@ const COEF_128: i128 = COEF as i128;
 pub struct FixedPoint(i64);
 
 impl FixedPoint {
+    pub const EPSILON: FixedPoint = FixedPoint(1);
     pub const HALF: FixedPoint = FixedPoint(COEF / 2);
     pub const MAX_MINUS_ONE: FixedPoint = FixedPoint(i64::MAX - 1);
     pub const MINUS_ONE: FixedPoint = FixedPoint(-COEF);
@@ -197,6 +200,28 @@ impl FixedPoint {
         } else {
             int
         }
+    }
+
+    pub fn next_power_of_ten(self) -> Result<FixedPoint, ArithmeticError> {
+        if self < FixedPoint::ZERO {
+            return self.cneg()?.next_power_of_ten()?.cneg();
+        }
+
+        let lz = self.0.leading_zeros() as usize;
+        let value = power_table::POWER_TABLE[lz];
+
+        let value = if self.0 > value {
+            assert!(lz > 0, "unexpected negative value");
+            power_table::POWER_TABLE[lz - 1]
+        } else {
+            value
+        };
+
+        if value == 0 {
+            return Err(ArithmeticError::Overflow);
+        }
+
+        Ok(FixedPoint(value))
     }
 }
 
@@ -743,26 +768,53 @@ mod tests {
     }
 
     #[test]
-    fn round_towards_zero_by() -> Result<()> {
-        let a = fp("1234.56789")?;
-        assert_eq!(a.round_towards_zero_by(fp("100")?), fp("1200")?);
-        assert_eq!(a.round_towards_zero_by(fp("10")?), fp("1230")?);
-        assert_eq!(a.round_towards_zero_by(fp("1")?), fp("1234")?);
-        assert_eq!(a.round_towards_zero_by(fp("0.1")?), fp("1234.5")?);
-        assert_eq!(a.round_towards_zero_by(fp("0.01")?), fp("1234.56")?);
-        assert_eq!(a.round_towards_zero_by(fp("0.001")?), fp("1234.567")?);
-        assert_eq!(a.round_towards_zero_by(fp("0.0001")?), fp("1234.5678")?);
-        assert_eq!(a.round_towards_zero_by(fp("0.00001")?), fp("1234.56789")?);
+    #[allow(clippy::cognitive_complexity)]
+    fn next_power_of_ten() -> Result<()> {
+        assert_eq!(fp("0")?.next_power_of_ten()?, fp("0.000000001")?);
+        assert_eq!(fp("0.000000001")?.next_power_of_ten()?, fp("0.000000001")?);
+        assert_eq!(fp("0.000000002")?.next_power_of_ten()?, fp("0.00000001")?);
+        assert_eq!(fp("0.000000009")?.next_power_of_ten()?, fp("0.00000001")?);
+        assert_eq!(fp("0.00000001")?.next_power_of_ten()?, fp("0.00000001")?);
+        assert_eq!(fp("0.00000002")?.next_power_of_ten()?, fp("0.0000001")?);
+        assert_eq!(fp("0.1")?.next_power_of_ten()?, fp("0.1")?);
+        assert_eq!(fp("0.2")?.next_power_of_ten()?, fp("1")?);
+        assert_eq!(fp("1")?.next_power_of_ten()?, fp("1")?);
+        assert_eq!(fp("2")?.next_power_of_ten()?, fp("10")?);
+        assert_eq!(fp("1234567")?.next_power_of_ten()?, fp("10000000")?);
+        assert_eq!(
+            fp("923372036.854775807")?.next_power_of_ten()?,
+            fp("1000000000")?
+        );
+        assert_eq!(
+            fp("9223372036.854775807")?.next_power_of_ten(),
+            Err(ArithmeticError::Overflow)
+        );
 
-        let b = fp("-1234.56789")?;
-        assert_eq!(b.round_towards_zero_by(fp("100")?), fp("-1200")?);
-        assert_eq!(b.round_towards_zero_by(fp("10")?), fp("-1230")?);
-        assert_eq!(b.round_towards_zero_by(fp("1")?), fp("-1234")?);
-        assert_eq!(b.round_towards_zero_by(fp("0.1")?), fp("-1234.5")?);
-        assert_eq!(b.round_towards_zero_by(fp("0.01")?), fp("-1234.56")?);
-        assert_eq!(b.round_towards_zero_by(fp("0.001")?), fp("-1234.567")?);
-        assert_eq!(b.round_towards_zero_by(fp("0.0001")?), fp("-1234.5678")?);
-        assert_eq!(b.round_towards_zero_by(fp("0.00001")?), fp("-1234.56789")?);
+        assert_eq!(
+            fp("-0.000000001")?.next_power_of_ten()?,
+            fp("-0.000000001")?
+        );
+        assert_eq!(fp("-0.000000002")?.next_power_of_ten()?, fp("-0.00000001")?);
+        assert_eq!(fp("-0.000000009")?.next_power_of_ten()?, fp("-0.00000001")?);
+        assert_eq!(fp("-0.00000001")?.next_power_of_ten()?, fp("-0.00000001")?);
+        assert_eq!(fp("-0.00000002")?.next_power_of_ten()?, fp("-0.0000001")?);
+        assert_eq!(fp("-0.1")?.next_power_of_ten()?, fp("-0.1")?);
+        assert_eq!(fp("-0.2")?.next_power_of_ten()?, fp("-1")?);
+        assert_eq!(fp("-1")?.next_power_of_ten()?, fp("-1")?);
+        assert_eq!(fp("-2")?.next_power_of_ten()?, fp("-10")?);
+        assert_eq!(fp("-1234567")?.next_power_of_ten()?, fp("-10000000")?);
+        assert_eq!(
+            fp("-923372036.854775808")?.next_power_of_ten()?,
+            fp("-1000000000")?
+        );
+        assert_eq!(
+            fp("-9223372036.854775807")?.next_power_of_ten(),
+            Err(ArithmeticError::Overflow)
+        );
+        assert_eq!(
+            fp("-9223372036.854775808")?.next_power_of_ten(),
+            Err(ArithmeticError::Overflow)
+        );
 
         Ok(())
     }
