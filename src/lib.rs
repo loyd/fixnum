@@ -349,17 +349,17 @@ mod tests {
 
     use std::i64;
 
+    use anyhow::Result;
+
     use crate::FromDecimal;
 
-    impl From<std::convert::Infallible> for ConvertError {
-        fn from(_: std::convert::Infallible) -> Self {
-            unreachable!()
-        }
+    fn fp(s: &str) -> Result<FixedPoint> {
+        FixedPoint::from_str(s).map_err(From::from)
     }
 
     #[test]
-    fn from_decimal() -> Result<(), ConvertError> {
-        let p1 = FixedPoint::try_from(5)?;
+    fn from_decimal() -> Result<()> {
+        let p1 = fp("5")?;
         let decimal = Decimal::from(p1);
 
         assert_eq!(
@@ -377,7 +377,7 @@ mod tests {
     }
 
     #[test]
-    fn from_less_accurate_decimal() -> Result<(), ConvertError> {
+    fn from_less_accurate_decimal() -> Result<()> {
         let d0 = Decimal {
             mantissa: 1,
             exponent: 0,
@@ -388,61 +388,48 @@ mod tests {
             exponent: 1,
         };
 
-        assert_eq!(FixedPoint::from_decimal(&d0), Ok(FixedPoint::try_from(1)?));
-        assert_eq!(FixedPoint::from_decimal(&d1), Ok(FixedPoint::try_from(10)?));
+        assert_eq!(FixedPoint::from_decimal(&d0), Ok(fp("1")?));
+        assert_eq!(FixedPoint::from_decimal(&d1), Ok(fp("10")?));
 
         Ok(())
     }
 
     #[test]
-    fn from_good_str() {
-        assert_eq!(fixed_point_from_str("1"), Ok(1_000_000_000));
-        assert_eq!(fixed_point_from_str("1.1"), Ok(1_100_000_000));
-        assert_eq!(fixed_point_from_str("1.02"), Ok(1_020_000_000));
-        assert_eq!(fixed_point_from_str("-1.02"), Ok(-1_020_000_000));
-        assert_eq!(fixed_point_from_str("+1.02"), Ok(1_020_000_000));
+    fn from_good_str() -> Result<()> {
+        assert_eq!(fp("1")?, FixedPoint(1_000_000_000));
+        assert_eq!(fp("1.1")?, FixedPoint(1_100_000_000));
+        assert_eq!(fp("1.02")?, FixedPoint(1_020_000_000));
+        assert_eq!(fp("-1.02")?, FixedPoint(-1_020_000_000));
+        assert_eq!(fp("+1.02")?, FixedPoint(1_020_000_000));
         assert_eq!(
-            fixed_point_from_str("123456789.123456789"),
-            Ok(123_456_789_123_456_789)
+            fp("123456789.123456789")?,
+            FixedPoint(123_456_789_123_456_789)
         );
         assert_eq!(
-            fixed_point_from_str("9223372036.854775807"),
-            Ok(9_223_372_036_854_775_807)
+            fp("9223372036.854775807")?,
+            FixedPoint(9_223_372_036_854_775_807)
         );
-        assert_eq!(fixed_point_from_str("0.1234"), Ok(123_400_000));
-        assert_eq!(fixed_point_from_str("-0.1234"), Ok(-123_400_000));
+        assert_eq!(fp("0.1234")?, FixedPoint(123_400_000));
+        assert_eq!(fp("-0.1234")?, FixedPoint(-123_400_000));
+
+        Ok(())
     }
 
     #[test]
-    fn display() -> Result<(), ConvertError> {
+    fn display() -> Result<()> {
+        assert_eq!(format!("{}", fp("10.042")?), String::from("10.042"));
+        assert_eq!(format!("{}", fp("10.042000")?), String::from("10.042"));
+        assert_eq!(format!("{}", fp("-10.042")?), String::from("-10.042"));
+        assert_eq!(format!("{}", fp("-10.042000")?), String::from("-10.042"));
         assert_eq!(
-            format!("{}", FixedPoint::from_str("10.042")?),
-            String::from("10.042")
-        );
-        assert_eq!(
-            format!("{}", FixedPoint::from_str("10.042000")?),
-            String::from("10.042")
-        );
-        assert_eq!(
-            format!("{}", FixedPoint::from_str("-10.042")?),
-            String::from("-10.042")
-        );
-        assert_eq!(
-            format!("{}", FixedPoint::from_str("-10.042000")?),
-            String::from("-10.042")
-        );
-        assert_eq!(
-            format!("{}", FixedPoint::from_str("0.000000001")?),
+            format!("{}", fp("0.000000001")?),
             String::from("0.000000001")
         );
         assert_eq!(
-            format!("{}", FixedPoint::from_str("-0.000000001")?),
+            format!("{}", fp("-0.000000001")?),
             String::from("-0.000000001")
         );
-        assert_eq!(
-            format!("{}", FixedPoint::from_str("-0.000")?),
-            String::from("0.0")
-        );
+        assert_eq!(format!("{}", fp("-0.000")?), String::from("0.0"));
 
         Ok(())
     }
@@ -463,11 +450,7 @@ mod tests {
         ];
 
         for str in bad {
-            assert!(
-                fixed_point_from_str(str).is_err(),
-                "must not parse '{}'",
-                str
-            );
+            assert!(fp(str).is_err(), "must not parse '{}'", str);
         }
     }
 
@@ -505,22 +488,22 @@ mod tests {
     // TODO(hrls): remove
     macro_rules! assert_rmuls {
         ($a:expr, $b:expr, $mode:ident, $result:expr) => {{
-            let a = FixedPoint::from_str(&format!("{}", $a))?;
-            let b = FixedPoint::from_str(&format!("{}", $b))?;
+            let a = fp(&format!("{}", $a))?;
+            let b = fp(&format!("{}", $b))?;
 
             // Check the commutative property.
             assert_eq!(a.rmul(b, RoundMode::$mode), b.rmul(a, RoundMode::$mode));
             // Check the result.
             assert_eq!(
                 a.rmul(b, RoundMode::$mode),
-                Ok(FixedPoint::from_str(&format!("{}", $result))?)
+                Ok(fp(&format!("{}", $result))?)
             );
         }};
     }
 
     #[test]
     #[allow(clippy::cognitive_complexity)]
-    fn rmul_exact() -> Result<(), ConvertError> {
+    fn rmul_exact() -> Result<()> {
         assert_rmul!(525, 10, Ceil, 5250);
         assert_rmul!(525, 10, Floor, 5250);
         assert_rmul!(-525, 10, Ceil, -5250);
@@ -558,7 +541,7 @@ mod tests {
     }
 
     #[test]
-    fn rmul_round() -> Result<(), ConvertError> {
+    fn rmul_round() -> Result<()> {
         assert_rmuls!("0.1", "0.000000001", Ceil, "0.000000001");
         assert_rmuls!("0.1", "0.000000001", Floor, 0);
         assert_rmuls!("-0.1", "0.000000001", Ceil, 0);
@@ -574,66 +557,60 @@ mod tests {
     }
 
     #[test]
-    fn rmul_overflow() -> Result<(), ConvertError> {
+    fn rmul_overflow() -> Result<()> {
         let a = FixedPoint::MAX;
-        let b = FixedPoint::from_str("1.1")?;
+        let b = fp("1.1")?;
         assert_eq!(a.rmul(b, RoundMode::Ceil), Err(ArithmeticError::Overflow));
 
-        let a = FixedPoint::try_from(140_000)?;
+        let a = fp("140000")?;
         assert_eq!(a.rmul(a, RoundMode::Ceil), Err(ArithmeticError::Overflow));
 
-        let a = FixedPoint::try_from(-140_000)?;
-        let b = FixedPoint::try_from(140_000)?;
+        let a = fp("-140000")?;
+        let b = fp("140000")?;
         assert_eq!(a.rmul(b, RoundMode::Ceil), Err(ArithmeticError::Overflow));
 
         Ok(())
     }
 
     #[test]
-    fn rdiv_exact() -> Result<(), ConvertError> {
-        let (numer, denom) = (FixedPoint::try_from(5)?, FixedPoint::try_from(2)?);
-        let result = FixedPoint::from_str("2.5")?;
+    fn rdiv_exact() -> Result<()> {
+        let (numer, denom) = (fp("5")?, fp("2")?);
+        let result = fp("2.5")?;
         assert_eq!(numer.rdiv(denom, RoundMode::Ceil), Ok(result));
         assert_eq!(numer.rdiv(denom, RoundMode::Floor), Ok(result));
 
-        let (numer, denom) = (FixedPoint::try_from(-5)?, FixedPoint::try_from(2)?);
-        let result = FixedPoint::from_str("-2.5")?;
+        let (numer, denom) = (fp("-5")?, fp("2")?);
+        let result = fp("-2.5")?;
         assert_eq!(numer.rdiv(denom, RoundMode::Ceil), Ok(result));
         assert_eq!(numer.rdiv(denom, RoundMode::Floor), Ok(result));
 
-        let (numer, denom) = (FixedPoint::try_from(-5)?, FixedPoint::try_from(-2)?);
-        let result = FixedPoint::from_str("2.5")?;
+        let (numer, denom) = (fp("-5")?, fp("-2")?);
+        let result = fp("2.5")?;
         assert_eq!(numer.rdiv(denom, RoundMode::Ceil), Ok(result));
         assert_eq!(numer.rdiv(denom, RoundMode::Floor), Ok(result));
 
-        let (numer, denom) = (FixedPoint::try_from(5)?, FixedPoint::try_from(-2)?);
-        let result = FixedPoint::from_str("-2.5")?;
+        let (numer, denom) = (fp("5")?, fp("-2")?);
+        let result = fp("-2.5")?;
         assert_eq!(numer.rdiv(denom, RoundMode::Ceil), Ok(result));
         assert_eq!(numer.rdiv(denom, RoundMode::Floor), Ok(result));
 
         let (numer, denom) = (FixedPoint::MAX, FixedPoint::MAX);
-        let result = FixedPoint::try_from(1)?;
+        let result = fp("1")?;
         assert_eq!(numer.rdiv(denom, RoundMode::Ceil), Ok(result));
         assert_eq!(numer.rdiv(denom, RoundMode::Floor), Ok(result));
 
-        let (numer, denom) = (FixedPoint::from_str("5")?, FixedPoint::from_str("0.2")?);
-        let result = FixedPoint::try_from(25)?;
+        let (numer, denom) = (fp("5")?, fp("0.2")?);
+        let result = fp("25")?;
         assert_eq!(numer.rdiv(denom, RoundMode::Ceil), Ok(result));
         assert_eq!(numer.rdiv(denom, RoundMode::Floor), Ok(result));
 
-        let (numer, denom) = (
-            FixedPoint::from_str("0.00000001")?,
-            FixedPoint::from_str("10")?,
-        );
-        let result = FixedPoint::from_str("0.000000001")?;
+        let (numer, denom) = (fp("0.00000001")?, fp("10")?);
+        let result = fp("0.000000001")?;
         assert_eq!(numer.rdiv(denom, RoundMode::Ceil), Ok(result));
         assert_eq!(numer.rdiv(denom, RoundMode::Floor), Ok(result));
 
-        let (numer, denom) = (
-            FixedPoint::from_str("0.00000001")?,
-            FixedPoint::from_str("0.1")?,
-        );
-        let result = FixedPoint::from_str("0.0000001")?;
+        let (numer, denom) = (fp("0.00000001")?, fp("0.1")?);
+        let result = fp("0.0000001")?;
         assert_eq!(numer.rdiv(denom, RoundMode::Ceil), Ok(result));
         assert_eq!(numer.rdiv(denom, RoundMode::Floor), Ok(result));
 
@@ -641,15 +618,10 @@ mod tests {
     }
 
     #[test]
-    fn rdiv_i64() -> Result<(), ConvertError> {
-        fn assert_rdiv(
-            a: &str,
-            b: i64,
-            mode: RoundMode,
-            expected: &str,
-        ) -> Result<(), ConvertError> {
-            let a = FixedPoint::from_str(a)?;
-            let expected = FixedPoint::from_str(expected)?;
+    fn rdiv_i64() -> Result<()> {
+        fn assert_rdiv(a: &str, b: i64, mode: RoundMode, expected: &str) -> Result<()> {
+            let a = fp(a)?;
+            let expected = fp(expected)?;
             assert_eq!(a.rdiv(b, mode).unwrap(), expected);
             Ok(())
         }
@@ -673,28 +645,28 @@ mod tests {
     }
 
     #[test]
-    fn rdiv_round() -> Result<(), ConvertError> {
-        let (numer, denom) = (FixedPoint::try_from(100)?, FixedPoint::try_from(3)?);
-        let ceil = FixedPoint::from_str("33.333333334")?;
-        let floor = FixedPoint::from_str("33.333333333")?;
+    fn rdiv_round() -> Result<()> {
+        let (numer, denom) = (fp("100")?, fp("3")?);
+        let ceil = fp("33.333333334")?;
+        let floor = fp("33.333333333")?;
         assert_eq!(numer.rdiv(denom, RoundMode::Ceil), Ok(ceil));
         assert_eq!(numer.rdiv(denom, RoundMode::Floor), Ok(floor));
 
-        let (numer, denom) = (FixedPoint::try_from(-100)?, FixedPoint::try_from(3)?);
-        let ceil = FixedPoint::from_str("-33.333333333")?;
-        let floor = FixedPoint::from_str("-33.333333334")?;
+        let (numer, denom) = (fp("-100")?, fp("3")?);
+        let ceil = fp("-33.333333333")?;
+        let floor = fp("-33.333333334")?;
         assert_eq!(numer.rdiv(denom, RoundMode::Ceil), Ok(ceil));
         assert_eq!(numer.rdiv(denom, RoundMode::Floor), Ok(floor));
 
-        let (numer, denom) = (FixedPoint::try_from(-100)?, FixedPoint::try_from(-3)?);
-        let ceil = FixedPoint::from_str("33.333333334")?;
-        let floor = FixedPoint::from_str("33.333333333")?;
+        let (numer, denom) = (fp("-100")?, fp("-3")?);
+        let ceil = fp("33.333333334")?;
+        let floor = fp("33.333333333")?;
         assert_eq!(numer.rdiv(denom, RoundMode::Ceil), Ok(ceil));
         assert_eq!(numer.rdiv(denom, RoundMode::Floor), Ok(floor));
 
-        let (numer, denom) = (FixedPoint::try_from(100)?, FixedPoint::try_from(-3)?);
-        let ceil = FixedPoint::from_str("-33.333333333")?;
-        let floor = FixedPoint::from_str("-33.333333334")?;
+        let (numer, denom) = (fp("100")?, fp("-3")?);
+        let ceil = fp("-33.333333333")?;
+        let floor = fp("-33.333333334")?;
         assert_eq!(numer.rdiv(denom, RoundMode::Ceil), Ok(ceil));
         assert_eq!(numer.rdiv(denom, RoundMode::Floor), Ok(floor));
 
@@ -702,7 +674,7 @@ mod tests {
     }
 
     #[test]
-    fn rdiv_division_by_zero() -> Result<(), ArithmeticError> {
+    fn rdiv_division_by_zero() -> Result<()> {
         assert_eq!(
             FixedPoint::MAX.rdiv(FixedPoint::ZERO, RoundMode::Ceil),
             Err(ArithmeticError::DivisionByZero)
@@ -712,20 +684,20 @@ mod tests {
     }
 
     #[test]
-    fn rdiv_overflow() -> Result<(), ConvertError> {
+    fn rdiv_overflow() -> Result<()> {
         assert_eq!(
-            FixedPoint::MAX.rdiv(FixedPoint::from_str("0.5")?, RoundMode::Ceil),
+            FixedPoint::MAX.rdiv(fp("0.5")?, RoundMode::Ceil),
             Err(ArithmeticError::Overflow)
         );
         Ok(())
     }
 
     #[test]
-    fn half_sum() -> Result<(), ConvertError> {
-        fn t(a: &str, b: &str, r: &str) -> Result<(), ConvertError> {
-            let a = FixedPoint::from_str(a)?;
-            let b = FixedPoint::from_str(b)?;
-            let r = FixedPoint::from_str(r)?;
+    fn half_sum() -> Result<()> {
+        fn t(a: &str, b: &str, r: &str) -> Result<()> {
+            let a = fp(a)?;
+            let b = fp(b)?;
+            let r = fp(r)?;
             assert_eq!(FixedPoint::half_sum(a, b), r);
             Ok(())
         }
@@ -746,12 +718,12 @@ mod tests {
     }
 
     #[test]
-    fn integral() -> Result<(), ConvertError> {
-        let a = FixedPoint::from_str("0.0001")?;
+    fn integral() -> Result<()> {
+        let a = fp("0.0001")?;
         assert_eq!(a.integral(RoundMode::Floor), 0);
         assert_eq!(a.integral(RoundMode::Ceil), 1);
 
-        let b = FixedPoint::from_str("-0.0001")?;
+        let b = fp("-0.0001")?;
         assert_eq!(b.integral(RoundMode::Floor), -1);
         assert_eq!(b.integral(RoundMode::Ceil), 0);
 
@@ -759,13 +731,38 @@ mod tests {
         assert_eq!(c.integral(RoundMode::Floor), 0);
         assert_eq!(c.integral(RoundMode::Ceil), 0);
 
-        let d = FixedPoint::from_str("2.0001")?;
+        let d = fp("2.0001")?;
         assert_eq!(d.integral(RoundMode::Floor), 2);
         assert_eq!(d.integral(RoundMode::Ceil), 3);
 
-        let e = FixedPoint::from_str("-2.0001")?;
+        let e = fp("-2.0001")?;
         assert_eq!(e.integral(RoundMode::Floor), -3);
         assert_eq!(e.integral(RoundMode::Ceil), -2);
+
+        Ok(())
+    }
+
+    #[test]
+    fn round_towards_zero_by() -> Result<()> {
+        let a = fp("1234.56789")?;
+        assert_eq!(a.round_towards_zero_by(fp("100")?), fp("1200")?);
+        assert_eq!(a.round_towards_zero_by(fp("10")?), fp("1230")?);
+        assert_eq!(a.round_towards_zero_by(fp("1")?), fp("1234")?);
+        assert_eq!(a.round_towards_zero_by(fp("0.1")?), fp("1234.5")?);
+        assert_eq!(a.round_towards_zero_by(fp("0.01")?), fp("1234.56")?);
+        assert_eq!(a.round_towards_zero_by(fp("0.001")?), fp("1234.567")?);
+        assert_eq!(a.round_towards_zero_by(fp("0.0001")?), fp("1234.5678")?);
+        assert_eq!(a.round_towards_zero_by(fp("0.00001")?), fp("1234.56789")?);
+
+        let b = fp("-1234.56789")?;
+        assert_eq!(b.round_towards_zero_by(fp("100")?), fp("-1200")?);
+        assert_eq!(b.round_towards_zero_by(fp("10")?), fp("-1230")?);
+        assert_eq!(b.round_towards_zero_by(fp("1")?), fp("-1234")?);
+        assert_eq!(b.round_towards_zero_by(fp("0.1")?), fp("-1234.5")?);
+        assert_eq!(b.round_towards_zero_by(fp("0.01")?), fp("-1234.56")?);
+        assert_eq!(b.round_towards_zero_by(fp("0.001")?), fp("-1234.567")?);
+        assert_eq!(b.round_towards_zero_by(fp("0.0001")?), fp("-1234.5678")?);
+        assert_eq!(b.round_towards_zero_by(fp("0.00001")?), fp("-1234.56789")?);
 
         Ok(())
     }
