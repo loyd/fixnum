@@ -168,42 +168,6 @@ impl CheckedMul<i64> for FixedPoint {
 
 impl FixedPoint {
     #[inline]
-    pub fn checked_add(self, rhs: FixedPoint) -> Option<FixedPoint> {
-        self.0.checked_add(rhs.0).map(FixedPoint)
-    }
-
-    #[inline]
-    pub fn checked_sub(self, rhs: FixedPoint) -> Option<FixedPoint> {
-        self.0.checked_sub(rhs.0).map(FixedPoint)
-    }
-
-    #[inline]
-    pub fn checked_imul(self, rhs: i64) -> Option<FixedPoint> {
-        self.0.checked_mul(rhs).map(FixedPoint)
-    }
-
-    #[inline]
-    pub fn checked_mul(self, rhs: FixedPoint) -> Option<FixedPoint> {
-        // TODO(loyd): avoid 128bit arithmetic when possible.
-
-        const COEF_128: i128 = COEF as i128;
-
-        let value = i128::from(self.0).checked_mul(i128::from(rhs.0))?;
-
-        if value % COEF_128 != 0 {
-            return None;
-        }
-
-        let result = value / COEF_128;
-
-        if i128::from(result as i64) != result {
-            return None;
-        }
-
-        Some(FixedPoint(result as i64))
-    }
-
-    #[inline]
     pub fn recip(self, mode: RoundMode) -> Result<FixedPoint, ArithmeticError> {
         Self::ONE.rdiv(self, mode)
     }
@@ -515,12 +479,12 @@ mod tests {
     }
 
     #[test]
-    fn mul_overflow() {
-        let result = FixedPoint::MAX.checked_imul(i64::MAX);
-        assert_eq!(result, None);
+    fn cmul_overflow() {
+        let result = FixedPoint::MAX.cmul(i64::MAX);
+        assert_eq!(result, Err(ArithmeticError::Overflow));
 
-        let result = FixedPoint::MAX.checked_imul(i64::MIN);
-        assert_eq!(result, None);
+        let result = FixedPoint::MAX.cmul(i64::MIN);
+        assert_eq!(result, Err(ArithmeticError::Overflow));
     }
 
     macro_rules! assert_rmul {
@@ -611,10 +575,17 @@ mod tests {
 
     #[test]
     fn rmul_overflow() -> Result<(), ConvertError> {
-        assert_eq!(
-            FixedPoint::MAX.rmul(FixedPoint::try_from(2)?, RoundMode::Ceil),
-            Err(ArithmeticError::Overflow)
-        );
+        let a = FixedPoint::MAX;
+        let b = FixedPoint::from_str("1.1")?;
+        assert_eq!(a.rmul(b, RoundMode::Ceil), Err(ArithmeticError::Overflow));
+
+        let a = FixedPoint::try_from(140_000)?;
+        assert_eq!(a.rmul(a, RoundMode::Ceil), Err(ArithmeticError::Overflow));
+
+        let a = FixedPoint::try_from(-140_000)?;
+        let b = FixedPoint::try_from(140_000)?;
+        assert_eq!(a.rmul(b, RoundMode::Ceil), Err(ArithmeticError::Overflow));
+
         Ok(())
     }
 
@@ -746,43 +717,6 @@ mod tests {
             FixedPoint::MAX.rdiv(FixedPoint::from_str("0.5")?, RoundMode::Ceil),
             Err(ArithmeticError::Overflow)
         );
-        Ok(())
-    }
-
-    #[test]
-    fn float_mul() -> Result<(), ConvertError> {
-        let a = FixedPoint::try_from(525)?;
-        let b = FixedPoint::try_from(10)?;
-        assert_eq!(a.checked_mul(b), Some(FixedPoint::try_from(5250)?));
-
-        let a = FixedPoint::try_from(525)?;
-        let b = FixedPoint::from_str("0.0001")?;
-        assert_eq!(a.checked_mul(b), Some(FixedPoint::from_str("0.0525")?));
-
-        let a = FixedPoint::MAX;
-        let b = FixedPoint::try_from(1)?;
-        assert_eq!(a.checked_mul(b), Some(FixedPoint::MAX));
-
-        let a = FixedPoint(i64::MAX / 10 * 10);
-        let b = FixedPoint::from_str("0.1")?;
-        assert_eq!(a.checked_mul(b), Some(FixedPoint(i64::MAX / 10)));
-
-        Ok(())
-    }
-
-    #[test]
-    fn float_mul_overflow() -> Result<(), ConvertError> {
-        let a = FixedPoint::MAX;
-        let b = FixedPoint::from_str("0.1")?;
-        assert_eq!(a.checked_mul(b), None);
-
-        let a = FixedPoint::try_from(140_000)?;
-        assert_eq!(a.checked_mul(a), None);
-
-        let a = FixedPoint::try_from(-140_000)?;
-        let b = FixedPoint::try_from(140_000)?;
-        assert_eq!(a.checked_mul(b), None);
-
         Ok(())
     }
 
