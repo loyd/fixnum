@@ -203,10 +203,10 @@ impl FixedPoint {
     }
 
     #[inline]
-    pub fn round_towards_zero_by(self, prec: FixedPoint) -> FixedPoint {
+    pub fn round_towards_zero_by(self, precision: FixedPoint) -> FixedPoint {
         self.0
-            .checked_div(prec.0)
-            .and_then(|v| v.checked_mul(prec.0))
+            .checked_div(precision.0)
+            .and_then(|v| v.checked_mul(precision.0))
             .map_or(self, FixedPoint)
     }
 
