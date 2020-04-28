@@ -1,0 +1,6 @@
+include:
+  - project: 'shared/crates/template'
+    ref: '2020-04-27'
+    file: '.gitlab-ci-template.yml'
+variables:
+  PUBLISH_CRATE: 1
