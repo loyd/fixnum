@@ -232,6 +232,44 @@ impl FixedPoint {
 
         Ok(FixedPoint(value))
     }
+
+    pub fn rounding_from_f64(value: f64) -> Result<FixedPoint, ArithmeticError> {
+        let x = (value * COEF as f64).round();
+        if x >= (i64::MIN as f64) && x <= (i64::MAX as f64) {
+            Ok(FixedPoint(x as i64))
+        } else {
+            Err(ArithmeticError::Overflow)
+        }
+    }
+
+    pub fn to_f64(self) -> f64 {
+        (self.0 as f64) / (COEF as f64)
+    }
+
+    pub fn rounding_to_i64(self) -> i64 {
+        let x = if self.0 > 0 {
+            self.0 + COEF / 2
+        } else {
+            self.0 - COEF / 2
+        };
+        x / COEF
+    }
+}
+
+#[derive(Debug, Error)]
+#[error("value is not an integer: {0}")]
+pub struct NotIntegerError(FixedPoint);
+
+impl TryFrom<FixedPoint> for i64 {
+    type Error = NotIntegerError;
+
+    fn try_from(value: FixedPoint) -> Result<Self, Self::Error> {
+        if value.0 % COEF == 0 {
+            Ok(value.0 / COEF)
+        } else {
+            Err(NotIntegerError(value))
+        }
+    }
 }
 
 impl fmt::Debug for FixedPoint {
@@ -317,6 +355,20 @@ impl TryFrom<i64> for FixedPoint {
     }
 }
 
+/// Returns `FixedPoint` corresponding to the integer `value`.
+impl From<i32> for FixedPoint {
+    fn from(value: i32) -> Self {
+        FixedPoint(i64::from(value).checked_mul(COEF).expect("impossible"))
+    }
+}
+
+/// Returns `FixedPoint` corresponding to the integer `value`.
+impl From<u32> for FixedPoint {
+    fn from(value: u32) -> Self {
+        FixedPoint(i64::from(value).checked_mul(COEF).expect("impossible"))
+    }
+}
+
 impl FromStr for FixedPoint {
     type Err = ConvertError;
 
@@ -381,11 +433,12 @@ fn fixed_point_from_str(str: &str) -> Result<i64, ConvertError> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use anyhow::Result;
 
     use std::i64;
 
-    use anyhow::Result;
+    use super::*;
+    use crate::ops::RoundMode::Ceil;
 
     fn fp(s: &str) -> Result<FixedPoint> {
         FixedPoint::from_str(s).map_err(From::from)
@@ -727,6 +780,35 @@ mod tests {
     }
 
     #[test]
+    fn float_mul() {
+        let a = FixedPoint::try_from(525).unwrap();
+        let b = FixedPoint::try_from(10).unwrap();
+        assert_eq!(a.rmul(b, Ceil), Ok(FixedPoint::try_from(5250).unwrap()));
+
+        let a = FixedPoint::try_from(525).unwrap();
+        let b = FixedPoint::from_str("0.0001").unwrap();
+        assert_eq!(a.rmul(b, Ceil), Ok(FixedPoint::from_str("0.0525").unwrap()));
+
+        let a = FixedPoint::MAX;
+        let b = FixedPoint::try_from(1).unwrap();
+        assert_eq!(a.rmul(b, Ceil), Ok(FixedPoint::MAX));
+
+        let a = FixedPoint(i64::MAX / 10 * 10);
+        let b = FixedPoint::from_str("0.1").unwrap();
+        assert_eq!(a.rmul(b, Ceil), Ok(FixedPoint(i64::MAX / 10)));
+    }
+
+    #[test]
+    fn float_mul_overflow() {
+        let a = FixedPoint::try_from(140_000).unwrap();
+        assert!(a.rmul(a, Ceil).is_err());
+
+        let a = FixedPoint::try_from(-140_000).unwrap();
+        let b = FixedPoint::try_from(140_000).unwrap();
+        assert!(a.rmul(b, Ceil).is_err());
+    }
+
+    #[test]
     fn half_sum() -> Result<()> {
         fn t(a: &str, b: &str, r: &str) -> Result<()> {
             let a = fp(a)?;
@@ -851,5 +933,39 @@ mod tests {
         );
 
         Ok(())
+    }
+
+    #[test]
+    fn rounding_to_i64() {
+        fn t(x: &str, r: i64) {
+            let f = FixedPoint::from_str(x).unwrap();
+            assert_eq!(f.rounding_to_i64(), r);
+        }
+
+        t("0", 0);
+        t("42", 42);
+        t("1.4", 1);
+        t("1.6", 2);
+        t("-1.4", -1);
+        t("-1.6", -2);
+        t("0.4999", 0);
+        t("0.5", 1);
+        t("0.5001", 1);
+    }
+
+    #[test]
+    fn to_f64() {
+        fn t(x: &str, expected: f64) {
+            let f = FixedPoint::from_str(x).unwrap();
+            let actual = f.to_f64();
+            assert_eq!(actual.to_string(), expected.to_string());
+        }
+
+        t("0", 0.0);
+        t("1", 1.0);
+        t("1.5", 1.5);
+        t("42.123456789", 42.123_456_789);
+        t("-14.14", -14.14);
+        t("8003332421.536753168", 8_003_332_421.536_754);
     }
 }
