@@ -5,9 +5,10 @@ use std::{fmt, i64};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use base::ops::{CheckedAdd, CheckedMul, CheckedSub, Numeric, RoundMode, RoundingDiv, RoundingMul};
-
-use crate::Decimal;
+use crate::decimal::Decimal;
+use crate::ops::{
+    CheckedAdd, CheckedMul, CheckedSub, Numeric, RoundMode, RoundingDiv, RoundingMul,
+};
 
 mod power_table;
 
@@ -19,8 +20,7 @@ const COEF_128: i128 = COEF as i128;
 ///
 /// The internal representation is a fixed point decimal number,
 /// i.e. a value pre-multiplied by 10^N, where N is a pre-defined number.
-#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct FixedPoint(i64);
 
 impl FixedPoint {
@@ -263,8 +263,10 @@ impl fmt::Display for FixedPoint {
     }
 }
 
-impl crate::FromDecimal for FixedPoint {
-    fn from_decimal(decimal: &Decimal) -> Result<FixedPoint, FixedPointFromDecimalError> {
+impl TryFrom<Decimal> for FixedPoint {
+    type Error = FixedPointFromDecimalError;
+
+    fn try_from(decimal: Decimal) -> Result<FixedPoint, FixedPointFromDecimalError> {
         if decimal.exponent < EXP || decimal.exponent > 10 {
             return Err(FixedPointFromDecimalError::UnsupportedExponent);
         }
@@ -385,8 +387,6 @@ mod tests {
 
     use anyhow::Result;
 
-    use crate::FromDecimal;
-
     fn fp(s: &str) -> Result<FixedPoint> {
         FixedPoint::from_str(s).map_err(From::from)
     }
@@ -404,7 +404,7 @@ mod tests {
             }
         );
 
-        let p2 = FixedPoint::from_decimal(&decimal);
+        let p2 = FixedPoint::try_from(decimal);
         assert_eq!(Ok(p1), p2);
 
         Ok(())
@@ -422,8 +422,8 @@ mod tests {
             exponent: 1,
         };
 
-        assert_eq!(FixedPoint::from_decimal(&d0), Ok(fp("1")?));
-        assert_eq!(FixedPoint::from_decimal(&d1), Ok(fp("10")?));
+        assert_eq!(FixedPoint::try_from(d0), Ok(fp("1")?));
+        assert_eq!(FixedPoint::try_from(d1), Ok(fp("10")?));
 
         Ok(())
     }
