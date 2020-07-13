@@ -11,7 +11,6 @@ use crate::ops::{
 
 mod power_table;
 
-pub(crate) const EXP: i32 = -9;
 const COEF: i64 = 1_000_000_000;
 const COEF_128: i128 = COEF as i128;
 
@@ -23,6 +22,8 @@ const COEF_128: i128 = COEF as i128;
 pub struct FixedPoint(i64);
 
 impl FixedPoint {
+    pub const EXP: i32 = -9;
+
     pub const EPSILON: FixedPoint = FixedPoint(1);
     pub const HALF: FixedPoint = FixedPoint(COEF / 2);
     pub const MAX_MINUS_ONE: FixedPoint = FixedPoint(i64::MAX - 1);
@@ -282,7 +283,11 @@ impl fmt::Display for FixedPoint {
         let sign = self.0.signum();
         let integral = (self.0 / COEF).abs();
         let mut fractional = (self.0 % COEF).abs();
-        let mut frac_width = if fractional > 0 { -EXP as usize } else { 0 };
+        let mut frac_width = if fractional > 0 {
+            -Self::EXP as usize
+        } else {
+            0
+        };
 
         while fractional > 0 && fractional % 10 == 0 {
             fractional /= 10;
@@ -305,16 +310,24 @@ impl FixedPoint {
         mantissa: i64,
         exponent: i32,
     ) -> Result<FixedPoint, FixedPointFromDecimalError> {
-        if exponent < EXP || exponent > 10 {
+        if exponent < Self::EXP || exponent > 10 {
             return Err(FixedPointFromDecimalError::UnsupportedExponent);
         }
 
-        let multiplier = 10i64.pow((exponent - EXP) as u32);
+        let multiplier = 10i64.pow((exponent - Self::EXP) as u32);
 
         mantissa
             .checked_mul(multiplier)
             .map(FixedPoint)
             .map_or_else(|| Err(FixedPointFromDecimalError::TooBigMantissa), Ok)
+    }
+
+    pub fn from_mantissa(mantissa: i64) -> FixedPoint {
+        FixedPoint(mantissa)
+    }
+
+    pub fn mantissa(self) -> i64 {
+        self.0
     }
 }
 
@@ -392,7 +405,7 @@ fn fixed_point_from_str(str: &str) -> Result<i64, ConvertError> {
         )));
     }
 
-    if fractional_str.len() > EXP.abs() as usize {
+    if fractional_str.len() > FixedPoint::EXP.abs() as usize {
         return Err(ConvertError::Other(format!(
             "precision of {} is too high",
             str
@@ -513,8 +526,8 @@ mod tests {
     #[test]
     #[allow(clippy::assertions_on_constants)]
     fn exp_and_coef_should_agree() {
-        assert!(EXP < 0);
-        assert_eq!(COEF, 10i64.pow(-EXP as u32));
+        assert!(FixedPoint::EXP < 0);
+        assert_eq!(COEF, 10i64.pow(-FixedPoint::EXP as u32));
     }
 
     #[test]
