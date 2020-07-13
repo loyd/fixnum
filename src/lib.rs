@@ -5,7 +5,6 @@ use std::{fmt, i64};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::decimal::Decimal;
 use crate::ops::{
     CheckedAdd, CheckedMul, CheckedSub, Numeric, RoundMode, RoundingDiv, RoundingMul,
 };
@@ -301,18 +300,18 @@ impl fmt::Display for FixedPoint {
     }
 }
 
-impl TryFrom<Decimal> for FixedPoint {
-    type Error = FixedPointFromDecimalError;
-
-    fn try_from(decimal: Decimal) -> Result<FixedPoint, FixedPointFromDecimalError> {
-        if decimal.exponent < EXP || decimal.exponent > 10 {
+impl FixedPoint {
+    pub fn from_decimal(
+        mantissa: i64,
+        exponent: i32,
+    ) -> Result<FixedPoint, FixedPointFromDecimalError> {
+        if exponent < EXP || exponent > 10 {
             return Err(FixedPointFromDecimalError::UnsupportedExponent);
         }
 
-        let multiplier = 10i64.pow((decimal.exponent - EXP) as u32);
+        let multiplier = 10i64.pow((exponent - EXP) as u32);
 
-        decimal
-            .mantissa
+        mantissa
             .checked_mul(multiplier)
             .map(FixedPoint)
             .map_or_else(|| Err(FixedPointFromDecimalError::TooBigMantissa), Ok)
@@ -325,15 +324,6 @@ pub enum FixedPointFromDecimalError {
     UnsupportedExponent,
     #[error("too big mantissa")]
     TooBigMantissa,
-}
-
-impl From<FixedPoint> for Decimal {
-    fn from(fp: FixedPoint) -> Decimal {
-        Decimal {
-            mantissa: fp.0,
-            exponent: EXP,
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Error)]
@@ -447,17 +437,7 @@ mod tests {
     #[test]
     fn from_decimal() -> Result<()> {
         let p1 = fp("5")?;
-        let decimal = Decimal::from(p1);
-
-        assert_eq!(
-            decimal,
-            Decimal {
-                mantissa: 5_000_000_000,
-                exponent: -9
-            }
-        );
-
-        let p2 = FixedPoint::try_from(decimal);
+        let p2 = FixedPoint::from_decimal(5_000_000_000, -9);
         assert_eq!(Ok(p1), p2);
 
         Ok(())
@@ -465,19 +445,8 @@ mod tests {
 
     #[test]
     fn from_less_accurate_decimal() -> Result<()> {
-        let d0 = Decimal {
-            mantissa: 1,
-            exponent: 0,
-        };
-
-        let d1 = Decimal {
-            mantissa: 1,
-            exponent: 1,
-        };
-
-        assert_eq!(FixedPoint::try_from(d0), Ok(fp("1")?));
-        assert_eq!(FixedPoint::try_from(d1), Ok(fp("10")?));
-
+        assert_eq!(FixedPoint::from_decimal(1, 0), Ok(fp("1")?));
+        assert_eq!(FixedPoint::from_decimal(1, 1), Ok(fp("10")?));
         Ok(())
     }
 
@@ -834,6 +803,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::many_single_char_names)]
     fn integral() -> Result<()> {
         let a = fp("0.0001")?;
         assert_eq!(a.integral(RoundMode::Floor), 0);
