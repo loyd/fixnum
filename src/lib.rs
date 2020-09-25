@@ -9,6 +9,7 @@ use crate::ops::{
     CheckedAdd, CheckedMul, CheckedSub, Numeric, RoundMode, RoundingDiv, RoundingMul,
 };
 
+pub mod ops;
 mod power_table;
 
 const COEF: i64 = 1_000_000_000;
