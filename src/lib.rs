@@ -11,11 +11,13 @@ use crate::ops::{
 };
 
 pub mod ops;
+mod fixed_point_128;
 mod power_table;
 #[cfg(test)]
 mod tests;
 
 type Result<T, E = ArithmeticError> = std::result::Result<T, E>;
+pub use typenum;
 
 /// Abstraction over fixed point floating numbers.
 ///
