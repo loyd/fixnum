@@ -1,7 +1,11 @@
 [package]
-name = "fixed_point"
-version = "0.0.0"
-publish = ["zubr"]
+name = "fixnum"
+version = "0.1.0"
+description = "fixed-point numbers"
+keywords = ["fixed", "decimal", "numbers"]
+repository = "https://github.com/loyd/fixnum.rs"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
 edition = "2018"
 
 [dependencies]
