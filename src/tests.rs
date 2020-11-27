@@ -1,11 +1,15 @@
 use anyhow::Result;
 
+use std::convert::TryInto;
 use std::i64;
 
 use super::*;
 use crate::ops::RoundMode::*;
 
-type FixedPoint = super::FixedPoint<i64, typenum::U9>;
+type FixedPoint = super::FixedPoint<i128, typenum::U18>;
+
+// FixedPoint::MAX.sqrt().floor()
+const MAX_SQRT: i64 = 13_043_817_825;
 
 fn fp(s: &str) -> Result<FixedPoint> {
     FixedPoint::from_str(s).map_err(From::from)
@@ -68,11 +72,11 @@ fn from_bad_str() {
         "7.02e5",
         "a.12",
         "12.a",
-        "13.0000000001",
-        "13.1000000001",
+        "13.0000000000000000001",
+        "13.1000000000000000001",
         "13.9999999999999999999999999999999999999999999999999999999999999",
         "100000000000000000000000",
-        "9223372036.854775808",
+        "9223372036.8547758204856183567",
         "170141183460469231731687303715.884105728",
     ];
 
@@ -85,15 +89,20 @@ fn from_bad_str() {
 #[allow(clippy::assertions_on_constants)]
 fn exp_and_coef_should_agree() {
     assert!(FixedPoint::PRECISION > 0);
-    assert_eq!(FixedPoint::COEF, 10i64.pow(FixedPoint::PRECISION as u32));
+    assert_eq!(
+        FixedPoint::COEF,
+        (10i64.pow(FixedPoint::PRECISION as u32))
+            .try_into()
+            .unwrap()
+    );
 }
 
 #[test]
 fn cmul_overflow() {
-    let result = FixedPoint::MAX.cmul(i64::MAX);
+    let result = FixedPoint::MAX.cmul(i64::MAX.try_into().unwrap());
     assert_eq!(result, Err(ArithmeticError::Overflow));
 
-    let result = FixedPoint::MAX.cmul(i64::MIN);
+    let result = FixedPoint::MAX.cmul(i64::MIN.try_into().unwrap());
     assert_eq!(result, Err(ArithmeticError::Overflow));
 }
 
@@ -142,16 +151,16 @@ fn rmul_exact() -> Result<()> {
     assert_rmul!(FixedPoint::MAX, 1, Ceil, FixedPoint::MAX);
     assert_rmul!(FixedPoint::MAX, 1, Floor, FixedPoint::MAX);
     assert_rmuls!(
-        FixedPoint::from_bits(i64::MAX / 10 * 10),
+        FixedPoint::from_bits(i128::from(i64::MAX / 10 * 10)),
         "0.1",
         Ceil,
-        FixedPoint::from_bits(i64::MAX / 10)
+        FixedPoint::from_bits(i128::from(i64::MAX / 10))
     );
     assert_rmuls!(
-        FixedPoint::from_bits(i64::MAX / 10 * 10),
+        FixedPoint::from_bits(i128::from(i64::MAX / 10 * 10)),
         "0.1",
         Floor,
-        FixedPoint::from_bits(i64::MAX / 10)
+        FixedPoint::from_bits(i128::from(i64::MAX / 10))
     );
     assert_rmuls!(1, "0.000000001", Ceil, "0.000000001");
     assert_rmuls!(1, "0.000000001", Floor, "0.000000001");
@@ -243,7 +252,7 @@ fn rdiv_i64() -> Result<()> {
     fn assert_rdiv(a: &str, b: i64, mode: RoundMode, expected: &str) -> Result<()> {
         let a = fp(a)?;
         let expected = fp(expected)?;
-        assert_eq!(a.rdiv(b, mode).unwrap(), expected);
+        assert_eq!(a.rdiv(i128::from(b), mode).unwrap(), expected);
         Ok(())
     }
 
@@ -315,30 +324,33 @@ fn rdiv_overflow() -> Result<()> {
 
 #[test]
 fn float_mul() {
-    let a = FixedPoint::try_from(525).unwrap();
-    let b = FixedPoint::try_from(10).unwrap();
-    assert_eq!(a.rmul(b, Ceil), Ok(FixedPoint::try_from(5250).unwrap()));
+    let a = FixedPoint::from(525);
+    let b = FixedPoint::from(10);
+    assert_eq!(a.rmul(b, Ceil), Ok(FixedPoint::from(5250)));
 
-    let a = FixedPoint::try_from(525).unwrap();
+    let a = FixedPoint::from(525);
     let b = FixedPoint::from_str("0.0001").unwrap();
     assert_eq!(a.rmul(b, Ceil), Ok(FixedPoint::from_str("0.0525").unwrap()));
 
     let a = FixedPoint::MAX;
-    let b = FixedPoint::try_from(1).unwrap();
+    let b = FixedPoint::from(1);
     assert_eq!(a.rmul(b, Ceil), Ok(FixedPoint::MAX));
 
-    let a = FixedPoint::from_bits(i64::MAX / 10 * 10);
+    let a = FixedPoint::from_bits(i128::from(i64::MAX / 10 * 10));
     let b = FixedPoint::from_str("0.1").unwrap();
-    assert_eq!(a.rmul(b, Ceil), Ok(FixedPoint::from_bits(i64::MAX / 10)));
+    assert_eq!(
+        a.rmul(b, Ceil),
+        Ok(FixedPoint::from_bits(i128::from(i64::MAX / 10)))
+    );
 }
 
 #[test]
 fn float_mul_overflow() {
-    let a = FixedPoint::try_from(140_000).unwrap();
+    let a = FixedPoint::from(MAX_SQRT + 1);
     assert!(a.rmul(a, Ceil).is_err());
 
-    let a = FixedPoint::try_from(-140_000).unwrap();
-    let b = FixedPoint::try_from(140_000).unwrap();
+    let a = FixedPoint::from(-MAX_SQRT - 1);
+    let b = FixedPoint::from(MAX_SQRT);
     assert!(a.rmul(b, Ceil).is_err());
 }
 

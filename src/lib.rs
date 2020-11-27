@@ -6,12 +6,13 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use typenum::Unsigned;
 
+use crate::i256::I256;
 use crate::ops::{
     CheckedAdd, CheckedMul, CheckedSub, Numeric, RoundMode, RoundingDiv, RoundingMul,
 };
 
+pub mod i256;
 pub mod ops;
-mod fixed_point_128;
 mod power_table;
 #[cfg(test)]
 mod tests;
@@ -58,15 +59,15 @@ pub enum ConvertError {
     Other(String),
 }
 
-macro_rules! pow {
-    ($lhs:expr, $rhs:expr) => {{
+macro_rules! pow10 {
+    ($convert:expr, $rhs:expr) => {{
         let mut result = 1;
         let mut i = $rhs;
         while i > 0 {
-            result *= $lhs;
+            result *= 10;
             i -= 1;
         }
-        result
+        $convert(result)
     }};
 }
 
@@ -74,6 +75,7 @@ macro_rules! impl_fixed_point {
     (
         inner = $layout:tt;
         promoted_to = $promotion:tt;
+        convert = $convert:expr;
         from = [$($from:ty),*];
         try_from = [$($try_from:ty),*];
     ) => {
@@ -90,8 +92,8 @@ macro_rules! impl_fixed_point {
             pub const PRECISION: i32 = P::I32;
             pub const EPSILON: Self = Self::from_bits(1);
 
-            const COEF: $layout = pow!(10, Self::PRECISION);
-            const COEF_PROMOTED: $promotion = pow!(10, Self::PRECISION);
+            const COEF: $layout = pow10!(identity, Self::PRECISION);
+            const COEF_PROMOTED: $promotion = pow10!($convert, Self::PRECISION);
 
             // TODO
             //pub const HALF: Self = Self::from_bits(Self::COEF / 2);
@@ -123,7 +125,7 @@ macro_rules! impl_fixed_point {
                 let mut result =
                     $layout::try_from(result).map_err(|_| ArithmeticError::Overflow)?;
 
-                if loss != 0 && mode as i32 == sign as i32 {
+                if loss != $convert(0) && mode as i32 == sign as i32 {
                     result = result.checked_add(sign).ok_or(ArithmeticError::Overflow)?;
                 }
 
@@ -152,7 +154,7 @@ macro_rules! impl_fixed_point {
                 let mut result =
                     $layout::try_from(result).map_err(|_| ArithmeticError::Overflow)?;
 
-                if loss != 0 {
+                if loss != $convert(0) {
                     let sign = self.inner.signum() * rhs.inner.signum();
 
                     if mode as i32 == sign as i32 {
@@ -469,21 +471,35 @@ macro_rules! impl_fixed_point {
     };
 }
 
+const fn identity<T>(x: T) -> T {
+    x
+}
+
 impl_fixed_point!(
     inner = i16;
     promoted_to = i32;
+    convert = identity;
     from = [i8, u8];
     try_from = [i16, u16, i32, u32, i64, u64, i128, u128, isize, usize];
 );
 impl_fixed_point!(
     inner = i32;
     promoted_to = i64;
+    convert = identity;
     from = [i8, u8, i16, u16];
     try_from = [i32, u32, i64, u64, i128, u128, isize, usize];
 );
 impl_fixed_point!(
     inner = i64;
     promoted_to = i128;
+    convert = identity;
     from = [i8, u8, i16, u16, i32, u32];
     try_from = [i64, u64, i128, u128, isize, usize];
+);
+impl_fixed_point!(
+    inner = i128;
+    promoted_to = I256;
+    convert = I256::from_u64;
+    from = [i8, u8, i16, u16, i32, u32, i64, u64];
+    try_from = [i128, u128, isize, usize];
 );
