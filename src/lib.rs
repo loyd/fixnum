@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 use std::str::FromStr;
-use std::{fmt, i64, marker::PhantomData};
+use std::{fmt, i64, marker::PhantomData, mem};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -291,10 +291,10 @@ macro_rules! impl_fixed_point {
                 let lz = self.inner.leading_zeros() as usize;
                 assert!(lz > 0, "unexpected negative value");
 
-                let value = power_table::POWER_TABLE[lz];
+                let value = Self::power_of_ten_by_leading_zeros(lz);
 
-                let value = if self.inner as i64 > i64::from(value) {
-                    power_table::POWER_TABLE[lz - 1]
+                let value = if self.inner > value {
+                    Self::power_of_ten_by_leading_zeros(lz - 1)
                 } else {
                     value
                 };
@@ -305,6 +305,15 @@ macro_rules! impl_fixed_point {
 
                 // TODO
                 Ok(Self::from_bits(value as $layout))
+            }
+
+            fn power_of_ten_by_leading_zeros(lz: usize) -> $layout {
+                use crate::power_table::{POWER_TABLE, BITS_COUNT};
+                const BITS_IN_BYTE: usize = 8;
+                const BITS_OFFSET: usize = BITS_COUNT - mem::size_of::<$layout>() * BITS_IN_BYTE;
+                let value = POWER_TABLE[lz + BITS_OFFSET];
+                const LAYOUT_MAX: i128 = $layout::MAX as i128;
+                if value > LAYOUT_MAX { 0 } else { value as $layout }
             }
 
             pub fn rounding_from_f64(value: f64) -> Result<FixedPoint<$layout, P>> {
@@ -327,7 +336,7 @@ macro_rules! impl_fixed_point {
                 } else {
                     self.inner - Self::COEF / 2
                 };
-                x as i64 / Self::COEF as i64
+                (x / Self::COEF) as i64
             }
         }
 

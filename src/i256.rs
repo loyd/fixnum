@@ -25,9 +25,11 @@ pub struct I256 {
 
 impl I256 {
     /// Value `i128::MAX`
-    pub const I128_MAX: Self = Self::from_u127(i128::MAX as u128);
+    pub const I128_MAX: Self = Self::from_i128(i128::MAX);
     /// Value `i128::MIN`. Very useful because `abs` isn't defined for `i128::MIN`
-    pub const I128_MIN: Self = Self::new(U256([0, 0, 0, SIGN_MASK]));
+    pub const I128_MIN: Self = Self::from_i128(i128::MIN);
+    pub const MAX: Self = Self::new(U256([u64::MAX, u64::MAX, u64::MAX, !SIGN_MASK]));
+    pub const MIN: Self = Self::new(U256([0, 0, 0, SIGN_MASK]));
 
     const fn new(x: U256) -> Self {
         I256 { inner: x }
@@ -39,8 +41,14 @@ impl I256 {
         Self::new(U256(words)) // The only way to do it const
     }
 
-    const fn from_u127(x: u128) -> Self {
-        Self::new(U256([x as u64, (x >> UINT_WORD_BITS_COUNT) as u64, 0, 0])) // The only way to do it const
+    const fn from_i128(x: i128) -> Self {
+        let msb = if x < 0 { u64::MAX } else { 0 };
+        Self::new(U256([
+            x as u64,
+            (x >> UINT_WORD_BITS_COUNT) as u64,
+            msb,
+            msb,
+        ])) // The only way to do it const
     }
 
     pub fn mul(self, rhs: Self) -> Result<Self, ArithmeticError> {
@@ -153,8 +161,15 @@ impl Sub for I256 {
 impl Neg for I256 {
     type Output = Self;
 
+    /// N.B. Neg has a single case of panicking: `-I256::MIN`
+    /// Because on two's complement we always have one extra negative value
     fn neg(self) -> Self::Output {
-        Self::new(!self.inner + 1)
+        if self == Self::MIN {
+            panic_on_overflow();
+        }
+        // Overflow takes place when we negate zero.
+        let (x, _) = (!self.inner).overflowing_add(1.into());
+        Self::new(x)
     }
 }
 
@@ -212,6 +227,10 @@ impl TryFrom<I256> for i128 {
     }
 }
 
+fn panic_on_overflow() {
+    panic!("arithmetic operation overflow");
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -245,5 +264,48 @@ mod test {
         test_i128(i128::MAX - 1);
         test_i128(i128::MIN);
         test_i128(i128::MIN + 1);
+    }
+
+    #[test]
+    fn test_neg_i128() {
+        fn t(value: i128, expected: i128) {
+            let actual: I256 = -I256::from(value);
+            assert_eq!(i128::try_from(actual).unwrap(), expected);
+            assert_eq!(i128::try_from(-actual).unwrap(), value);
+        }
+        t(0, 0);
+        t(1, -1);
+        t(1234, -1234);
+        t(123_456_789_987, -123_456_789_987);
+    }
+
+    #[test]
+    fn test_neg_i256() {
+        fn t(value: I256, expected: I256) {
+            let actual: I256 = -value;
+            assert_eq!(actual, expected);
+            assert_eq!(-actual, value);
+        }
+        t(I256::MAX, I256::new(U256([1, 0, 0, SIGN_MASK])));
+        t(
+            I256::new(U256([
+                0xa869_bc02_ecba_4436,
+                0x5ef3_b3e7_5daa_96ce,
+                0x369a_22b0_7ff5_955b,
+                0x8aa9_fa9e_77c4_2900,
+            ])),
+            I256::new(U256([
+                0x579643fd1345bbca,
+                0xa10c4c18a2556931,
+                0xc965dd4f800a6aa4,
+                0x75560561883bd6ff,
+            ])),
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_neg_i256_min() {
+        let _x = -I256::MIN;
     }
 }

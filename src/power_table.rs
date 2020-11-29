@@ -1,3 +1,5 @@
+pub const BITS_COUNT: usize = 128;
+
 /*
     Script for generating the table content.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -19,6 +21,8 @@ for lz, (value, power) in enumerate(zip(values, powers)):
         print('/* %3d | %39d */ %d,' % (lz, value, power))
 */
 
+/// Acts as a map for any given `x: i128`:
+/// Leading zeros count in `x` -> The closest power of ten
 #[rustfmt::skip]
 #[allow(clippy::all)]
 pub static POWER_TABLE: [i128; 129] = [

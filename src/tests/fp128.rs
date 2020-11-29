@@ -3,10 +3,10 @@ use anyhow::Result;
 use std::convert::TryInto;
 use std::i64;
 
-use super::*;
 use crate::ops::RoundMode::*;
+use crate::*;
 
-type FixedPoint = super::FixedPoint<i128, typenum::U18>;
+type FixedPoint = crate::FixedPoint<i128, typenum::U18>;
 
 // FixedPoint::MAX.sqrt().floor()
 const MAX_SQRT: i64 = 13_043_817_825;
@@ -172,16 +172,36 @@ fn rmul_exact() -> Result<()> {
 
 #[test]
 fn rmul_round() -> Result<()> {
-    assert_rmuls!("0.1", "0.000000001", Ceil, "0.000000001");
-    assert_rmuls!("0.1", "0.000000001", Floor, 0);
-    assert_rmuls!("-0.1", "0.000000001", Ceil, 0);
-    assert_rmuls!("-0.1", "0.000000001", Floor, "-0.000000001");
-    assert_rmuls!("-0.1", "-0.000000001", Ceil, "0.000000001");
-    assert_rmuls!("-0.1", "-0.000000001", Floor, 0);
-    assert_rmuls!("0.000000001", "0.000000001", Ceil, "0.000000001");
-    assert_rmuls!("0.000000001", "0.000000001", Floor, 0);
-    assert_rmuls!("-0.000000001", "0.000000001", Ceil, 0);
-    assert_rmuls!("-0.000000001", "0.000000001", Floor, "-0.000000001");
+    assert_rmuls!("0.1", "0.000000000000000001", Ceil, "0.000000000000000001");
+    assert_rmuls!("0.1", "0.000000000000000001", Floor, 0);
+    assert_rmuls!("-0.1", "0.000000000000000001", Ceil, 0);
+    assert_rmuls!(
+        "-0.1",
+        "0.000000000000000001",
+        Floor,
+        "-0.000000000000000001"
+    );
+    assert_rmuls!(
+        "-0.1",
+        "-0.000000000000000001",
+        Ceil,
+        "0.000000000000000001"
+    );
+    assert_rmuls!("-0.1", "-0.000000000000000001", Floor, 0);
+    assert_rmuls!(
+        "0.000000000000000001",
+        "0.000000000000000001",
+        Ceil,
+        "0.000000000000000001"
+    );
+    assert_rmuls!("0.000000000000000001", "0.000000000000000001", Floor, 0);
+    assert_rmuls!("-0.000000000000000001", "0.000000000000000001", Ceil, 0);
+    assert_rmuls!(
+        "-0.000000000000000001",
+        "0.000000000000000001",
+        Floor,
+        "-0.000000000000000001"
+    );
 
     Ok(())
 }
@@ -192,11 +212,14 @@ fn rmul_overflow() -> Result<()> {
     let b = fp("1.1")?;
     assert_eq!(a.rmul(b, Ceil), Err(ArithmeticError::Overflow));
 
-    let a = fp("140000")?;
+    let a = fp("13043817825.332782")?;
+    assert_eq!(a.rmul(a, Ceil)?, fp("170141183460469226191.989043859524")?);
+
+    let a = fp("13043817825.332783")?;
     assert_eq!(a.rmul(a, Ceil), Err(ArithmeticError::Overflow));
 
-    let a = fp("-140000")?;
-    let b = fp("140000")?;
+    let a = fp("-13043817826")?;
+    let b = fp("13043817826")?;
     assert_eq!(a.rmul(b, Ceil), Err(ArithmeticError::Overflow));
 
     Ok(())
@@ -257,46 +280,46 @@ fn rdiv_i64() -> Result<()> {
     }
 
     assert_rdiv("2.4", 2, Ceil, "1.2")?;
-    assert_rdiv("7", 3, Floor, "2.333333333")?;
-    assert_rdiv("7", 3, Ceil, "2.333333334")?;
-    assert_rdiv("-7", 3, Floor, "-2.333333334")?;
-    assert_rdiv("-7", 3, Ceil, "-2.333333333")?;
-    assert_rdiv("-7", -3, Floor, "2.333333333")?;
-    assert_rdiv("-7", -3, Ceil, "2.333333334")?;
-    assert_rdiv("7", -3, Floor, "-2.333333334")?;
-    assert_rdiv("7", -3, Ceil, "-2.333333333")?;
+    assert_rdiv("7", 3, Floor, "2.333333333333333333")?;
+    assert_rdiv("7", 3, Ceil, "2.333333333333333334")?;
+    assert_rdiv("-7", 3, Floor, "-2.333333333333333334")?;
+    assert_rdiv("-7", 3, Ceil, "-2.333333333333333333")?;
+    assert_rdiv("-7", -3, Floor, "2.333333333333333333")?;
+    assert_rdiv("-7", -3, Ceil, "2.333333333333333334")?;
+    assert_rdiv("7", -3, Floor, "-2.333333333333333334")?;
+    assert_rdiv("7", -3, Ceil, "-2.333333333333333333")?;
     assert_rdiv("0", 5, Ceil, "0")?;
-    assert_rdiv("0.000000003", 2, Ceil, "0.000000002")?;
-    assert_rdiv("0.000000003", 2, Floor, "0.000000001")?;
-    assert_rdiv("0.000000003", 7, Floor, "0")?;
-    assert_rdiv("0.000000003", 7, Ceil, "0.000000001")?;
-    assert_rdiv("0.000000001", 7, Ceil, "0.000000001")?;
+    assert_rdiv("0.000000000000000003", 2, Ceil, "0.000000000000000002")?;
+    assert_rdiv("0.000000000000000003", 2, Floor, "0.000000000000000001")?;
+    assert_rdiv("0.000000000000000003", 7, Floor, "0")?;
+    assert_rdiv("0.000000000000000003", 7, Ceil, "0.000000000000000001")?;
+    assert_rdiv("0.000000000000000001", 7, Ceil, "0.000000000000000001")?;
     Ok(())
 }
 
 #[test]
 fn rdiv_round() -> Result<()> {
     let (numer, denom) = (fp("100")?, fp("3")?);
-    let ceil = fp("33.333333334")?;
-    let floor = fp("33.333333333")?;
+    let ceil = fp("33.333333333333333334")?;
+    let floor = fp("33.333333333333333333")?;
     assert_eq!(numer.rdiv(denom, Ceil), Ok(ceil));
     assert_eq!(numer.rdiv(denom, Floor), Ok(floor));
 
     let (numer, denom) = (fp("-100")?, fp("3")?);
-    let ceil = fp("-33.333333333")?;
-    let floor = fp("-33.333333334")?;
+    let ceil = fp("-33.333333333333333333")?;
+    let floor = fp("-33.333333333333333334")?;
     assert_eq!(numer.rdiv(denom, Ceil), Ok(ceil));
     assert_eq!(numer.rdiv(denom, Floor), Ok(floor));
 
     let (numer, denom) = (fp("-100")?, fp("-3")?);
-    let ceil = fp("33.333333334")?;
-    let floor = fp("33.333333333")?;
+    let ceil = fp("33.333333333333333334")?;
+    let floor = fp("33.333333333333333333")?;
     assert_eq!(numer.rdiv(denom, Ceil), Ok(ceil));
     assert_eq!(numer.rdiv(denom, Floor), Ok(floor));
 
     let (numer, denom) = (fp("100")?, fp("-3")?);
-    let ceil = fp("-33.333333333")?;
-    let floor = fp("-33.333333334")?;
+    let ceil = fp("-33.333333333333333333")?;
+    let floor = fp("-33.333333333333333334")?;
     assert_eq!(numer.rdiv(denom, Ceil), Ok(ceil));
     assert_eq!(numer.rdiv(denom, Floor), Ok(floor));
 
@@ -374,7 +397,11 @@ fn half_sum() -> Result<()> {
         "-9000000000.000000005",
         "-0.000000002",
     )?;
-    t("7.123456789", "7.123456788", "7.123456788")?;
+    t(
+        "7.123456789123456789",
+        "7.123456789123456788",
+        "7.123456789123456788",
+    )?;
 
     Ok(())
 }
@@ -433,49 +460,75 @@ fn round_towards_zero_by() -> Result<()> {
 #[test]
 #[allow(clippy::cognitive_complexity)]
 fn next_power_of_ten() -> Result<()> {
-    assert_eq!(fp("0")?.next_power_of_ten()?, fp("0.000000001")?);
-    assert_eq!(fp("0.000000001")?.next_power_of_ten()?, fp("0.000000001")?);
-    assert_eq!(fp("0.000000002")?.next_power_of_ten()?, fp("0.00000001")?);
-    assert_eq!(fp("0.000000009")?.next_power_of_ten()?, fp("0.00000001")?);
-    assert_eq!(fp("0.00000001")?.next_power_of_ten()?, fp("0.00000001")?);
-    assert_eq!(fp("0.00000002")?.next_power_of_ten()?, fp("0.0000001")?);
-    assert_eq!(fp("0.1")?.next_power_of_ten()?, fp("0.1")?);
-    assert_eq!(fp("0.100000001")?.next_power_of_ten()?, fp("1")?);
-    assert_eq!(fp("1")?.next_power_of_ten()?, fp("1")?);
-    assert_eq!(fp("2")?.next_power_of_ten()?, fp("10")?);
-    assert_eq!(fp("1234567")?.next_power_of_ten()?, fp("10000000")?);
+    assert_eq!(fp("0")?.next_power_of_ten()?, fp("0.000000000000000001")?);
     assert_eq!(
-        fp("923372036.854775807")?.next_power_of_ten()?,
-        fp("1000000000")?
+        fp("0.000000000000000001")?.next_power_of_ten()?,
+        fp("0.000000000000000001")?
     );
     assert_eq!(
-        fp("9223372036.854775807")?.next_power_of_ten(),
+        fp("0.000000000000000002")?.next_power_of_ten()?,
+        fp("0.00000000000000001")?
+    );
+    assert_eq!(
+        fp("0.000000000000000009")?.next_power_of_ten()?,
+        fp("0.00000000000000001")?
+    );
+    assert_eq!(
+        fp("0.00000000000000001")?.next_power_of_ten()?,
+        fp("0.00000000000000001")?
+    );
+    assert_eq!(
+        fp("0.00000000000000002")?.next_power_of_ten()?,
+        fp("0.0000000000000001")?
+    );
+    assert_eq!(fp("0.1")?.next_power_of_ten()?, fp("0.1")?);
+    assert_eq!(fp("0.100000000000000001")?.next_power_of_ten()?, fp("1")?);
+    assert_eq!(fp("1")?.next_power_of_ten()?, fp("1")?);
+    assert_eq!(fp("2")?.next_power_of_ten()?, fp("10")?);
+    assert_eq!(
+        fp("1234567891234567")?.next_power_of_ten()?,
+        fp("10000000000000000")?
+    );
+    assert_eq!(
+        fp("923372036987654321.854775807")?.next_power_of_ten()?,
+        fp("1000000000000000000")?
+    );
+    assert_eq!(
+        fp("150000000000000000000.0")?.next_power_of_ten(),
         Err(ArithmeticError::Overflow)
     );
 
     assert_eq!(
-        fp("-0.000000001")?.next_power_of_ten()?,
-        fp("-0.000000001")?
+        fp("-0.000000000000000001")?.next_power_of_ten()?,
+        fp("-0.000000000000000001")?
     );
-    assert_eq!(fp("-0.000000002")?.next_power_of_ten()?, fp("-0.00000001")?);
-    assert_eq!(fp("-0.000000009")?.next_power_of_ten()?, fp("-0.00000001")?);
-    assert_eq!(fp("-0.00000001")?.next_power_of_ten()?, fp("-0.00000001")?);
-    assert_eq!(fp("-0.00000002")?.next_power_of_ten()?, fp("-0.0000001")?);
+    assert_eq!(
+        fp("-0.000000000000000002")?.next_power_of_ten()?,
+        fp("-0.00000000000000001")?
+    );
+    assert_eq!(
+        fp("-0.000000000000000009")?.next_power_of_ten()?,
+        fp("-0.00000000000000001")?
+    );
+    assert_eq!(
+        fp("-0.00000000000000001")?.next_power_of_ten()?,
+        fp("-0.00000000000000001")?
+    );
+    assert_eq!(
+        fp("-0.00000000000000002")?.next_power_of_ten()?,
+        fp("-0.0000000000000001")?
+    );
     assert_eq!(fp("-0.1")?.next_power_of_ten()?, fp("-0.1")?);
     assert_eq!(fp("-0.2")?.next_power_of_ten()?, fp("-1")?);
     assert_eq!(fp("-1")?.next_power_of_ten()?, fp("-1")?);
-    assert_eq!(fp("-0.100000001")?.next_power_of_ten()?, fp("-1")?);
+    assert_eq!(fp("-0.100000000000000001")?.next_power_of_ten()?, fp("-1")?);
     assert_eq!(fp("-1234567")?.next_power_of_ten()?, fp("-10000000")?);
     assert_eq!(
-        fp("-923372036.854775808")?.next_power_of_ten()?,
-        fp("-1000000000")?
+        fp("-923372036987654321.854775808")?.next_power_of_ten()?,
+        fp("-1000000000000000000")?
     );
     assert_eq!(
-        fp("-9223372036.854775807")?.next_power_of_ten(),
-        Err(ArithmeticError::Overflow)
-    );
-    assert_eq!(
-        fp("-9223372036.854775808")?.next_power_of_ten(),
+        fp("-150000000000000000000.854775807")?.next_power_of_ten(),
         Err(ArithmeticError::Overflow)
     );
 

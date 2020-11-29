@@ -30,14 +30,14 @@ macro_rules! define_bench {
                 b.iter(move || lhs.rdiv(rhs, RoundMode::Ceil))
             });
 
-            //group.bench_function("next_power_of_ten", |b| {
-            //let mut value = 0;
+            group.bench_function("next_power_of_ten", |b| {
+                let mut value = 0;
 
-            //b.iter(move || {
-            //value += 1;
-            //$fp::from_bits(value).next_power_of_ten()
-            //})
-            //});
+                b.iter(move || {
+                    value += 1;
+                    $fp::from_bits(value).next_power_of_ten()
+                })
+            });
 
             group.finish();
         }
