@@ -118,6 +118,7 @@ macro_rules! impl_fixed_point {
                 //      because LLVM doesn't replace 128bit division by const with multiplication.
 
                 let value = $promotion::from(self.inner) * $promotion::from(rhs.inner);
+                // TODO: replace with multiplication by constant
                 let result = value / Self::COEF_PROMOTED;
                 let loss = value - result * Self::COEF_PROMOTED;
                 let sign = self.inner.signum() * rhs.inner.signum();
