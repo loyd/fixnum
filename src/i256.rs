@@ -35,13 +35,7 @@ impl I256 {
         I256 { inner: x }
     }
 
-    pub const fn from_u64(x: u64) -> Self {
-        let mut words = [0u64; UINT_WORDS_COUNT];
-        words[0] = x;
-        Self::new(U256(words)) // The only way to do it const
-    }
-
-    const fn from_i128(x: i128) -> Self {
+    pub const fn from_i128(x: i128) -> Self {
         let msb = if x < 0 { u64::MAX } else { 0 };
         Self::new(U256([
             x as u64,
@@ -167,8 +161,9 @@ impl Neg for I256 {
         if self == Self::MIN {
             panic_on_overflow();
         }
+        const U1: U256 = I256::from_i128(1).inner;
         // Overflow takes place when we negate zero.
-        let (x, _) = (!self.inner).overflowing_add(1.into());
+        let (x, _) = (!self.inner).overflowing_add(U1);
         Self::new(x)
     }
 }

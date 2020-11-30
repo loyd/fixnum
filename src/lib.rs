@@ -508,7 +508,7 @@ impl_fixed_point!(
 impl_fixed_point!(
     inner = i128;
     promoted_to = I256;
-    convert = I256::from_u64;
+    convert = I256::from_i128;
     from = [i8, u8, i16, u16, i32, u32, i64, u64];
     try_from = [i128, u128, isize, usize];
 );
