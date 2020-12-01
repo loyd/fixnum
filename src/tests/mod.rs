@@ -1,3 +1,6 @@
+#[allow(clippy::unused_extern_crates)]
+extern crate std;
+
 use anyhow::Result;
 
 use std::i64;
@@ -5,6 +8,7 @@ use std::i64;
 use super::*;
 use crate::ops::RoundMode::*;
 
+#[cfg(feature = "i128")]
 mod fp128;
 
 type FixedPoint = super::FixedPoint<i64, typenum::U9>;

@@ -7,6 +7,7 @@ repository = "https://github.com/loyd/fixnum.rs"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 edition = "2018"
+categories = ["no-std"]
 
 [[bench]]
 name = "fixed_point"
@@ -14,11 +15,20 @@ path = "benches/fixed_point.rs"
 harness = false
 
 [dependencies]
-thiserror = "1.0.11"
 serde = { version = "1.0", features = ["derive"] }
 typenum = "1.12.0"
-uint = "0.8.4"
+uint = { version = "0.8.4", default-features = false, optional = true }
+derive_more = { version = "0.99.11", default-features = false, features = ["display"] }
 
 [dev-dependencies]
 anyhow = "1.0.29"
 criterion = "0.3.3"
+
+[features]
+default = ["std"]
+i128 = ["uint"]
+std = ["uint/std", "derive_more/error"]
+
+[[test]]
+name = "i128"
+path = "tests/i128.rs"

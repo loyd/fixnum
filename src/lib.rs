@@ -1,23 +1,29 @@
-use std::convert::TryFrom;
-use std::str::FromStr;
-use std::{fmt, i64, marker::PhantomData, mem};
+#![cfg_attr(not(feature = "std"), no_std)]
+use core::convert::TryFrom;
+use core::str::FromStr;
+use core::{fmt, i64, marker::PhantomData, mem};
+
+use derive_more::Display;
+#[cfg(feature = "std")]
+use derive_more::Error;
 
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 use typenum::Unsigned;
 
+#[cfg(feature = "i128")]
 use crate::i256::I256;
 use crate::ops::{
     CheckedAdd, CheckedMul, CheckedSub, Numeric, RoundMode, RoundingDiv, RoundingMul,
 };
 
+#[cfg(feature = "i128")]
 pub mod i256;
 pub mod ops;
 mod power_table;
 #[cfg(test)]
 mod tests;
 
-type Result<T, E = ArithmeticError> = std::result::Result<T, E>;
+type Result<T, E = ArithmeticError> = core::result::Result<T, E>;
 pub use typenum;
 
 /// Abstraction over fixed point floating numbers.
@@ -35,28 +41,31 @@ impl<U: Unsigned> Precision for U {}
 
 /////////////////////////////////////////////////////////
 
-#[derive(Debug, PartialEq, Error)]
+#[cfg_attr(feature = "std", derive(Error))]
+#[derive(Debug, derive_more::Display, PartialEq)]
 pub enum ArithmeticError {
-    #[error("overflow")]
+    #[cfg_attr(feature = "std", display(fmt = "overflow"))]
     Overflow,
-    #[error("division by zero")]
+    #[cfg_attr(feature = "std", display(fmt = "division by zero"))]
     DivisionByZero,
 }
 
-#[derive(Debug, PartialEq, Error)]
+#[cfg_attr(feature = "std", derive(Error))]
+#[derive(Debug, Display, PartialEq)]
 pub enum FromDecimalError {
-    #[error("unsupported exponent")]
+    #[cfg_attr(feature = "std", display(fmt = "unsupported exponent"))]
     UnsupportedExponent,
-    #[error("too big mantissa")]
+    #[cfg_attr(feature = "std", display(fmt = "too big mantissa"))]
     TooBigMantissa,
 }
 
-#[derive(Debug, PartialEq, Error)]
+#[cfg_attr(feature = "std", derive(Error))]
+#[derive(Debug, Display, PartialEq)]
 pub enum ConvertError {
-    #[error("overflow")]
+    #[cfg_attr(feature = "std", display(fmt = "overflow"))]
     Overflow,
-    #[error("other: {}", _0)]
-    Other(String),
+    #[cfg_attr(feature = "std", display(fmt = "other: {}", _0))]
+    Other(#[error(not(source))] &'static str),
 }
 
 macro_rules! pow10 {
@@ -426,7 +435,7 @@ macro_rules! impl_fixed_point {
                     Some(index) => index,
                     None => {
                         let integral: $layout = str.parse().map_err(|_| {
-                            ConvertError::Other(format!("can't parse integral part of {}", str))
+                            ConvertError::Other("can't parse integral part of the str")
                         })?;
                         return integral
                             .checked_mul(coef)
@@ -437,35 +446,26 @@ macro_rules! impl_fixed_point {
 
                 let integral: $layout = str[0..index]
                     .parse()
-                    .map_err(|_| ConvertError::Other("can't parse integral part".to_string()))?;
+                    .map_err(|_| ConvertError::Other("can't parse integral part"))?;
                 let fractional_str = &str[index + 1..];
 
                 if !fractional_str.chars().all(|c| c.is_digit(10)) {
-                    return Err(ConvertError::Other(format!(
-                        "wrong {} fractional part can only contain digits",
-                        str
-                    )));
+                    return Err(ConvertError::Other("can't parse fractional part: must contain digits only"));
                 }
 
                 if fractional_str.len() > Self::PRECISION.abs() as usize {
-                    return Err(ConvertError::Other(format!(
-                        "precision of {} is too high",
-                        str
-                    )));
+                    return Err(ConvertError::Other("requested precision is too high"));
                 }
 
                 let ten: $layout = 10;
                 let exp = ten.pow(fractional_str.len() as u32);
 
                 if exp > coef {
-                    return Err(ConvertError::Other(format!(
-                        "precision of {} is too high",
-                        str
-                    )));
+                    return Err(ConvertError::Other("requested precision is too high"));
                 }
 
                 let fractional: $layout = fractional_str.parse().map_err(|_| {
-                    ConvertError::Other(format!("can't parse fractional part of {}", str))
+                    ConvertError::Other("can't parse fractional part")
                 })?;
 
                 let final_integral = integral.checked_mul(coef).ok_or(ConvertError::Overflow)?;
@@ -506,6 +506,7 @@ impl_fixed_point!(
     from = [i8, u8, i16, u16, i32, u32];
     try_from = [i64, u64, i128, u128, isize, usize];
 );
+#[cfg(feature = "i128")]
 impl_fixed_point!(
     inner = i128;
     promoted_to = I256;

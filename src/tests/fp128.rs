@@ -1,7 +1,7 @@
 use anyhow::Result;
 
-use std::convert::TryInto;
-use std::i64;
+use core::convert::TryInto;
+use core::{f64, i64};
 
 use crate::ops::RoundMode::*;
 use crate::*;

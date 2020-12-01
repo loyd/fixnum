@@ -1,8 +1,6 @@
-use std::cmp;
-use std::convert::{TryFrom, TryInto};
-use std::ops::{Div, Mul, Neg, Sub};
-
-use uint::construct_uint;
+use core::cmp;
+use core::convert::{TryFrom, TryInto};
+use core::ops::{Div, Mul, Neg, Sub};
 
 use crate::ArithmeticError;
 
@@ -11,11 +9,18 @@ const UINT_WORD_BITS_COUNT: usize = 64;
 const UINT_WORDS_COUNT: usize = TOTAL_BITS_COUNT / UINT_WORD_BITS_COUNT;
 const SIGN_MASK: u64 = 1 << (UINT_WORD_BITS_COUNT - 1); // MSB = 1, other are equal to 0.
 
-// Single word has 64 bits. For 256-bit number:
-// UInt words count = 256 / 64 = 4
-construct_uint! {
-    pub struct U256(4);
+#[allow(clippy::all)]
+mod u256 {
+    use uint::construct_uint;
+
+    // Single word has 64 bits. For 256-bit number:
+    // UInt words count = 256 / 64 = 4
+    construct_uint! {
+        pub struct U256(4);
+    }
 }
+
+pub use u256::U256;
 
 /// Signed 256-bit number. Works on top of U256 with help of two's complement.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -66,7 +71,7 @@ impl I256 {
         most_significant_word & SIGN_MASK
     }
 
-    const fn words<'a>(&'a self) -> &'a [u64; UINT_WORDS_COUNT] {
+    const fn words(&self) -> &[u64; UINT_WORDS_COUNT] {
         &self.inner.0
     }
 }
