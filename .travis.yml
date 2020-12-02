@@ -7,5 +7,7 @@ script:
     - cargo fmt --version
     - cargo fmt -- --check
     - cargo clippy --version
-    - cargo clippy --all-targets --all-features -- -D warnings -D rust_2018_idioms
+    - cargo clippy --all-targets -- -D warnings
+    - cargo clippy --all-targets --all-features -- -D warnings
+    - cargo test
     - cargo test --all-features
