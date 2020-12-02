@@ -18,7 +18,7 @@ use crate::ops::{
 };
 
 #[cfg(feature = "i128")]
-pub mod i256;
+mod i256;
 pub mod ops;
 mod power_table;
 #[cfg(test)]
