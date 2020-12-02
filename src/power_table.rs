@@ -23,7 +23,9 @@ for lz, (value, power) in enumerate(zip(values, powers)):
 /// Leading zeros count in `x` -> The closest power of ten
 #[rustfmt::skip]
 #[allow(clippy::all)]
-pub static POWER_TABLE_128: [i128; 129] = [
+#[cfg(feature = "i128")]
+#[doc(hidden)]
+pub static __POWER_TABLE_128: [i128; 129] = [
     //  lz |                  value                   | next power of ten
     //-----+------------------------------------------+------------------
     /*   0 | 170141183460469231731687303715884105728 */ 0 /* overflow */,
@@ -161,7 +163,8 @@ pub static POWER_TABLE_128: [i128; 129] = [
 /// Leading zeros count in `x` -> The closest power of ten
 #[rustfmt::skip]
 #[allow(clippy::all)]
-pub static POWER_TABLE_64: [i64; 65] = [
+#[doc(hidden)]
+pub static __POWER_TABLE_64: [i64; 65] = [
     //  lz |                  value                   | next power of ten
     //-----+------------------------------------------+------------------
     /*   0 |                     9223372036854775808 */ 0 /* overflow */,
@@ -235,7 +238,8 @@ pub static POWER_TABLE_64: [i64; 65] = [
 /// Leading zeros count in `x` -> The closest power of ten
 #[rustfmt::skip]
 #[allow(clippy::all)]
-pub static POWER_TABLE_32: [i32; 33] = [
+#[doc(hidden)]
+pub static __POWER_TABLE_32: [i32; 33] = [
     //  lz |                  value                   | next power of ten
     //-----+------------------------------------------+------------------
     /*   0 |                              2147483648 */ 0 /* overflow */,
@@ -277,7 +281,8 @@ pub static POWER_TABLE_32: [i32; 33] = [
 /// Leading zeros count in `x` -> The closest power of ten
 #[rustfmt::skip]
 #[allow(clippy::all)]
-pub static POWER_TABLE_16: [i16; 17] = [
+#[doc(hidden)]
+pub static __POWER_TABLE_16: [i16; 17] = [
     //  lz |                  value                   | next power of ten
     //-----+------------------------------------------+------------------
     /*   0 |                                   32768 */ 0 /* overflow */,
@@ -302,15 +307,15 @@ pub static POWER_TABLE_16: [i16; 17] = [
 #[macro_export]
 macro_rules! power_of_ten_by_leading_zeros {
     ($lz:expr, i128) => {
-        crate::power_table::POWER_TABLE_128[$lz]
+        crate::power_table::__POWER_TABLE_128[$lz]
     };
     ($lz:expr, i64) => {
-        crate::power_table::POWER_TABLE_64[$lz]
+        crate::power_table::__POWER_TABLE_64[$lz]
     };
     ($lz:expr, i32) => {
-        crate::power_table::POWER_TABLE_32[$lz]
+        crate::power_table::__POWER_TABLE_32[$lz]
     };
     ($lz:expr, i16) => {
-        crate::power_table::POWER_TABLE_16[$lz]
+        crate::power_table::__POWER_TABLE_16[$lz]
     };
 }
