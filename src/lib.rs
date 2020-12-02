@@ -2,7 +2,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 use core::convert::TryFrom;
 use core::str::FromStr;
-use core::{fmt, i64, marker::PhantomData, mem};
+use core::{fmt, i64, marker::PhantomData};
 
 use derive_more::Display;
 #[cfg(feature = "std")]
@@ -45,27 +45,27 @@ impl<U: Unsigned> Precision for U {}
 #[cfg_attr(feature = "std", derive(Error))]
 #[derive(Debug, derive_more::Display, PartialEq)]
 pub enum ArithmeticError {
-    #[cfg_attr(feature = "std", display(fmt = "overflow"))]
+    #[display(fmt = "overflow")]
     Overflow,
-    #[cfg_attr(feature = "std", display(fmt = "division by zero"))]
+    #[display(fmt = "division by zero")]
     DivisionByZero,
 }
 
 #[cfg_attr(feature = "std", derive(Error))]
 #[derive(Debug, Display, PartialEq)]
 pub enum FromDecimalError {
-    #[cfg_attr(feature = "std", display(fmt = "unsupported exponent"))]
+    #[display(fmt = "unsupported exponent")]
     UnsupportedExponent,
-    #[cfg_attr(feature = "std", display(fmt = "too big mantissa"))]
+    #[display(fmt = "too big mantissa")]
     TooBigMantissa,
 }
 
 #[cfg_attr(feature = "std", derive(Error))]
 #[derive(Debug, Display, PartialEq)]
 pub enum ConvertError {
-    #[cfg_attr(feature = "std", display(fmt = "overflow"))]
+    #[display(fmt = "overflow")]
     Overflow,
-    #[cfg_attr(feature = "std", display(fmt = "other: {}", _0))]
+    #[display(fmt = "other: {}", _0)]
     Other(#[error(not(source))] &'static str),
 }
 
@@ -302,10 +302,10 @@ macro_rules! impl_fixed_point {
                 let lz = self.inner.leading_zeros() as usize;
                 assert!(lz > 0, "unexpected negative value");
 
-                let value = Self::power_of_ten_by_leading_zeros(lz);
+                let value = power_of_ten_by_leading_zeros!(lz, $layout);
 
                 let value = if self.inner > value {
-                    Self::power_of_ten_by_leading_zeros(lz - 1)
+                    power_of_ten_by_leading_zeros!(lz - 1, $layout)
                 } else {
                     value
                 };
@@ -316,13 +316,6 @@ macro_rules! impl_fixed_point {
 
                 // TODO
                 Ok(Self::from_bits(value as $layout))
-            }
-
-            fn power_of_ten_by_leading_zeros(lz: usize) -> $layout {
-                use crate::power_table::POWER_TABLE;
-                let value = POWER_TABLE[mem::size_of::<$layout>() * 8 - lz];
-                const LAYOUT_MAX: i128 = $layout::MAX as i128;
-                if value > LAYOUT_MAX { 0 } else { value as $layout }
             }
 
             pub fn rounding_from_f64(value: f64) -> Result<FixedPoint<$layout, P>> {
