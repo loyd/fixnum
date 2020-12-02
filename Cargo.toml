@@ -28,7 +28,3 @@ criterion = "0.3.3"
 default = ["std"]
 i128 = ["uint"]
 std = ["uint/std", "derive_more/error"]
-
-[[test]]
-name = "i128"
-path = "tests/i128.rs"

@@ -1,4 +1,3 @@
-#[allow(clippy::unused_extern_crates)]
 extern crate std;
 
 use anyhow::Result;

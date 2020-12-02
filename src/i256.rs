@@ -42,33 +42,20 @@ impl I256 {
 
     pub const fn from_i128(x: i128) -> Self {
         let msb = if x < 0 { u64::MAX } else { 0 };
-        Self::new(U256([
-            x as u64,
-            (x >> UINT_WORD_BITS_COUNT) as u64,
-            msb,
-            msb,
-        ])) // The only way to do it const
+        Self::new(U256([x as u64, (x >> 64) as u64, msb, msb])) // The only way to do it const
     }
 
     fn abs(self) -> Self {
-        if !self.is_negative() {
-            // positive or zero
-            return self;
+        if self.is_negative() {
+            -self
+        } else {
+            self
         }
-        -self
     }
 
     const fn is_negative(self) -> bool {
-        self.sign() != 0
-    }
-
-    /// 63'rd bit shows number sign:
-    /// 1 -- number < 0 (0x8000_0000_0000_0000),
-    /// 0 -- number >= 0 (0).
-    /// Other bits are equal to 0.
-    const fn sign(self) -> u64 {
         let most_significant_word: u64 = self.words()[UINT_WORDS_COUNT - 1];
-        most_significant_word & SIGN_MASK
+        most_significant_word & SIGN_MASK != 0
     }
 
     const fn words(&self) -> &[u64; UINT_WORDS_COUNT] {
@@ -80,15 +67,15 @@ impl Mul for I256 {
     type Output = Self;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        let lhs_sign = self.sign();
-        let rhs_sign = rhs.sign();
+        let lhs_was_negative = self.is_negative();
+        let rhs_was_negative = rhs.is_negative();
 
-        let lhs = if lhs_sign == 0 { self } else { -self };
-        let rhs = if rhs_sign == 0 { rhs } else { -rhs };
+        let lhs = if lhs_was_negative { -self } else { self };
+        let rhs = if rhs_was_negative { -rhs } else { rhs };
 
         // Mustn't overflow because we're usually promoting just i128 to I256.
         let result = Self::new(lhs.inner * rhs.inner);
-        if lhs_sign ^ rhs_sign == 0 {
+        if lhs_was_negative == rhs_was_negative {
             result
         } else {
             -result
@@ -100,15 +87,14 @@ impl Div for I256 {
     type Output = Self;
 
     fn div(self, rhs: Self) -> Self::Output {
-        let lhs_sign = self.sign();
-        let rhs_sign = rhs.sign();
+        let lhs_was_negative = self.is_negative();
+        let rhs_was_negative = rhs.is_negative();
 
-        let lhs = if lhs_sign == 0 { self } else { -self };
-        let rhs = if rhs_sign == 0 { rhs } else { -rhs };
+        let lhs = if lhs_was_negative { -self } else { self };
+        let rhs = if rhs_was_negative { -rhs } else { rhs };
 
-        // Mustn't overflow because we're usually promoting just i128 to I256.
         let result = Self::new(lhs.inner / rhs.inner);
-        if lhs_sign ^ rhs_sign == 0 {
+        if lhs_was_negative == rhs_was_negative {
             result
         } else {
             -result
@@ -120,18 +106,8 @@ impl Sub for I256 {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        let lhs_sign = self.sign();
-        let rhs_sign = rhs.sign();
-
-        let lhs = if lhs_sign == 0 { self } else { -self };
-        let rhs = if rhs_sign == 0 { rhs } else { -rhs };
-
-        let result = Self::new(lhs.inner - rhs.inner);
-        if lhs_sign ^ rhs_sign == 0 {
-            result
-        } else {
-            -result
-        }
+        let (x, _) = self.inner.overflowing_sub(rhs.inner);
+        Self::new(x)
     }
 }
 
@@ -280,5 +256,49 @@ mod tests {
     #[should_panic]
     fn it_doesnt_negate_i256_min() {
         let _x = -I256::MIN;
+    }
+
+    #[test]
+    fn it_subtracts() {
+        fn t(a: i128, b: i128, expected: i128) {
+            let a = I256::from(a);
+            let b = I256::from(b);
+            assert_eq!(i128::try_from(a - b).unwrap(), expected);
+            assert_eq!(i128::try_from(b - a).unwrap(), -expected);
+            assert_eq!(i128::try_from((-a) - (-b)).unwrap(), -expected);
+            assert_eq!(i128::try_from((-b) - (-a)).unwrap(), expected);
+        }
+        t(0, 0, 0);
+        t(4321, 1111, 3210);
+        t(4321, -1111, 5432);
+        t(1111, -4321, 5432);
+    }
+
+    #[test]
+    fn it_multiplies() {
+        fn t(a: i128, b: i128, expected: i128) {
+            let a = I256::from(a);
+            let b = I256::from(b);
+            assert_eq!(i128::try_from(a * b).unwrap(), expected);
+            assert_eq!(i128::try_from(b * a).unwrap(), expected);
+            assert_eq!(i128::try_from((-a) * (-b)).unwrap(), expected);
+            assert_eq!(i128::try_from((-b) * (-a)).unwrap(), expected);
+        }
+        t(0, 0, 0);
+        t(7, 5, 35);
+        t(-7, 5, -35);
+    }
+
+    #[test]
+    fn it_divides() {
+        fn t(a: i128, b: i128, expected: i128) {
+            let a = I256::from(a);
+            let b = I256::from(b);
+            assert_eq!(i128::try_from(a / b).unwrap(), expected);
+            assert_eq!(i128::try_from((-a) / (-b)).unwrap(), expected);
+        }
+        t(0, 1, 0);
+        t(35, 5, 7);
+        t(-35, 5, -7);
     }
 }
