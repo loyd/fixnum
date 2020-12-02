@@ -5,16 +5,16 @@ use core::ops::{Div, Mul, Neg, Sub};
 use crate::ArithmeticError;
 
 const TOTAL_BITS_COUNT: usize = 256;
-const UINT_WORD_BITS_COUNT: usize = 64;
-const UINT_WORDS_COUNT: usize = TOTAL_BITS_COUNT / UINT_WORD_BITS_COUNT;
-const SIGN_MASK: u64 = 1 << (UINT_WORD_BITS_COUNT - 1); // MSB = 1, other are equal to 0.
+const UINT_CHUNK_BITS_COUNT: usize = 64;
+const UINT_CHUNKS_COUNT: usize = TOTAL_BITS_COUNT / UINT_CHUNK_BITS_COUNT;
+const SIGN_MASK: u64 = 1 << (UINT_CHUNK_BITS_COUNT - 1); // MSB = 1, other are equal to 0.
 
 #[allow(clippy::all)]
 mod u256 {
     use uint::construct_uint;
 
-    // Single word has 64 bits. For 256-bit number:
-    // UInt words count = 256 / 64 = 4
+    // Single chunk has 64 bits. For 256-bit number:
+    // UInt chunks count = 256 / 64 = 4
     construct_uint! {
         pub struct U256(4);
     }
@@ -44,11 +44,11 @@ impl I256 {
     }
 
     const fn is_negative(self) -> bool {
-        let most_significant_word: u64 = self.words()[UINT_WORDS_COUNT - 1];
-        most_significant_word & SIGN_MASK != 0
+        let most_significant_chunk: u64 = self.chunks()[UINT_CHUNKS_COUNT - 1];
+        most_significant_chunk & SIGN_MASK != 0
     }
 
-    const fn words(&self) -> &[u64; UINT_WORDS_COUNT] {
+    const fn chunks(&self) -> &[u64; UINT_CHUNKS_COUNT] {
         &self.inner.0
     }
 }
@@ -143,7 +143,7 @@ impl TryFrom<I256> for i128 {
         if x > I256::I128_MAX || x < I256::I128_MIN {
             return Err(ArithmeticError::Overflow);
         }
-        Ok(i128::from(x.words()[0]) | (i128::from(x.words()[1]) << 64))
+        Ok(i128::from(x.chunks()[0]) | (i128::from(x.chunks()[1]) << 64))
     }
 }
 
