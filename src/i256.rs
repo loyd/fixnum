@@ -1,5 +1,5 @@
-use core::cmp;
-use core::convert::{TryFrom, TryInto};
+use core::cmp::{Ordering, PartialOrd};
+use core::convert::TryFrom;
 use core::ops::{Div, Mul, Neg, Sub};
 
 use crate::ArithmeticError;
@@ -29,9 +29,7 @@ pub struct I256 {
 }
 
 impl I256 {
-    /// Value `i128::MAX`
     pub const I128_MAX: Self = Self::from_i128(i128::MAX);
-    /// Value `i128::MIN`. Very useful because `abs` isn't defined for `i128::MIN`
     pub const I128_MIN: Self = Self::from_i128(i128::MIN);
     pub const MAX: Self = Self::new(U256([u64::MAX, u64::MAX, u64::MAX, !SIGN_MASK]));
     pub const MIN: Self = Self::new(U256([0, 0, 0, SIGN_MASK]));
@@ -43,14 +41,6 @@ impl I256 {
     pub const fn from_i128(x: i128) -> Self {
         let msb = if x < 0 { u64::MAX } else { 0 };
         Self::new(U256([x as u64, (x >> 64) as u64, msb, msb])) // The only way to do it const
-    }
-
-    fn abs(self) -> Self {
-        if self.is_negative() {
-            -self
-        } else {
-            self
-        }
     }
 
     const fn is_negative(self) -> bool {
@@ -114,12 +104,9 @@ impl Sub for I256 {
 impl Neg for I256 {
     type Output = Self;
 
-    /// N.B. Neg has a single case of panicking: `-I256::MIN`
-    /// Because on two's complement we always have one extra negative value
     fn neg(self) -> Self::Output {
-        if self == Self::MIN {
-            panic_on_overflow();
-        }
+        // Neg isn't defined for `I256::MIN` because on two's complement we always have one extra negative value.
+        debug_assert_ne!(self, Self::MIN);
         const U1: U256 = I256::from_i128(1).inner;
         // Overflow takes place when we negate zero.
         let (x, _) = (!self.inner).overflowing_add(U1);
@@ -127,18 +114,18 @@ impl Neg for I256 {
     }
 }
 
-impl cmp::Ord for I256 {
-    fn cmp(&self, other: &Self) -> cmp::Ordering {
+impl Ord for I256 {
+    fn cmp(&self, other: &Self) -> Ordering {
         match (self.is_negative(), other.is_negative()) {
-            (true, false) => cmp::Ordering::Less,
-            (false, true) => cmp::Ordering::Greater,
+            (true, false) => Ordering::Less,
+            (false, true) => Ordering::Greater,
             _ => self.inner.cmp(&other.inner),
         }
     }
 }
 
-impl cmp::PartialOrd for I256 {
-    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+impl PartialOrd for I256 {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
@@ -156,21 +143,8 @@ impl TryFrom<I256> for i128 {
         if x > I256::I128_MAX || x < I256::I128_MIN {
             return Err(ArithmeticError::Overflow);
         }
-        if x == I256::I128_MIN {
-            return Ok(i128::MIN);
-        }
-        let was_negative = x.is_negative();
-        let x: i128 = x
-            .abs()
-            .inner
-            .try_into()
-            .map_err(|_| ArithmeticError::Overflow)?;
-        Ok(if was_negative { -x } else { x })
+        Ok(i128::from(x.words()[0]) | (i128::from(x.words()[1]) << 64))
     }
-}
-
-fn panic_on_overflow() {
-    panic!("arithmetic operation overflow");
 }
 
 #[cfg(test)]
@@ -203,29 +177,28 @@ mod tests {
 
     #[test]
     fn it_converts_i256_from_i128() {
-        fn it_i128(x: i128) {
-            assert_eq!(i128::try_from(I256::from(x)), Ok(x));
+        fn t(x: i128) {
+            assert_eq!(i128::try_from(I256::from(x)).unwrap(), x);
         }
-        it_i128(0);
-        it_i128(1);
-        it_i128(-1);
-        it_i128(i128::MAX);
-        it_i128(i128::MAX - 1);
-        it_i128(i128::MIN);
-        it_i128(i128::MIN + 1);
+        t(0);
+        t(1);
+        t(-1);
+        t(i128::MAX);
+        t(i128::MAX - 1);
+        t(i128::MIN);
+        t(i128::MIN + 1);
     }
 
     #[test]
     fn it_negates_i128() {
-        fn t(value: i128, expected: i128) {
-            let actual: I256 = -I256::from(value);
-            assert_eq!(i128::try_from(actual).unwrap(), expected);
-            assert_eq!(i128::try_from(-actual).unwrap(), value);
+        fn t(x: i128) {
+            assert_eq!(i128::try_from(-I256::from(x)).unwrap(), -x);
+            assert_eq!(i128::try_from(-I256::from(-x)).unwrap(), x);
         }
-        t(0, 0);
-        t(1, -1);
-        t(1234, -1234);
-        t(123_456_789_987, -123_456_789_987);
+        t(0);
+        t(1);
+        t(1234);
+        t(123_456_789_987);
     }
 
     #[test]

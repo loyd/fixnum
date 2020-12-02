@@ -318,10 +318,8 @@ macro_rules! impl_fixed_point {
             }
 
             fn power_of_ten_by_leading_zeros(lz: usize) -> $layout {
-                use crate::power_table::{POWER_TABLE, BITS_COUNT};
-                const BITS_IN_BYTE: usize = 8;
-                const BITS_OFFSET: usize = BITS_COUNT - mem::size_of::<$layout>() * BITS_IN_BYTE;
-                let value = POWER_TABLE[lz + BITS_OFFSET];
+                use crate::power_table::POWER_TABLE;
+                let value = POWER_TABLE[mem::size_of::<$layout>() * 8 - lz];
                 const LAYOUT_MAX: i128 = $layout::MAX as i128;
                 if value > LAYOUT_MAX { 0 } else { value as $layout }
             }
