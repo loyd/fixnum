@@ -15,16 +15,20 @@ path = "benches/fixed_point.rs"
 harness = false
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive"], optional = true }
 typenum = "1.12.0"
-uint = { version = "0.8.4", default-features = false, optional = true }
-derive_more = { version = "0.99.11", default-features = false, features = ["display"] }
+# Hard-fixed version of that dependency makes us avoid a headache with incompatible features
+# of it (`std` / `no_std`) in various crates all around us.
+# Every call to its methods must be inlined anyways.
+# We've sacrificed semantic versioning in favor of convenience in `no_std` environments.
+uint = { git = "https://github.com/paritytech/parity-common", rev = "fce73151ecd05ef77aade202e2602e6719cc0e97", default-features = false, optional = true }
+derive_more = { version = "0.99.9", default-features = false, features = ["display"] }
 
 [dev-dependencies]
 anyhow = "1.0.29"
 criterion = "0.3.3"
 
 [features]
-default = ["std"]
+default = ["std", "serde"]
 std = ["uint/std", "derive_more/error"]
 i128 = ["uint"]

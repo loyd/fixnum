@@ -1,3 +1,44 @@
+//! # `fixnum`
+//!
+//! [![Latest Version](https://img.shields.io/crates/v/fixnum.svg)](https://crates.io/crates/fixnum)
+//!
+//! Fixed-point numbers with explicit rounding.
+//!
+//! Uses various signed integer types to store the number. The following are available by default:
+//!
+//! - `i16` — promotes to `i32` for multiplication and division,
+//! - `i32` — promotes to `i64`,
+//! - `i64` — promotes to `i128`.
+//!
+//! There's also support for `i128` layout which will be promoted to internally implemented `I256` — this is available
+//! under the `i128` feature.
+//!
+//! ## Example
+//!
+//! ```sh
+//! cargo add fixnum
+//! ```
+//!
+//! ```rust
+//! use fixnum::{FixedPoint, typenum, ops::{CheckedAdd, RoundingMul, RoundMode::*}};
+//!
+//! /// Signed fixed point amount over 64 bits, 9 decimal places.
+//! ///
+//! /// ```
+//! /// MAX = 2 ** (BITS_COUNT - 1) / 10 ** PRECISION = 2 ** (64 - 1) / 1e9 = 9223372036.854775808 ~ 9.2e9
+//! /// ERROR_MAX = 0.5 / (10 ** PRECISION) = 0.5 / 1e9 = 5e-10
+//! /// ```
+//! type Amount = FixedPoint<i64, typenum::U9>;
+//!
+//! fn amount(s: &str) -> Amount { s.parse().unwrap() }
+//!
+//! assert_eq!(amount("0.1").cadd(amount("0.2")).unwrap(), amount("0.3"));
+//! let expences: Amount = amount("0.000000001");
+//! assert_eq!(expences.rmul(expences, Floor).unwrap(), amount("0.0"));
+//! // 1e-9 * (Ceil) 1e-9 = 1e-9
+//! assert_eq!(expences.rmul(expences, Ceil).unwrap(), expences);
+//! ```
+
 #![warn(rust_2018_idioms)]
 #![cfg_attr(not(feature = "std"), no_std)]
 use core::convert::TryFrom;
@@ -8,6 +49,7 @@ use derive_more::Display;
 #[cfg(feature = "std")]
 use derive_more::Error;
 
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use typenum::Unsigned;
 
@@ -31,7 +73,8 @@ pub use typenum;
 ///
 /// The internal representation is a fixed point decimal number,
 /// i.e. a value pre-multiplied by 10^N, where N is a pre-defined number.
-#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FixedPoint<I, P> {
     inner: I,
     _marker: PhantomData<P>,
@@ -66,7 +109,7 @@ pub enum ConvertError {
     #[display(fmt = "overflow")]
     Overflow,
     #[display(fmt = "other: {}", _0)]
-    Other(#[error(not(source))] &'static str),
+    Other(#[cfg_attr(feature = "std", error(not(source)))] &'static str),
 }
 
 macro_rules! pow10 {
@@ -302,10 +345,10 @@ macro_rules! impl_fixed_point {
                 let lz = self.inner.leading_zeros() as usize;
                 assert!(lz > 0, "unexpected negative value");
 
-                let value = power_of_ten_by_leading_zeros!(lz, $layout);
+                let value = power_table::$layout[lz];
 
                 let value = if self.inner > value {
-                    power_of_ten_by_leading_zeros!(lz - 1, $layout)
+                    power_table::$layout[lz - 1]
                 } else {
                     value
                 };
@@ -318,6 +361,7 @@ macro_rules! impl_fixed_point {
                 Ok(Self::from_bits(value as $layout))
             }
 
+            #[cfg(feature = "std")]
             pub fn rounding_from_f64(value: f64) -> Result<FixedPoint<$layout, P>> {
                 let x = (value * Self::COEF as f64).round();
                 if x >= ($layout::MIN as f64) && x <= ($layout::MAX as f64) {
