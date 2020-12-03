@@ -1,27 +1,80 @@
-use std::convert::TryFrom;
-use std::str::FromStr;
-use std::{fmt, i64, marker::PhantomData};
+//! # `fixnum`
+//!
+//! [![Latest Version](https://img.shields.io/crates/v/fixnum.svg)](https://crates.io/crates/fixnum)
+//!
+//! Fixed-point numbers with explicit rounding.
+//!
+//! Uses various signed integer types to store the number. The following are available by default:
+//!
+//! - `i16` — promotes to `i32` for multiplication and division,
+//! - `i32` — promotes to `i64`,
+//! - `i64` — promotes to `i128`.
+//!
+//! There's also support for `i128` layout which will be promoted to internally implemented `I256` — this is available
+//! under the `i128` feature.
+//!
+//! ## Example
+//!
+//! ```sh
+//! cargo add fixnum
+//! ```
+//!
+//! ```rust
+//! use fixnum::{FixedPoint, typenum, ops::{CheckedAdd, RoundingMul, RoundMode::*}};
+//!
+//! /// Signed fixed point amount over 64 bits, 9 decimal places.
+//! ///
+//! /// ```
+//! /// MAX = 2 ** (BITS_COUNT - 1) / 10 ** PRECISION = 2 ** (64 - 1) / 1e9 = 9223372036.854775808 ~ 9.2e9
+//! /// ERROR_MAX = 0.5 / (10 ** PRECISION) = 0.5 / 1e9 = 5e-10
+//! /// ```
+//! type Amount = FixedPoint<i64, typenum::U9>;
+//!
+//! fn amount(s: &str) -> Amount { s.parse().unwrap() }
+//!
+//! assert_eq!(amount("0.1").cadd(amount("0.2")).unwrap(), amount("0.3"));
+//! let expences: Amount = amount("0.000000001");
+//! assert_eq!(expences.rmul(expences, Floor).unwrap(), amount("0.0"));
+//! // 1e-9 * (Ceil) 1e-9 = 1e-9
+//! assert_eq!(expences.rmul(expences, Ceil).unwrap(), expences);
+//! ```
 
+#![warn(rust_2018_idioms)]
+#![cfg_attr(not(feature = "std"), no_std)]
+use core::convert::TryFrom;
+use core::str::FromStr;
+use core::{fmt, i64, marker::PhantomData};
+
+use derive_more::Display;
+#[cfg(feature = "std")]
+use derive_more::Error;
+
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
 use typenum::Unsigned;
 
+#[cfg(feature = "i128")]
+use crate::i256::I256;
 use crate::ops::{
     CheckedAdd, CheckedMul, CheckedSub, Numeric, RoundMode, RoundingDiv, RoundingMul,
 };
 
+#[cfg(feature = "i128")]
+mod i256;
 pub mod ops;
 mod power_table;
 #[cfg(test)]
 mod tests;
 
-type Result<T, E = ArithmeticError> = std::result::Result<T, E>;
+type Result<T, E = ArithmeticError> = core::result::Result<T, E>;
+pub use typenum;
 
 /// Abstraction over fixed point floating numbers.
 ///
 /// The internal representation is a fixed point decimal number,
 /// i.e. a value pre-multiplied by 10^N, where N is a pre-defined number.
-#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FixedPoint<I, P> {
     inner: I,
     _marker: PhantomData<P>,
@@ -32,39 +85,42 @@ impl<U: Unsigned> Precision for U {}
 
 /////////////////////////////////////////////////////////
 
-#[derive(Debug, PartialEq, Error)]
+#[cfg_attr(feature = "std", derive(Error))]
+#[derive(Debug, derive_more::Display, PartialEq)]
 pub enum ArithmeticError {
-    #[error("overflow")]
+    #[display(fmt = "overflow")]
     Overflow,
-    #[error("division by zero")]
+    #[display(fmt = "division by zero")]
     DivisionByZero,
 }
 
-#[derive(Debug, PartialEq, Error)]
+#[cfg_attr(feature = "std", derive(Error))]
+#[derive(Debug, Display, PartialEq)]
 pub enum FromDecimalError {
-    #[error("unsupported exponent")]
+    #[display(fmt = "unsupported exponent")]
     UnsupportedExponent,
-    #[error("too big mantissa")]
+    #[display(fmt = "too big mantissa")]
     TooBigMantissa,
 }
 
-#[derive(Debug, PartialEq, Error)]
+#[cfg_attr(feature = "std", derive(Error))]
+#[derive(Debug, Display, PartialEq)]
 pub enum ConvertError {
-    #[error("overflow")]
+    #[display(fmt = "overflow")]
     Overflow,
-    #[error("other: {}", _0)]
-    Other(String),
+    #[display(fmt = "other: {}", _0)]
+    Other(#[cfg_attr(feature = "std", error(not(source)))] &'static str),
 }
 
-macro_rules! pow {
-    ($lhs:expr, $rhs:expr) => {{
+macro_rules! pow10 {
+    ($convert:expr, $rhs:expr) => {{
         let mut result = 1;
         let mut i = $rhs;
         while i > 0 {
-            result *= $lhs;
+            result *= 10;
             i -= 1;
         }
-        result
+        $convert(result)
     }};
 }
 
@@ -72,6 +128,7 @@ macro_rules! impl_fixed_point {
     (
         inner = $layout:tt;
         promoted_to = $promotion:tt;
+        convert = $convert:expr;
         from = [$($from:ty),*];
         try_from = [$($try_from:ty),*];
     ) => {
@@ -88,8 +145,8 @@ macro_rules! impl_fixed_point {
             pub const PRECISION: i32 = P::I32;
             pub const EPSILON: Self = Self::from_bits(1);
 
-            const COEF: $layout = pow!(10, Self::PRECISION);
-            const COEF_PROMOTED: $promotion = pow!(10, Self::PRECISION);
+            const COEF: $layout = pow10!(identity, Self::PRECISION);
+            const COEF_PROMOTED: $promotion = pow10!($convert, Self::PRECISION);
 
             // TODO
             //pub const HALF: Self = Self::from_bits(Self::COEF / 2);
@@ -114,6 +171,7 @@ macro_rules! impl_fixed_point {
                 //      because LLVM doesn't replace 128bit division by const with multiplication.
 
                 let value = $promotion::from(self.inner) * $promotion::from(rhs.inner);
+                // TODO: replace with multiplication by constant
                 let result = value / Self::COEF_PROMOTED;
                 let loss = value - result * Self::COEF_PROMOTED;
                 let sign = self.inner.signum() * rhs.inner.signum();
@@ -121,7 +179,7 @@ macro_rules! impl_fixed_point {
                 let mut result =
                     $layout::try_from(result).map_err(|_| ArithmeticError::Overflow)?;
 
-                if loss != 0 && mode as i32 == sign as i32 {
+                if loss != $convert(0) && mode as i32 == sign as i32 {
                     result = result.checked_add(sign).ok_or(ArithmeticError::Overflow)?;
                 }
 
@@ -150,7 +208,7 @@ macro_rules! impl_fixed_point {
                 let mut result =
                     $layout::try_from(result).map_err(|_| ArithmeticError::Overflow)?;
 
-                if loss != 0 {
+                if loss != $convert(0) {
                     let sign = self.inner.signum() * rhs.inner.signum();
 
                     if mode as i32 == sign as i32 {
@@ -287,10 +345,10 @@ macro_rules! impl_fixed_point {
                 let lz = self.inner.leading_zeros() as usize;
                 assert!(lz > 0, "unexpected negative value");
 
-                let value = power_table::POWER_TABLE[lz];
+                let value = power_table::$layout[lz];
 
-                let value = if self.inner as i64 > i64::from(value) {
-                    power_table::POWER_TABLE[lz - 1]
+                let value = if self.inner > value {
+                    power_table::$layout[lz - 1]
                 } else {
                     value
                 };
@@ -303,6 +361,7 @@ macro_rules! impl_fixed_point {
                 Ok(Self::from_bits(value as $layout))
             }
 
+            #[cfg(feature = "std")]
             pub fn rounding_from_f64(value: f64) -> Result<FixedPoint<$layout, P>> {
                 let x = (value * Self::COEF as f64).round();
                 if x >= ($layout::MIN as f64) && x <= ($layout::MAX as f64) {
@@ -323,7 +382,7 @@ macro_rules! impl_fixed_point {
                 } else {
                     self.inner - Self::COEF / 2
                 };
-                x as i64 / Self::COEF as i64
+                (x / Self::COEF) as i64
             }
         }
 
@@ -412,7 +471,7 @@ macro_rules! impl_fixed_point {
                     Some(index) => index,
                     None => {
                         let integral: $layout = str.parse().map_err(|_| {
-                            ConvertError::Other(format!("can't parse integral part of {}", str))
+                            ConvertError::Other("can't parse integral part of the str")
                         })?;
                         return integral
                             .checked_mul(coef)
@@ -423,35 +482,26 @@ macro_rules! impl_fixed_point {
 
                 let integral: $layout = str[0..index]
                     .parse()
-                    .map_err(|_| ConvertError::Other("can't parse integral part".to_string()))?;
+                    .map_err(|_| ConvertError::Other("can't parse integral part"))?;
                 let fractional_str = &str[index + 1..];
 
                 if !fractional_str.chars().all(|c| c.is_digit(10)) {
-                    return Err(ConvertError::Other(format!(
-                        "wrong {} fractional part can only contain digits",
-                        str
-                    )));
+                    return Err(ConvertError::Other("can't parse fractional part: must contain digits only"));
                 }
 
                 if fractional_str.len() > Self::PRECISION.abs() as usize {
-                    return Err(ConvertError::Other(format!(
-                        "precision of {} is too high",
-                        str
-                    )));
+                    return Err(ConvertError::Other("requested precision is too high"));
                 }
 
                 let ten: $layout = 10;
                 let exp = ten.pow(fractional_str.len() as u32);
 
                 if exp > coef {
-                    return Err(ConvertError::Other(format!(
-                        "precision of {} is too high",
-                        str
-                    )));
+                    return Err(ConvertError::Other("requested precision is too high"));
                 }
 
                 let fractional: $layout = fractional_str.parse().map_err(|_| {
-                    ConvertError::Other(format!("can't parse fractional part of {}", str))
+                    ConvertError::Other("can't parse fractional part")
                 })?;
 
                 let final_integral = integral.checked_mul(coef).ok_or(ConvertError::Overflow)?;
@@ -467,21 +517,36 @@ macro_rules! impl_fixed_point {
     };
 }
 
+const fn identity<T>(x: T) -> T {
+    x
+}
+
 impl_fixed_point!(
     inner = i16;
     promoted_to = i32;
+    convert = identity;
     from = [i8, u8];
     try_from = [i16, u16, i32, u32, i64, u64, i128, u128, isize, usize];
 );
 impl_fixed_point!(
     inner = i32;
     promoted_to = i64;
+    convert = identity;
     from = [i8, u8, i16, u16];
     try_from = [i32, u32, i64, u64, i128, u128, isize, usize];
 );
 impl_fixed_point!(
     inner = i64;
     promoted_to = i128;
+    convert = identity;
     from = [i8, u8, i16, u16, i32, u32];
     try_from = [i64, u64, i128, u128, isize, usize];
+);
+#[cfg(feature = "i128")]
+impl_fixed_point!(
+    inner = i128;
+    promoted_to = I256;
+    convert = I256::from_i128;
+    from = [i8, u8, i16, u16, i32, u32, i64, u64];
+    try_from = [i128, u128, isize, usize];
 );

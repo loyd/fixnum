@@ -2,10 +2,10 @@ use anyhow::Result;
 
 use std::i64;
 
-use super::*;
 use crate::ops::RoundMode::*;
+use crate::*;
 
-type FixedPoint = super::FixedPoint<i64, typenum::U9>;
+type FixedPoint = crate::FixedPoint<i64, typenum::U9>;
 
 fn fp(s: &str) -> Result<FixedPoint> {
     FixedPoint::from_str(s).map_err(From::from)
