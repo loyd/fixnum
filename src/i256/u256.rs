@@ -14,27 +14,6 @@ macro_rules! impl_map_from {
     };
 }
 
-macro_rules! impl_try_from_for_primitive {
-    ($from:ident, $to:ty) => {
-        impl core::convert::TryFrom<$from> for $to {
-            type Error = &'static str;
-
-            #[inline]
-            fn try_from(u: $from) -> core::result::Result<$to, &'static str> {
-                let $from(arr) = u;
-                if !u.fits_word() || arr[0] > <$to>::max_value() as u64 {
-                    Err(concat!(
-                        "integer overflow when casting to ",
-                        stringify!($to)
-                    ))
-                } else {
-                    Ok(arr[0] as $to)
-                }
-            }
-        }
-    };
-}
-
 macro_rules! uint_overflowing_binop {
     ($name:ident, $n_words: tt, $self_expr: expr, $other: expr, $fn:expr) => {{
         let $name(ref me) = $self_expr;
@@ -153,12 +132,10 @@ macro_rules! uint_overflowing_mul {
     }};
 }
 
-macro_rules! panic_on_overflow {
-    ($name: expr) => {
-        if $name {
-            panic!("arithmetic operation overflow")
-        }
-    };
+fn panic_on_overflow(flag: bool) {
+    if flag {
+        panic!("arithmetic operation overflow")
+    }
 }
 
 macro_rules! impl_mul_from {
@@ -169,7 +146,7 @@ macro_rules! impl_mul_from {
             fn mul(self, other: $other) -> $name {
                 let bignum: $name = other.into();
                 let (result, overflow) = self.overflowing_mul(bignum);
-                panic_on_overflow!(overflow);
+                panic_on_overflow(overflow);
                 result
             }
         }
@@ -180,7 +157,7 @@ macro_rules! impl_mul_from {
             fn mul(self, other: &'a $other) -> $name {
                 let bignum: $name = (*other).into();
                 let (result, overflow) = self.overflowing_mul(bignum);
-                panic_on_overflow!(overflow);
+                panic_on_overflow(overflow);
                 result
             }
         }
@@ -191,7 +168,7 @@ macro_rules! impl_mul_from {
             fn mul(self, other: &'a $other) -> $name {
                 let bignum: $name = (*other).into();
                 let (result, overflow) = self.overflowing_mul(bignum);
-                panic_on_overflow!(overflow);
+                panic_on_overflow(overflow);
                 result
             }
         }
@@ -202,7 +179,7 @@ macro_rules! impl_mul_from {
             fn mul(self, other: $other) -> $name {
                 let bignum: $name = other.into();
                 let (result, overflow) = self.overflowing_mul(bignum);
-                panic_on_overflow!(overflow);
+                panic_on_overflow(overflow);
                 result
             }
         }
@@ -223,7 +200,7 @@ macro_rules! impl_mul_for_primitive {
 
             fn mul(self, other: $other) -> $name {
                 let (result, carry) = self.overflowing_mul_u64(other as u64);
-                panic_on_overflow!(carry > 0);
+                panic_on_overflow(carry > 0);
                 result
             }
         }
@@ -233,7 +210,7 @@ macro_rules! impl_mul_for_primitive {
 
             fn mul(self, other: &'a $other) -> $name {
                 let (result, carry) = self.overflowing_mul_u64(*other as u64);
-                panic_on_overflow!(carry > 0);
+                panic_on_overflow(carry > 0);
                 result
             }
         }
@@ -243,7 +220,7 @@ macro_rules! impl_mul_for_primitive {
 
             fn mul(self, other: &'a $other) -> $name {
                 let (result, carry) = self.overflowing_mul_u64(*other as u64);
-                panic_on_overflow!(carry > 0);
+                panic_on_overflow(carry > 0);
                 result
             }
         }
@@ -253,7 +230,7 @@ macro_rules! impl_mul_for_primitive {
 
             fn mul(self, other: $other) -> $name {
                 let (result, carry) = self.overflowing_mul_u64(other as u64);
-                panic_on_overflow!(carry > 0);
+                panic_on_overflow(carry > 0);
                 result
             }
         }
@@ -274,73 +251,19 @@ macro_rules! uint {
 
     ( $(#[$attr:meta])* $visibility:vis struct $name:ident ( $n_words:tt ); ) => {
         uint! { @construct $(#[$attr])* $visibility struct $name ($n_words); }
-
-        impl core::convert::From<u128> for $name {
-            fn from(value: u128) -> $name {
-                let mut ret = [0; $n_words];
-                ret[0] = value as u64;
-                ret[1] = (value >> 64) as u64;
-                $name(ret)
-            }
-        }
-
-        impl core::convert::From<i128> for $name {
-            fn from(value: i128) -> $name {
-                match value >= 0 {
-                    true => From::from(value as u128),
-                    false => { panic!("Unsigned integer can't be created from negative value"); }
-                }
-            }
-        }
-
-        impl core::convert::TryFrom<$name> for u128 {
-            type Error = &'static str;
-
-            #[inline]
-            fn try_from(u: $name) -> core::result::Result<u128, &'static str> {
-                let $name(arr) = u;
-                for i in 2..$n_words {
-                    if arr[i] != 0 {
-                        return Err("integer overflow when casting to u128");
-                    }
-                }
-                Ok(((arr[1] as u128) << 64) + arr[0] as u128)
-            }
-        }
-
-        impl core::convert::TryFrom<$name> for i128 {
-            type Error = &'static str;
-
-            #[inline]
-            fn try_from(u: $name) -> core::result::Result<i128, &'static str> {
-                let err_str = "integer overflow when casting to i128";
-                let i = u128::try_from(u).map_err(|_| err_str)?;
-                if i > i128::max_value() as u128 {
-                    Err(err_str)
-                } else {
-                    Ok(i as i128)
-                }
-            }
-        }
     };
     ( @construct $(#[$attr:meta])* $visibility:vis struct $name:ident ( $n_words:tt ); ) => {
         /// Little-endian large integer type
         #[repr(C)]
         $(#[$attr])*
-            #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-            $visibility struct $name (pub [u64; $n_words]);
+        #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+        $visibility struct $name (pub [u64; $n_words]);
 
         /// Get a reference to the underlying little-endian words.
         impl AsRef<[u64]> for $name {
             #[inline]
             fn as_ref(&self) -> &[u64] {
                 &self.0
-            }
-        }
-
-        impl<'a> From<&'a $name> for $name {
-            fn from(x: &'a $name) -> $name {
-                *x
             }
         }
 
@@ -686,12 +609,6 @@ macro_rules! uint {
             }
         }
 
-        impl core::default::Default for $name {
-            fn default() -> Self {
-                $name::zero()
-            }
-        }
-
         impl core::convert::From<u64> for $name {
             fn from(value: u64) -> $name {
                 let mut ret = [0; $n_words];
@@ -700,10 +617,7 @@ macro_rules! uint {
             }
         }
 
-        impl_map_from!($name, u8, u64);
-        impl_map_from!($name, u16, u64);
         impl_map_from!($name, u32, u64);
-        impl_map_from!($name, usize, u64);
 
         impl core::convert::From<i64> for $name {
             fn from(value: i64) -> $name {
@@ -714,87 +628,10 @@ macro_rules! uint {
             }
         }
 
-        impl_map_from!($name, i8, i64);
-        impl_map_from!($name, i16, i64);
-        impl_map_from!($name, i32, i64);
-        impl_map_from!($name, isize, i64);
-
-        impl_try_from_for_primitive!($name, u8);
-        impl_try_from_for_primitive!($name, u16);
-        impl_try_from_for_primitive!($name, u32);
-        impl_try_from_for_primitive!($name, usize);
-        impl_try_from_for_primitive!($name, u64);
-        impl_try_from_for_primitive!($name, i8);
-        impl_try_from_for_primitive!($name, i16);
-        impl_try_from_for_primitive!($name, i32);
-        impl_try_from_for_primitive!($name, isize);
-        impl_try_from_for_primitive!($name, i64);
-
-        impl<T> core::ops::Add<T> for $name where T: Into<$name> {
-            type Output = $name;
-
-            fn add(self, other: T) -> $name {
-                let (result, overflow) = self.overflowing_add(other.into());
-                panic_on_overflow!(overflow);
-                result
-            }
-        }
-
-        impl<'a, T> core::ops::Add<T> for &'a $name where T: Into<$name> {
-            type Output = $name;
-
-            fn add(self, other: T) -> $name {
-                *self + other
-            }
-        }
-
-        impl core::ops::AddAssign<$name> for $name {
-            fn add_assign(&mut self, other: $name) {
-                let (result, overflow) = self.overflowing_add(other);
-                panic_on_overflow!(overflow);
-                *self = result
-            }
-        }
-
-        impl<T> core::ops::Sub<T> for $name where T: Into<$name> {
-            type Output = $name;
-
-            #[inline]
-            fn sub(self, other: T) -> $name {
-                let (result, overflow) = self.overflowing_sub(other.into());
-                panic_on_overflow!(overflow);
-                result
-            }
-        }
-
-        impl<'a, T> core::ops::Sub<T> for &'a $name where T: Into<$name> {
-            type Output = $name;
-
-            fn sub(self, other: T) -> $name {
-                *self - other
-            }
-        }
-
-        impl core::ops::SubAssign<$name> for $name {
-            fn sub_assign(&mut self, other: $name) {
-                let (result, overflow) = self.overflowing_sub(other);
-                panic_on_overflow!(overflow);
-                *self = result
-            }
-        }
-
         // all other impls
         impl_mul_from!($name, $name);
-        impl_mul_for_primitive!($name, u8);
-        impl_mul_for_primitive!($name, u16);
-        impl_mul_for_primitive!($name, u32);
         impl_mul_for_primitive!($name, u64);
         impl_mul_for_primitive!($name, usize);
-        impl_mul_for_primitive!($name, i8);
-        impl_mul_for_primitive!($name, i16);
-        impl_mul_for_primitive!($name, i32);
-        impl_mul_for_primitive!($name, i64);
-        impl_mul_for_primitive!($name, isize);
 
         impl<T> core::ops::Div<T> for $name where T: Into<$name> {
             type Output = $name;
@@ -816,77 +653,6 @@ macro_rules! uint {
         impl<T> core::ops::DivAssign<T> for $name where T: Into<$name> {
             fn div_assign(&mut self, other: T) {
                 *self = *self / other.into();
-            }
-        }
-
-        impl<T> core::ops::Rem<T> for $name where T: Into<$name> + Copy {
-            type Output = $name;
-
-            fn rem(self, other: T) -> $name {
-                let mut sub_copy = self;
-                sub_copy %= other;
-                sub_copy
-            }
-        }
-
-        impl<'a, T> core::ops::Rem<T> for &'a $name where T: Into<$name>  + Copy {
-            type Output = $name;
-
-            fn rem(self, other: T) -> $name {
-                *self % other
-            }
-        }
-
-        impl<T> core::ops::RemAssign<T> for $name where T: Into<$name> + Copy {
-            fn rem_assign(&mut self, other: T) {
-                let other: Self = other.into();
-                let rem = self.div_mod(other).1;
-                *self = rem;
-            }
-        }
-
-        impl core::ops::BitAnd<$name> for $name {
-            type Output = $name;
-
-            #[inline]
-            fn bitand(self, other: $name) -> $name {
-                let $name(ref arr1) = self;
-                let $name(ref arr2) = other;
-                let mut ret = [0u64; $n_words];
-                for i in 0..$n_words {
-                    ret[i] = arr1[i] & arr2[i];
-                }
-                $name(ret)
-            }
-        }
-
-        impl core::ops::BitXor<$name> for $name {
-            type Output = $name;
-
-            #[inline]
-            fn bitxor(self, other: $name) -> $name {
-                let $name(ref arr1) = self;
-                let $name(ref arr2) = other;
-                let mut ret = [0u64; $n_words];
-                for i in 0..$n_words {
-                    ret[i] = arr1[i] ^ arr2[i];
-                }
-                $name(ret)
-            }
-        }
-
-        impl core::ops::BitOr<$name> for $name {
-            type Output = $name;
-
-            #[inline]
-            fn bitor(self, other: $name) -> $name {
-                let $name(ref arr1) = self;
-                let $name(ref arr2) = other;
-                let mut ret = [0u64; $n_words];
-                for i in 0..$n_words {
-                    ret[i] = arr1[i] | arr2[i];
-                }
-                $name(ret)
             }
         }
 
@@ -974,12 +740,6 @@ macro_rules! uint {
             }
         }
 
-        impl<T> core::ops::ShrAssign<T> for $name where T: Into<$name> {
-            fn shr_assign(&mut self, shift: T) {
-                *self = *self >> shift;
-            }
-        }
-
         impl core::cmp::Ord for $name {
             fn cmp(&self, other: &$name) -> core::cmp::Ordering {
                 self.as_ref().iter().rev().cmp(other.as_ref().iter().rev())
@@ -1013,5 +773,5 @@ macro_rules! uint {
 }
 
 uint! {
-    pub struct U256(4);
+    pub(crate) struct U256(4);
 }

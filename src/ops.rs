@@ -11,6 +11,19 @@ pub trait CheckedAdd<Rhs = Self> {
     type Output;
     type Error;
 
+    /// Checked addition. Returns `Err` on overflow.
+    ///
+    /// ```
+    /// use fixnum::{FixedPoint, typenum::U9, ops::CheckedAdd};
+    ///
+    /// type Amount = FixedPoint<i64, U9>;
+    ///
+    /// fn amount(s: &str) -> Amount { s.parse().unwrap() }
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// assert_eq!(amount("0.1").cadd(amount("0.2"))?, amount("0.3"));
+    /// # Ok(()) }
+    /// ```
     fn cadd(self, rhs: Rhs) -> Result<Self::Output, Self::Error>;
 }
 
@@ -18,6 +31,19 @@ pub trait CheckedSub<Rhs = Self> {
     type Output;
     type Error;
 
+    /// Checked subtraction. Returns `Err` on overflow.
+    ///
+    /// ```
+    /// use fixnum::{FixedPoint, typenum::U9, ops::CheckedSub};
+    ///
+    /// type Amount = FixedPoint<i64, U9>;
+    ///
+    /// fn amount(s: &str) -> FixedPoint<i64, U9> { s.parse().unwrap() }
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// assert_eq!(amount("0.3").csub(amount("0.1"))?, amount("0.2"));
+    /// # Ok(()) }
+    /// ```
     fn csub(self, rhs: Rhs) -> Result<Self::Output, Self::Error>;
 }
 
@@ -25,14 +51,22 @@ pub trait CheckedMul<Rhs = Self> {
     type Output;
     type Error;
 
+    /// Checked multiplication. Returns `Err` on overflow.
+    /// This is multiplication without rounding, hence it's available only to integer types.
+    ///
+    /// ```
+    /// use fixnum::{FixedPoint, typenum::U9, ops::CheckedMul};
+    ///
+    /// type Amount = FixedPoint<i64, U9>;
+    ///
+    /// fn amount(s: &str) -> FixedPoint<i64, U9> { s.parse().unwrap() }
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// assert_eq!(amount("0.000000001").cmul(12)?, amount("0.000000012"));
+    /// assert_eq!(12.cmul(amount("0.000000001"))?, amount("0.000000012"));
+    /// # Ok(()) }
+    /// ```
     fn cmul(self, rhs: Rhs) -> Result<Self::Output, Self::Error>;
-}
-
-pub trait CheckedDiv<Rhs = Self> {
-    type Output;
-    type Error;
-
-    fn cdiv(self, rhs: Rhs) -> Result<Self::Output, Self::Error>;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -45,6 +79,31 @@ pub trait RoundingMul<Rhs = Self> {
     type Output;
     type Error;
 
+    /// Checked rounded multiplication. Returns `Err` on overflow.
+    /// Because of provided [`RoundMode`] it's possible to perform across the [`FixedPoint`] values.
+    ///
+    /// ```
+    /// use fixnum::{FixedPoint, typenum::U9, ops::{RoundingMul, RoundMode}};
+    ///
+    /// type Amount = FixedPoint<i64, U9>;
+    ///
+    /// fn amount(s: &str) -> FixedPoint<i64, U9> { s.parse().unwrap() }
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let a = amount("0.000000001");
+    /// let b = amount("0.000000002");
+    /// // 1e-9 * (Ceil) 2e-9 = 1e-9
+    /// assert_eq!(a.rmul(b, RoundMode::Ceil)?, a);
+    /// assert_eq!(b.rmul(a, RoundMode::Ceil)?, a);
+    /// let zero = amount("0.0");
+    /// // 1e-9 * (Floor) 2e-9 = 0
+    /// assert_eq!(a.rmul(b, RoundMode::Floor)?, zero);
+    /// assert_eq!(b.rmul(a, RoundMode::Floor)?, zero);
+    /// # Ok(()) }
+    /// ```
+    ///
+    /// [`FixedPoint`]: fixnum::FixedPoint
+    /// [`RoundMode`]: fixnum::ops::RoundMode
     fn rmul(self, rhs: Rhs, mode: RoundMode) -> Result<Self::Output, Self::Error>;
 }
 
@@ -52,6 +111,29 @@ pub trait RoundingDiv<Rhs = Self> {
     type Output;
     type Error;
 
+    /// Checked rounded division. Returns `Err` on overflow or attempt to divide by zero.
+    /// Because of provided [`RoundMode`] it's possible to perform across the [`FixedPoint`] values.
+    ///
+    /// ```
+    /// use fixnum::{FixedPoint, typenum::U9, ops::{RoundingDiv, RoundMode}};
+    ///
+    /// type Amount = FixedPoint<i64, U9>;
+    ///
+    /// fn amount(s: &str) -> FixedPoint<i64, U9> { s.parse().unwrap() }
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let a = amount("0.000000001");
+    /// let b = amount("1000000000");
+    /// // 1e-9 / (Ceil) 1e9 = 1e-9
+    /// assert_eq!(a.rdiv(b, RoundMode::Ceil)?, a);
+    /// let zero = amount("0.0");
+    /// // 1e-9 / (Floor) 1e9 = 0
+    /// assert_eq!(a.rdiv(b, RoundMode::Floor)?, zero);
+    /// # Ok(()) }
+    /// ```
+    ///
+    /// [`FixedPoint`]: fixnum::FixedPoint
+    /// [`RoundMode`]: fixnum::ops::RoundMode
     fn rdiv(self, rhs: Rhs, mode: RoundMode) -> Result<Self::Output, Self::Error>;
 }
 
