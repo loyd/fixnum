@@ -6,6 +6,7 @@ pub trait Operand<R> {
     fn promote(self) -> Self::Promotion;
 }
 
+// TODO: restrict `I` and `P`.
 impl<I, P> Operand<FixedPoint<I, P>> for FixedPoint<I, P> {
     type Promotion = FixedPoint<I, P>;
     #[inline]
