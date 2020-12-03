@@ -22,7 +22,6 @@ for lz, (value, power) in enumerate(zip(values, powers)):
 /// Acts as a map for any given `x: i128`:
 /// Leading zeros count in `x` -> The closest power of ten
 #[rustfmt::skip]
-#[allow(clippy::all)]
 #[cfg(feature = "i128")]
 #[allow(clippy::all, non_upper_case_globals)]
 pub static i128: [i128; 129] = [
