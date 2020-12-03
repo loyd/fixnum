@@ -138,6 +138,10 @@ impl<I, P> FixedPoint<I, P> {
             _marker: PhantomData,
         }
     }
+
+    pub const fn as_bits(&self) -> &I {
+        &self.inner
+    }
 }
 
 macro_rules! impl_fixed_point {
