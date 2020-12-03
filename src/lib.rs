@@ -58,16 +58,23 @@ use crate::i256::I256;
 use crate::ops::{
     CheckedAdd, CheckedMul, CheckedSub, Numeric, RoundMode, RoundingDiv, RoundingMul,
 };
+pub use typenum;
 
 #[cfg(feature = "i128")]
 mod i256;
+mod macros;
 pub mod ops;
 mod power_table;
 #[cfg(test)]
 mod tests;
 
-type Result<T, E = ArithmeticError> = core::result::Result<T, E>;
-pub use typenum;
+#[doc(hidden)]
+pub mod _priv {
+    pub use crate::macros::Operand;
+    pub use crate::ops::*;
+}
+
+type Result<T, E = ArithmeticError> = std::result::Result<T, E>;
 
 /// Abstraction over fixed point floating numbers.
 ///
@@ -124,23 +131,22 @@ macro_rules! pow10 {
     }};
 }
 
+impl<I, P> FixedPoint<I, P> {
+    pub const fn from_bits(raw: I) -> Self {
+        FixedPoint {
+            inner: raw,
+            _marker: PhantomData,
+        }
+    }
+}
+
 macro_rules! impl_fixed_point {
     (
         inner = $layout:tt;
         promoted_to = $promotion:tt;
         convert = $convert:expr;
-        from = [$($from:ty),*];
         try_from = [$($try_from:ty),*];
     ) => {
-        impl<P> FixedPoint<$layout, P> {
-            pub const fn from_bits(inner: $layout) -> Self {
-                FixedPoint {
-                    inner,
-                    _marker: PhantomData,
-                }
-            }
-        }
-
         impl<P: Precision> FixedPoint<$layout, P> {
             pub const PRECISION: i32 = P::I32;
             pub const EPSILON: Self = Self::from_bits(1);
@@ -247,6 +253,17 @@ macro_rules! impl_fixed_point {
             }
         }
 
+        impl<P: Precision> RoundingDiv<FixedPoint<$layout, P>> for $layout {
+            type Output = FixedPoint<$layout, P>;
+            type Error = ArithmeticError;
+
+            #[inline]
+            fn rdiv(self, rhs: FixedPoint<$layout, P>, mode: RoundMode) -> Result<FixedPoint<$layout, P>> {
+                let lhs = FixedPoint::<$layout, P>::try_from(self).map_err(|_| ArithmeticError::Overflow)?;
+                lhs.rdiv(rhs, mode)
+            }
+        }
+
         impl<P: Precision> CheckedAdd for FixedPoint<$layout, P> {
             type Output = FixedPoint<$layout, P>;
             type Error = ArithmeticError;
@@ -283,6 +300,16 @@ macro_rules! impl_fixed_point {
                     .checked_mul(rhs)
                     .map(Self::from_bits)
                     .ok_or(ArithmeticError::Overflow)
+            }
+        }
+
+        impl<P: Precision> CheckedMul<FixedPoint<$layout, P>> for $layout {
+            type Output = FixedPoint<$layout, P>;
+            type Error = ArithmeticError;
+
+            #[inline]
+            fn cmul(self, rhs: FixedPoint<$layout, P>) -> Result<FixedPoint<$layout, P>> {
+                rhs.cmul(self)
             }
         }
 
@@ -451,14 +478,6 @@ macro_rules! impl_fixed_point {
                 }
             }
         )*
-        $(
-            /// Returns `FixedPoint<$layout, P>` corresponding to the integer `value`.
-            impl<P: Precision> From<$from> for FixedPoint<$layout, P> {
-                fn from(value: $from) -> Self {
-                    Self::from_bits($layout::from(value) * Self::COEF)
-                }
-            }
-        )*
 
         impl<P: Precision> FromStr for FixedPoint<$layout, P> {
             type Err = ConvertError;
@@ -526,27 +545,23 @@ impl_fixed_point!(
     promoted_to = i32;
     convert = identity;
     from = [i8, u8];
-    try_from = [i16, u16, i32, u32, i64, u64, i128, u128, isize, usize];
+    try_from = [i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize];
 );
 impl_fixed_point!(
     inner = i32;
     promoted_to = i64;
     convert = identity;
-    from = [i8, u8, i16, u16];
-    try_from = [i32, u32, i64, u64, i128, u128, isize, usize];
+    try_from = [i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize];
 );
 impl_fixed_point!(
     inner = i64;
     promoted_to = i128;
-    convert = identity;
-    from = [i8, u8, i16, u16, i32, u32];
-    try_from = [i64, u64, i128, u128, isize, usize];
+    try_from = [i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize];
 );
 #[cfg(feature = "i128")]
 impl_fixed_point!(
     inner = i128;
     promoted_to = I256;
     convert = I256::from_i128;
-    from = [i8, u8, i16, u16, i32, u32, i64, u64];
-    try_from = [i128, u128, isize, usize];
+    try_from = [i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize];
 );
