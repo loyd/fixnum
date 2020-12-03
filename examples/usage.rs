@@ -1,4 +1,4 @@
-use fixnum::{impl_op, typenum, FixedPoint::U9};
+use fixnum::{impl_op, typenum::U9, FixedPoint};
 
 type FP = FixedPoint<i64, U9>;
 

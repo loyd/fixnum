@@ -347,16 +347,16 @@ fn rdiv_overflow() -> Result<()> {
 
 #[test]
 fn float_mul() {
-    let a = FixedPoint::from(525);
-    let b = FixedPoint::from(10);
-    assert_eq!(a.rmul(b, Ceil), Ok(FixedPoint::from(5250)));
+    let a = FixedPoint::try_from(525).unwrap();
+    let b = FixedPoint::try_from(10).unwrap();
+    assert_eq!(a.rmul(b, Ceil), Ok(FixedPoint::try_from(5250).unwrap()));
 
-    let a = FixedPoint::from(525);
+    let a = FixedPoint::try_from(525).unwrap();
     let b = FixedPoint::from_str("0.0001").unwrap();
     assert_eq!(a.rmul(b, Ceil), Ok(FixedPoint::from_str("0.0525").unwrap()));
 
     let a = FixedPoint::MAX;
-    let b = FixedPoint::from(1);
+    let b = FixedPoint::try_from(1).unwrap();
     assert_eq!(a.rmul(b, Ceil), Ok(FixedPoint::MAX));
 
     let a = FixedPoint::from_bits(i128::from(i64::MAX / 10 * 10));
@@ -369,11 +369,11 @@ fn float_mul() {
 
 #[test]
 fn float_mul_overflow() {
-    let a = FixedPoint::from(MAX_SQRT + 1);
+    let a = FixedPoint::try_from(MAX_SQRT + 1).unwrap();
     assert!(a.rmul(a, Ceil).is_err());
 
-    let a = FixedPoint::from(-MAX_SQRT - 1);
-    let b = FixedPoint::from(MAX_SQRT);
+    let a = FixedPoint::try_from(-MAX_SQRT - 1).unwrap();
+    let b = FixedPoint::try_from(MAX_SQRT).unwrap();
     assert!(a.rmul(b, Ceil).is_err());
 }
 
