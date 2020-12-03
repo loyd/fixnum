@@ -74,7 +74,7 @@ pub mod _priv {
     pub use crate::ops::*;
 }
 
-type Result<T, E = ArithmeticError> = std::result::Result<T, E>;
+type Result<T, E = ArithmeticError> = core::result::Result<T, E>;
 
 /// Abstraction over fixed point floating numbers.
 ///
