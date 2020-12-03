@@ -14,13 +14,8 @@
 //! under the `i128` feature.
 //!
 //! ## Example
-//!
-//! ```sh
-//! cargo add fixnum
 //! ```
-//!
-//! ```rust
-//! use fixnum::{FixedPoint, typenum, ops::{CheckedAdd, RoundingMul, RoundMode::*}};
+//! use fixnum::{FixedPoint, typenum::U9, ops::{CheckedAdd, RoundingMul, RoundMode::*}};
 //!
 //! /// Signed fixed point amount over 64 bits, 9 decimal places.
 //! ///
@@ -28,15 +23,58 @@
 //! /// MAX = 2 ** (BITS_COUNT - 1) / 10 ** PRECISION = 2 ** (64 - 1) / 1e9 = 9223372036.854775808 ~ 9.2e9
 //! /// ERROR_MAX = 0.5 / (10 ** PRECISION) = 0.5 / 1e9 = 5e-10
 //! /// ```
-//! type Amount = FixedPoint<i64, typenum::U9>;
+//! type Amount = FixedPoint<i64, U9>;
 //!
 //! fn amount(s: &str) -> Amount { s.parse().unwrap() }
 //!
-//! assert_eq!(amount("0.1").cadd(amount("0.2")).unwrap(), amount("0.3"));
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! assert_eq!(amount("0.1").cadd(amount("0.2"))?, amount("0.3"));
 //! let expences: Amount = amount("0.000000001");
-//! assert_eq!(expences.rmul(expences, Floor).unwrap(), amount("0.0"));
+//! assert_eq!(expences.rmul(expences, Floor)?, amount("0.0"));
 //! // 1e-9 * (Ceil) 1e-9 = 1e-9
-//! assert_eq!(expences.rmul(expences, Ceil).unwrap(), expences);
+//! assert_eq!(expences.rmul(expences, Ceil)?, expences);
+//! # Ok(()) }
+//! ```
+//!
+//! ## Implementing wrapper types.
+//! It's possible to restrict the domain in order to reduce change of mistakes:
+//! ```
+//! #[macro_use]
+//! extern crate fixnum;
+//! use fixnum::{impl_op, typenum::U9, FixedPoint};
+//!
+//! type Fp64 = FixedPoint<i64, U9>;
+//! #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
+//! struct Size(i32);
+//! #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
+//! struct Price(Fp64);
+//! #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
+//! struct PriceDelta(Fp64);
+//! #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
+//! struct Amount(Fp64);
+//! #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
+//! struct Ratio(Fp64);
+//!
+//! impl_op!(Size [cadd] Size = Size);
+//! impl_op!(Size [csub] Size = Size);
+//! impl_op!(Size [rdiv] Size = Ratio);
+//! impl_op!(Size [cmul] Price = Amount);
+//! impl_op!(Price [csub] Price = PriceDelta);
+//! impl_op!(Price [cadd] PriceDelta = Price);
+//! impl_op!(Price [rdiv] Price = Ratio);
+//! impl_op!(Price [rmul] Ratio = Price);
+//! impl_op!(PriceDelta [cadd] PriceDelta = PriceDelta);
+//! impl_op!(Amount [cadd] Amount = Amount);
+//! impl_op!(Amount [csub] Amount = Amount);
+//!
+//! // Use it.
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! use fixnum::ops::*;
+//! let size = Size(2);
+//! let price = Price("4.25".parse()?);
+//! let amount = size.cmul(price)?;
+//! assert_eq!(amount, Amount("8.5".parse()?));
+//! # Ok(()) }
 //! ```
 
 #![warn(rust_2018_idioms)]
