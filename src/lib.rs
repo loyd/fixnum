@@ -20,8 +20,12 @@
 //! /// Signed fixed point amount over 64 bits, 9 decimal places.
 //! ///
 //! /// ```
-//! /// MAX = 2 ** (BITS_COUNT - 1) / 10 ** PRECISION = 2 ** (64 - 1) / 1e9 = 9223372036.854775808 ~ 9.2e9
-//! /// ERROR_MAX = 0.5 / (10 ** PRECISION) = 0.5 / 1e9 = 5e-10
+//! /// MAX = (2 ** (BITS_COUNT - 1) - 1) / 10 ** PRECISION =
+//! ///     = (2 ** (64 - 1) - 1) / 1e9 =
+//! ///     = 9223372036.854775807 ~ 9.2e9
+//! /// ERROR_MAX = 0.5 / (10 ** PRECISION) =
+//! ///           = 0.5 / 1e9 =
+//! ///           = 5e-10
 //! /// ```
 //! type Amount = FixedPoint<i64, U9>;
 //!
