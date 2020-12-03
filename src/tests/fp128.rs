@@ -18,16 +18,16 @@ fn fp(s: &str) -> Result<FixedPoint> {
 #[test]
 fn from_decimal() -> Result<()> {
     let p1 = fp("5")?;
-    let p2 = FixedPoint::from_decimal(5_000_000_000, -9);
-    assert_eq!(Ok(p1), p2);
+    let p2 = FixedPoint::from_decimal(5_000_000_000, -9)?;
+    assert_eq!(p1, p2);
 
     Ok(())
 }
 
 #[test]
 fn from_less_accurate_decimal() -> Result<()> {
-    assert_eq!(FixedPoint::from_decimal(1, 0), Ok(fp("1")?));
-    assert_eq!(FixedPoint::from_decimal(1, 1), Ok(fp("10")?));
+    assert_eq!(FixedPoint::from_decimal(1, 0)?, fp("1")?);
+    assert_eq!(FixedPoint::from_decimal(1, 1)?, fp("10")?);
     Ok(())
 }
 
@@ -114,7 +114,7 @@ macro_rules! assert_rmul {
         // Check the commutative property.
         assert_eq!(a.rmul(b, $mode), b.rmul(a, $mode));
         // Check the result.
-        assert_eq!(a.rmul(b, $mode), Ok(FixedPoint::try_from($result)?));
+        assert_eq!(a.rmul(b, $mode)?, FixedPoint::try_from($result)?);
     }};
 }
 
@@ -127,7 +127,7 @@ macro_rules! assert_rmuls {
         // Check the commutative property.
         assert_eq!(a.rmul(b, $mode), b.rmul(a, $mode));
         // Check the result.
-        assert_eq!(a.rmul(b, $mode), Ok(fp(&format!("{}", $result))?));
+        assert_eq!(a.rmul(b, $mode)?, fp(&format!("{}", $result))?);
     }};
 }
 
@@ -229,43 +229,43 @@ fn rmul_overflow() -> Result<()> {
 fn rdiv_exact() -> Result<()> {
     let (numer, denom) = (fp("5")?, fp("2")?);
     let result = fp("2.5")?;
-    assert_eq!(numer.rdiv(denom, Ceil), Ok(result));
-    assert_eq!(numer.rdiv(denom, Floor), Ok(result));
+    assert_eq!(numer.rdiv(denom, Ceil)?, result);
+    assert_eq!(numer.rdiv(denom, Floor)?, result);
 
     let (numer, denom) = (fp("-5")?, fp("2")?);
     let result = fp("-2.5")?;
-    assert_eq!(numer.rdiv(denom, Ceil), Ok(result));
-    assert_eq!(numer.rdiv(denom, Floor), Ok(result));
+    assert_eq!(numer.rdiv(denom, Ceil)?, result);
+    assert_eq!(numer.rdiv(denom, Floor)?, result);
 
     let (numer, denom) = (fp("-5")?, fp("-2")?);
     let result = fp("2.5")?;
-    assert_eq!(numer.rdiv(denom, Ceil), Ok(result));
-    assert_eq!(numer.rdiv(denom, Floor), Ok(result));
+    assert_eq!(numer.rdiv(denom, Ceil)?, result);
+    assert_eq!(numer.rdiv(denom, Floor)?, result);
 
     let (numer, denom) = (fp("5")?, fp("-2")?);
     let result = fp("-2.5")?;
-    assert_eq!(numer.rdiv(denom, Ceil), Ok(result));
-    assert_eq!(numer.rdiv(denom, Floor), Ok(result));
+    assert_eq!(numer.rdiv(denom, Ceil)?, result);
+    assert_eq!(numer.rdiv(denom, Floor)?, result);
 
     let (numer, denom) = (FixedPoint::MAX, FixedPoint::MAX);
     let result = fp("1")?;
-    assert_eq!(numer.rdiv(denom, Ceil), Ok(result));
-    assert_eq!(numer.rdiv(denom, Floor), Ok(result));
+    assert_eq!(numer.rdiv(denom, Ceil)?, result);
+    assert_eq!(numer.rdiv(denom, Floor)?, result);
 
     let (numer, denom) = (fp("5")?, fp("0.2")?);
     let result = fp("25")?;
-    assert_eq!(numer.rdiv(denom, Ceil), Ok(result));
-    assert_eq!(numer.rdiv(denom, Floor), Ok(result));
+    assert_eq!(numer.rdiv(denom, Ceil)?, result);
+    assert_eq!(numer.rdiv(denom, Floor)?, result);
 
     let (numer, denom) = (fp("0.00000001")?, fp("10")?);
     let result = fp("0.000000001")?;
-    assert_eq!(numer.rdiv(denom, Ceil), Ok(result));
-    assert_eq!(numer.rdiv(denom, Floor), Ok(result));
+    assert_eq!(numer.rdiv(denom, Ceil)?, result);
+    assert_eq!(numer.rdiv(denom, Floor)?, result);
 
     let (numer, denom) = (fp("0.00000001")?, fp("0.1")?);
     let result = fp("0.0000001")?;
-    assert_eq!(numer.rdiv(denom, Ceil), Ok(result));
-    assert_eq!(numer.rdiv(denom, Floor), Ok(result));
+    assert_eq!(numer.rdiv(denom, Ceil)?, result);
+    assert_eq!(numer.rdiv(denom, Floor)?, result);
 
     Ok(())
 }
@@ -346,35 +346,29 @@ fn rdiv_overflow() -> Result<()> {
 }
 
 #[test]
-fn float_mul() {
-    let a = FixedPoint::from(525);
-    let b = FixedPoint::from(10);
-    assert_eq!(a.rmul(b, Ceil), Ok(FixedPoint::from(5250)));
-
-    let a = FixedPoint::from(525);
-    let b = FixedPoint::from_str("0.0001").unwrap();
-    assert_eq!(a.rmul(b, Ceil), Ok(FixedPoint::from_str("0.0525").unwrap()));
-
-    let a = FixedPoint::MAX;
-    let b = FixedPoint::from(1);
-    assert_eq!(a.rmul(b, Ceil), Ok(FixedPoint::MAX));
+fn float_mul() -> Result<()> {
+    assert_eq!(fp("525")?.rmul(fp("10")?, Ceil)?, fp("5250")?);
+    assert_eq!(fp("525")?.rmul(fp("0.0001")?, Ceil)?, fp("0.0525")?);
+    assert_eq!(FixedPoint::MAX.rmul(fp("1")?, Ceil), Ok(FixedPoint::MAX));
 
     let a = FixedPoint::from_bits(i128::from(i64::MAX / 10 * 10));
     let b = FixedPoint::from_str("0.1").unwrap();
     assert_eq!(
-        a.rmul(b, Ceil),
-        Ok(FixedPoint::from_bits(i128::from(i64::MAX / 10)))
+        a.rmul(b, Ceil)?,
+        FixedPoint::from_bits(i128::from(i64::MAX / 10))
     );
+    Ok(())
 }
 
 #[test]
-fn float_mul_overflow() {
-    let a = FixedPoint::from(MAX_SQRT + 1);
+fn float_mul_overflow() -> Result<()> {
+    let a = FixedPoint::try_from(MAX_SQRT + 1)?;
     assert!(a.rmul(a, Ceil).is_err());
 
-    let a = FixedPoint::from(-MAX_SQRT - 1);
-    let b = FixedPoint::from(MAX_SQRT);
+    let a = FixedPoint::try_from(-MAX_SQRT - 1)?;
+    let b = FixedPoint::try_from(MAX_SQRT)?;
     assert!(a.rmul(b, Ceil).is_err());
+    Ok(())
 }
 
 #[test]
