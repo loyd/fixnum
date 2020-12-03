@@ -1,5 +1,4 @@
-use fixnum::{legit_op, FixedPoint};
-use typenum::U9;
+use fixnum::{impl_op, typenum, FixedPoint::U9};
 
 type FP = FixedPoint<i64, U9>;
 
@@ -14,17 +13,17 @@ struct Amount(FP);
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
 struct Ratio(FP);
 
-legit_op!(Size [cadd] Size = Size);
-legit_op!(Size [csub] Size = Size);
-legit_op!(Size [rdiv] Size = Ratio);
-legit_op!(Size [cmul] Price = Amount);
-legit_op!(Price [csub] Price = PriceDelta);
-legit_op!(Price [cadd] PriceDelta = Price);
-legit_op!(Price [rdiv] Price = Ratio);
-legit_op!(Price [rmul] Ratio = Price);
-legit_op!(PriceDelta [cadd] PriceDelta = PriceDelta);
-legit_op!(Amount [cadd] Amount = Amount);
-legit_op!(Amount [csub] Amount = Amount);
+impl_op!(Size [cadd] Size = Size);
+impl_op!(Size [csub] Size = Size);
+impl_op!(Size [rdiv] Size = Ratio);
+impl_op!(Size [cmul] Price = Amount);
+impl_op!(Price [csub] Price = PriceDelta);
+impl_op!(Price [cadd] PriceDelta = Price);
+impl_op!(Price [rdiv] Price = Ratio);
+impl_op!(Price [rmul] Ratio = Price);
+impl_op!(PriceDelta [cadd] PriceDelta = PriceDelta);
+impl_op!(Amount [cadd] Amount = Amount);
+impl_op!(Amount [csub] Amount = Amount);
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     use fixnum::ops::*;

@@ -544,7 +544,6 @@ impl_fixed_point!(
     inner = i16;
     promoted_to = i32;
     convert = identity;
-    from = [i8, u8];
     try_from = [i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize];
 );
 impl_fixed_point!(
@@ -556,6 +555,7 @@ impl_fixed_point!(
 impl_fixed_point!(
     inner = i64;
     promoted_to = i128;
+    convert = identity;
     try_from = [i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize];
 );
 #[cfg(feature = "i128")]

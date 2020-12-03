@@ -48,7 +48,7 @@ impl_int_operand!(i64 => i64, i128);
 impl_int_operand!(i128 => i128);
 
 #[macro_export]
-macro_rules! legit_op {
+macro_rules! impl_op {
     ($lhs:ty [cadd] $rhs:ty = $res:tt) => {
         impl $crate::ops::CheckedAdd<$rhs> for $lhs {
             type Output = $res;
@@ -56,7 +56,7 @@ macro_rules! legit_op {
 
             #[inline]
             fn cadd(self, rhs: $rhs) -> Result<$res, $crate::ArithmeticError> {
-                crate::legit_op!(@method (l = self, r = rhs) => l.cadd(r), $res)
+                crate::impl_op!(@method (l = self, r = rhs) => l.cadd(r), $res)
             }
         }
     };
@@ -67,7 +67,7 @@ macro_rules! legit_op {
 
             #[inline]
             fn csub(self, rhs: $rhs) -> Result<$res, $crate::ArithmeticError> {
-                crate::legit_op!(@method (l = self, r = rhs) => l.csub(r), $res)
+                crate::impl_op!(@method (l = self, r = rhs) => l.csub(r), $res)
             }
         }
     };
@@ -78,7 +78,7 @@ macro_rules! legit_op {
 
             #[inline]
             fn cmul(self, rhs: $rhs) -> Result<$res, $crate::ArithmeticError> {
-                crate::legit_op!(@method (l = self, r = rhs) => l.cmul(r), $res)
+                crate::impl_op!(@method (l = self, r = rhs) => l.cmul(r), $res)
             }
         }
     };
@@ -93,7 +93,7 @@ macro_rules! legit_op {
                 rhs: $rhs,
                 mode: $crate::ops::RoundMode,
             ) -> Result<$res, $crate::ArithmeticError> {
-                crate::legit_op!(@method (l = self, r = rhs) => l.rmul(r, mode), $res)
+                crate::impl_op!(@method (l = self, r = rhs) => l.rmul(r, mode), $res)
             }
         }
     };
@@ -109,7 +109,7 @@ macro_rules! legit_op {
                 mode: $crate::ops::RoundMode,
             ) -> Result<$res, $crate::ArithmeticError> {
                 use core::convert::TryInto;
-                crate::legit_op!(@method (l = self, r = rhs) => {
+                crate::impl_op!(@method (l = self, r = rhs) => {
                     $res(
                         l.try_into().map_err(|_| $crate::ArithmeticError::Overflow)?
                     ).0.rdiv(r, mode)
