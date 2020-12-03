@@ -3,6 +3,7 @@ name = "fixnum"
 version = "0.1.0"
 description = "fixed-point numbers"
 keywords = ["fixed", "decimal", "numbers"]
+authors = ["Paul Loyd <pavelko95@gmail.com>"]
 repository = "https://github.com/loyd/fixnum"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
