@@ -8,8 +8,14 @@
 //! - `i32` — promotes to `i64` (for mul, div),
 //! - `i64` — promotes to `i128` (for mul, div).
 //!
-//! There's also support for `i128` layout which will be promoted to internally implemented `I256` for multiplication
-//! and division — this is available under the `i128` feature.
+//! ## Features
+//!
+//! Turn them on in `Cargo.toml`:
+//!
+//! - `i128` — `i128` layout support which will be promoted to internally implemented `I256` for
+//!   multiplication and division.
+//! - `parity` — [`parity-scale-codec`][parity_scale_codec] support (`Encode` and `Decode`
+//!   implementations).
 //!
 //! ## Example
 //! ```
@@ -17,10 +23,10 @@
 //!
 //! /// Signed fixed point amount over 64 bits, 9 decimal places.
 //! ///
-//! /// MAX = (2 ** (BITS_COUNT - 1) - 1) / 10 ** PRECISION =
-//! ///     = (2 ** (64 - 1) - 1) / 1e9 =
+//! /// MAX = (2 ^ (BITS_COUNT - 1) - 1) / 10 ^ PRECISION =
+//! ///     = (2 ^ (64 - 1) - 1) / 1e9 =
 //! ///     = 9223372036.854775807 ~ 9.2e9
-//! /// ERROR_MAX = 0.5 / (10 ** PRECISION) =
+//! /// ERROR_MAX = 0.5 / (10 ^ PRECISION) =
 //! ///           = 0.5 / 1e9 =
 //! ///           = 5e-10
 //! type Amount = FixedPoint<i64, U9>;
@@ -45,6 +51,7 @@
 //! | [`cmul`][cmul] | `let result: Result<FixedPoint, ArithmeticError> = a.cmul(b)` | Checked multiplication. Returns `Err` on overflow. This is multiplication without rounding, hence it's available only when at least one operand is integer. |
 //! | [`rmul`][rmul] | `let result: Result<FixedPoint, ArithmeticError> = a.rmul(b, RoundMode::Ceil)` | Checked rounded multiplication. Returns `Err` on overflow. Because of provided [`RoundMode`][RoundMode] it's possible across the [`FixedPoint`][FixedPoint] values. |
 //! | [`rdiv`][rdiv] | `let result: Result<FixedPoint, ArithmeticError> = a.rdiv(b, RoundMode::Floor)` | Checked rounded division. Returns `Err` on overflow. Because of provided [`RoundMode`][RoundMode] it's possible across the [`FixedPoint`][FixedPoint] values. |
+//! | [`cneg`][cneg] | `let result: Result<FixedPoint, ArithmeticError> = a.cneg()` | Checked negation. Returns `Err` on overflow (you can't negate [`MIN` value](MIN)). |
 //!
 //! ## Implementing wrapper types.
 //! It's possible to restrict the domain in order to reduce chance of mistakes:
@@ -87,11 +94,14 @@
 //! ```
 //!
 //! [cadd]: ./ops/trait.CheckedAdd.html#tymethod.cadd
+//! [cneg]: ./struct.FixedPoint.html#method.cneg
 //! [csub]: ./ops/trait.CheckedSub.html#tymethod.csub
 //! [cmul]: ./ops/trait.CheckedMul.html#tymethod.cmul
-//! [rmul]: ./ops/trait.RoundingMul.html#tymethod.rmul
-//! [rdiv]: ./ops/trait.RoundingDiv.html#tymethod.rdiv
 //! [FixedPoint]: ./struct.FixedPoint.html
+//! [MIN]: ./ops/trait.Numeric.html#associatedconstant.MIN
+//! [parity_scale_codec]: https://docs.rs/parity-scale-codec
+//! [rdiv]: ./ops/trait.RoundingDiv.html#tymethod.rdiv
+//! [rmul]: ./ops/trait.RoundingMul.html#tymethod.rmul
 //! [RoundMode]: ./ops/enum.RoundMode.html
 
 #![warn(rust_2018_idioms)]
@@ -100,10 +110,8 @@ use core::convert::TryFrom;
 use core::str::FromStr;
 use core::{fmt, i64, marker::PhantomData};
 
-use derive_more::Display;
-#[cfg(feature = "std")]
-use derive_more::Error;
-
+#[cfg(feature = "parity")]
+use parity_scale_codec::{Decode, Encode};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use typenum::Unsigned;
@@ -116,6 +124,7 @@ use crate::ops::{
 pub use typenum;
 
 mod const_fn;
+mod errors;
 #[cfg(feature = "i128")]
 mod i256;
 mod macros;
@@ -123,6 +132,8 @@ pub mod ops;
 mod power_table;
 #[cfg(test)]
 mod tests;
+
+pub use errors::*;
 
 #[doc(hidden)]
 pub mod _priv {
@@ -133,10 +144,12 @@ pub mod _priv {
 
 type Result<T, E = ArithmeticError> = core::result::Result<T, E>;
 
-/// Abstraction over fixed point floating numbers.
+/// Abstraction over fixed point numbers of arbitrary (but only compile-time specified) size
+/// and precision.
 ///
 /// The internal representation is a fixed point decimal number,
-/// i.e. a value pre-multiplied by 10^N, where N is a pre-defined number.
+/// a value pre-multiplied by `10 ^ PRECISION`, where `PRECISION` is a compile-time-defined number.
+#[cfg_attr(feature = "parity", derive(Encode, Decode))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FixedPoint<I, P> {
@@ -146,33 +159,6 @@ pub struct FixedPoint<I, P> {
 
 pub trait Precision: Unsigned {}
 impl<U: Unsigned> Precision for U {}
-
-#[cfg_attr(feature = "std", derive(Error))]
-#[derive(Debug, derive_more::Display, PartialEq)]
-pub enum ArithmeticError {
-    #[display(fmt = "overflow")]
-    Overflow,
-    #[display(fmt = "division by zero")]
-    DivisionByZero,
-}
-
-#[cfg_attr(feature = "std", derive(Error))]
-#[derive(Debug, Display, PartialEq)]
-pub enum FromDecimalError {
-    #[display(fmt = "unsupported exponent")]
-    UnsupportedExponent,
-    #[display(fmt = "too big mantissa")]
-    TooBigMantissa,
-}
-
-#[cfg_attr(feature = "std", derive(Error))]
-#[derive(Debug, Display, PartialEq)]
-pub enum ConvertError {
-    #[display(fmt = "overflow")]
-    Overflow,
-    #[display(fmt = "other: {}", _0)]
-    Other(#[cfg_attr(feature = "std", error(not(source)))] &'static str),
-}
 
 impl<I, P> FixedPoint<I, P> {
     pub const fn from_bits(raw: I) -> Self {
@@ -361,6 +347,9 @@ macro_rules! impl_fixed_point {
                 Self::ONE.rdiv(self, mode)
             }
 
+            /// Checked negation. Returns `Err` on overflow (you can't negate [`MIN` value][MIN]).
+            ///
+            /// [MIN]: ./ops/trait.Numeric.html#associatedconstant.MIN
             #[inline]
             pub fn cneg(self) -> Result<FixedPoint<$layout, P>> {
                 self.inner
