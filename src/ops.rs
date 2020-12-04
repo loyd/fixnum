@@ -52,7 +52,7 @@ pub trait CheckedMul<Rhs = Self> {
     type Error;
 
     /// Checked multiplication. Returns `Err` on overflow.
-    /// This is multiplication without rounding, hence it's available only to integer types.
+    /// This is multiplication without rounding, hence it's available only when at least one operand is integer.
     ///
     /// ```
     /// use fixnum::{FixedPoint, typenum::U9, ops::CheckedMul};
@@ -80,7 +80,8 @@ pub trait RoundingMul<Rhs = Self> {
     type Error;
 
     /// Checked rounded multiplication. Returns `Err` on overflow.
-    /// Because of provided [`RoundMode`] it's possible to perform across the [`FixedPoint`] values.
+    /// Because of provided [`RoundMode`][RoundMode] it's possible to perform across the [`FixedPoint`][FixedPoint]
+    /// values.
     ///
     /// ```
     /// use fixnum::{FixedPoint, typenum::U9, ops::{RoundingMul, RoundMode}};
@@ -102,8 +103,8 @@ pub trait RoundingMul<Rhs = Self> {
     /// # Ok(()) }
     /// ```
     ///
-    /// [`FixedPoint`]: fixnum::FixedPoint
-    /// [`RoundMode`]: fixnum::ops::RoundMode
+    /// [FixedPoint]: ../struct.FixedPoint.html
+    /// [RoundMode]: ./enum.RoundMode.html
     fn rmul(self, rhs: Rhs, mode: RoundMode) -> Result<Self::Output, Self::Error>;
 }
 
@@ -112,7 +113,8 @@ pub trait RoundingDiv<Rhs = Self> {
     type Error;
 
     /// Checked rounded division. Returns `Err` on overflow or attempt to divide by zero.
-    /// Because of provided [`RoundMode`] it's possible to perform across the [`FixedPoint`] values.
+    /// Because of provided [`RoundMode`][RoundMode] it's possible to perform across the [`FixedPoint`][FixedPoint]
+    /// values.
     ///
     /// ```
     /// use fixnum::{FixedPoint, typenum::U9, ops::{RoundingDiv, RoundMode}};
@@ -132,8 +134,8 @@ pub trait RoundingDiv<Rhs = Self> {
     /// # Ok(()) }
     /// ```
     ///
-    /// [`FixedPoint`]: fixnum::FixedPoint
-    /// [`RoundMode`]: fixnum::ops::RoundMode
+    /// [FixedPoint]: ../struct.FixedPoint.html
+    /// [RoundMode]: ./enum.RoundMode.html
     fn rdiv(self, rhs: Rhs, mode: RoundMode) -> Result<Self::Output, Self::Error>;
 }
 
