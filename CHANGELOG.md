@@ -3,6 +3,10 @@
 All notable changes to this project will be documented in this file.
 `fixnum` adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.2.1 - 2020-12-04
+### Changed
+- Docs' links were fixed (@quasiyoke).
+
 ## 0.2.0 - 2020-12-04
 ### Removed
 - Support of `fixnum::ops::CheckedDiv` (@quasiyoke).

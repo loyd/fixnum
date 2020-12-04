@@ -1,8 +1,6 @@
 //! # `fixnum`
 //!
-//! [![Latest Version](https://img.shields.io/crates/v/fixnum.svg)](https://crates.io/crates/fixnum)
-//!
-//! [`FixedPoint`] numbers with explicit rounding.
+//! [Fixed-point][FixedPoint] numbers with explicit rounding.
 //!
 //! Uses various signed integer types to store the number. The following are available by default:
 //!
@@ -10,7 +8,7 @@
 //! - `i32` — promotes to `i64` (for mul, div),
 //! - `i64` — promotes to `i128` (for mul, div).
 //!
-//! There's also support for `i128` layout which will be promoted to internally implemented [`I256`] for multiplication
+//! There's also support for `i128` layout which will be promoted to internally implemented `I256` for multiplication
 //! and division — this is available under the `i128` feature.
 //!
 //! ## Example
@@ -42,11 +40,11 @@
 //!
 //! | Method Name | Example (pseudo-code) | Description |
 //! | ----------- | --------------------- | ----------- |
-//! | [`cadd`] | `let result: Result<FixedPoint, ArithmeticError> = a.cadd(b)` | Checked addition. Returns `Err` on overflow. |
-//! | [`csub`] | `let result: Result<FixedPoint, ArithmeticError> = a.csub(b)` | Checked subtraction. Returns `Err` on overflow. |
-//! | [`cmul`] | `let result: Result<FixedPoint, ArithmeticError> = a.cmul(b)` | Checked multiplication. Returns `Err` on overflow. This is multiplication without rounding, hence it's available only to integer types. |
-//! | [`rmul`] | `let result: Result<FixedPoint, ArithmeticError> = a.rmul(b, RoundMode::Ceil)` | Checked rounded multiplication. Returns `Err` on overflow. Because of provided [`RoundMode`] it's possible across the [`FixedPoint`] values. |
-//! | [`rdiv`] | `let result: Result<FixedPoint, ArithmeticError> = a.rdiv(b, RoundMode::Floor)` | Checked rounded division. Returns `Err` on overflow. Because of provided [`RoundMode`] it's possible across the [`FixedPoint`] values. |
+//! | [`cadd`][cadd] | `let result: Result<FixedPoint, ArithmeticError> = a.cadd(b)` | Checked addition. Returns `Err` on overflow. |
+//! | [`csub`][csub] | `let result: Result<FixedPoint, ArithmeticError> = a.csub(b)` | Checked subtraction. Returns `Err` on overflow. |
+//! | [`cmul`][cmul] | `let result: Result<FixedPoint, ArithmeticError> = a.cmul(b)` | Checked multiplication. Returns `Err` on overflow. This is multiplication without rounding, hence it's available only when at least one operand is integer. |
+//! | [`rmul`][rmul] | `let result: Result<FixedPoint, ArithmeticError> = a.rmul(b, RoundMode::Ceil)` | Checked rounded multiplication. Returns `Err` on overflow. Because of provided [`RoundMode`][RoundMode] it's possible across the [`FixedPoint`][FixedPoint] values. |
+//! | [`rdiv`][rdiv] | `let result: Result<FixedPoint, ArithmeticError> = a.rdiv(b, RoundMode::Floor)` | Checked rounded division. Returns `Err` on overflow. Because of provided [`RoundMode`][RoundMode] it's possible across the [`FixedPoint`][FixedPoint] values. |
 //!
 //! ## Implementing wrapper types.
 //! It's possible to restrict the domain in order to reduce chance of mistakes:
@@ -89,14 +87,13 @@
 //! # Ok(()) }
 //! ```
 //!
-//! [`cadd`]: fixnum::ops::CheckedAdd::cadd
-//! [`csub`]: fixnum::ops::CheckedSub::csub
-//! [`cmul`]: fixnum::ops::CheckedMul::cmul
-//! [`rmul`]: fixnum::ops::RoundingMul::rmul
-//! [`rdiv`]: fixnum::ops::RoundingDiv::rdiv
-//! [`I256`]: fixnum::i256::I256
-//! [`FixedPoint`]: fixnum::FixedPoint
-//! [`RoundMode`]: fixnum::ops::RoundMode
+//! [cadd]: ./ops/trait.CheckedAdd.html#tymethod.cadd
+//! [csub]: ./ops/trait.CheckedSub.html#tymethod.csub
+//! [cmul]: ./ops/trait.CheckedMul.html#tymethod.cmul
+//! [rmul]: ./ops/trait.RoundingMul.html#tymethod.rmul
+//! [rdiv]: ./ops/trait.RoundingDiv.html#tymethod.rdiv
+//! [FixedPoint]: ./struct.FixedPoint.html
+//! [RoundMode]: ./ops/enum.RoundMode.html
 
 #![warn(rust_2018_idioms)]
 #![cfg_attr(not(feature = "std"), no_std)]
