@@ -56,7 +56,7 @@ macro_rules! impl_op {
 
             #[inline]
             fn cadd(self, rhs: $rhs) -> Result<$res, $crate::ArithmeticError> {
-                crate::impl_op!(@method (l = self, r = rhs) => l.cadd(r), $res)
+                $crate::impl_op!(@method (l = self, r = rhs) => l.cadd(r), $res)
             }
         }
     };
@@ -67,7 +67,7 @@ macro_rules! impl_op {
 
             #[inline]
             fn csub(self, rhs: $rhs) -> Result<$res, $crate::ArithmeticError> {
-                crate::impl_op!(@method (l = self, r = rhs) => l.csub(r), $res)
+                $crate::impl_op!(@method (l = self, r = rhs) => l.csub(r), $res)
             }
         }
     };
@@ -78,7 +78,7 @@ macro_rules! impl_op {
 
             #[inline]
             fn cmul(self, rhs: $rhs) -> Result<$res, $crate::ArithmeticError> {
-                crate::impl_op!(@method (l = self, r = rhs) => l.cmul(r), $res)
+                $crate::impl_op!(@method (l = self, r = rhs) => l.cmul(r), $res)
             }
         }
     };
@@ -93,7 +93,7 @@ macro_rules! impl_op {
                 rhs: $rhs,
                 mode: $crate::ops::RoundMode,
             ) -> Result<$res, $crate::ArithmeticError> {
-                crate::impl_op!(@method (l = self, r = rhs) => l.rmul(r, mode), $res)
+                $crate::impl_op!(@method (l = self, r = rhs) => l.rmul(r, mode), $res)
             }
         }
     };
@@ -109,7 +109,7 @@ macro_rules! impl_op {
                 mode: $crate::ops::RoundMode,
             ) -> Result<$res, $crate::ArithmeticError> {
                 use core::convert::TryInto;
-                crate::impl_op!(@method (l = self, r = rhs) => {
+                $crate::impl_op!(@method (l = self, r = rhs) => {
                     $res(
                         l.try_into().map_err(|_| $crate::ArithmeticError::Overflow)?
                     ).0.rdiv(r, mode)

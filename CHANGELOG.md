@@ -9,6 +9,9 @@ All notable changes to this project will be documented in this file.
   (`Encode` and `Decode` impls).
 - `Into<&'static str>` was implemented for errors.
 
+### Changed
+- Added `$crate` prefix for `impl_op` macro.
+
 ## 0.2.1 - 2020-12-04
 ### Changed
 - Docs' links were fixed (@quasiyoke).
