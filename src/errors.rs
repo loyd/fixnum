@@ -1,63 +1,65 @@
-use derive_more::Display;
 #[cfg(feature = "std")]
 use derive_more::Error;
 
 macro_rules! impl_error {
-    ($enum:tt, $($variant:tt => $str:expr, )+) => {
-        impl From<$enum> for &'static str {
-            fn from(x: $enum) -> &'static str {
-                match x {
-                    $(
-                        $enum::$variant => { $str },
-                        )*
+    ($enum:ty, $($variant:pat => $str:expr, )+) => {
+        impl $enum {
+            pub const fn as_str(&self) -> &'static str {
+                match self {
+                    $( $variant => { $str }, )*
                 }
+            }
+        }
+
+        impl ::core::fmt::Display for $enum {
+            fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                f.write_str(self.as_str())
             }
         }
     };
 }
 
 #[cfg_attr(feature = "std", derive(Error))]
-#[derive(Debug, Display, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum ArithmeticError {
-    #[display(fmt = "overflow")]
     Overflow,
-    #[display(fmt = "division by zero")]
     DivisionByZero,
 }
 
 impl_error!(ArithmeticError,
-Overflow => "overflow",
-DivisionByZero => "division by zero",
+    ArithmeticError::Overflow => "overflow",
+    ArithmeticError::DivisionByZero => "division by zero",
 );
 
 #[cfg_attr(feature = "std", derive(Error))]
-#[derive(Debug, Display, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum FromDecimalError {
-    #[display(fmt = "unsupported exponent")]
     UnsupportedExponent,
-    #[display(fmt = "too big mantissa")]
     TooBigMantissa,
 }
 
 impl_error!(FromDecimalError,
-UnsupportedExponent => "unsupported exponent",
-TooBigMantissa => "mantissa is too big",
+    FromDecimalError::UnsupportedExponent => "unsupported exponent",
+    FromDecimalError::TooBigMantissa => "mantissa is too big",
 );
 
 #[cfg_attr(feature = "std", derive(Error))]
-#[derive(Debug, Display, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum ConvertError {
-    #[display(fmt = "overflow")]
     Overflow,
-    #[display(fmt = "other: {}", _0)]
     Other(#[cfg_attr(feature = "std", error(not(source)))] &'static str),
 }
 
 impl From<ConvertError> for &'static str {
     fn from(x: ConvertError) -> &'static str {
         match x {
-            ConvertError::Overflow => "overflow convert error",
-            ConvertError::Other(_) => "other convert error",
+            ConvertError::Overflow => "overflow",
+            ConvertError::Other(_) => "other",
         }
     }
 }
+
+impl_error!(ConvertError,
+    ConvertError::Overflow => "unsupported exponent",
+    ConvertError::Other(_) => "mantissa is too big",
+);

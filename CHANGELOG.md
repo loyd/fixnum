@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - [`parity-scale-codec`](https://docs.rs/parity-scale-codec) support under the `parity` feature
   (`Encode` and `Decode` impls).
-- `Into<&'static str>` was implemented for errors.
+- `.as_str()` was implemented for errors.
 
 ### Changed
 - Added `$crate` prefix for `impl_op` macro.
