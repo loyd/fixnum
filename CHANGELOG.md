@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 
 ## 0.2.2 - 2020-12-09
 ### Added
-- [`parity-scale-codec`][parity_scale_codec] support under the `parity` feature
+- [`parity-scale-codec`](https://docs.rs/parity-scale-codec) support under the `parity` feature
   (`Encode` and `Decode` impls).
 - `Into<&'static str>` was implemented for errors.
 
@@ -26,5 +26,3 @@ All notable changes to this project will be documented in this file.
 ## 0.1.0 - 2020-12-03
 ### Added
 - Initial release.
-
-[parity_scale_codec]: https://docs.rs/parity-scale-codec
