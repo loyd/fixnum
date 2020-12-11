@@ -23,6 +23,7 @@ derive_more = { version = "0.99.9", default-features = false, features = ["displ
 [dev-dependencies]
 anyhow = "1.0.29"
 criterion = "0.3.3"
+derive_more = "0.99.9"
 
 [features]
 default = ["std", "serde"]

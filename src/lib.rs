@@ -49,20 +49,19 @@
 //! ## Implementing wrapper types.
 //! It's possible to restrict the domain in order to reduce chance of mistakes:
 //! ```
-//! #[macro_use]
-//! extern crate fixnum;
-//! use fixnum::{impl_op, typenum::U9, FixedPoint};
+//! use derive_more::From;
+//! use fixnum::{impl_op, fixnum, typenum::U9, FixedPoint};
 //!
 //! type Fp64 = FixedPoint<i64, U9>;
-//! #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
+//! #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, From)]
 //! struct Size(i32);
-//! #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
+//! #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, From)]
 //! struct Price(Fp64);
-//! #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
+//! #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, From)]
 //! struct PriceDelta(Fp64);
-//! #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
+//! #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, From)]
 //! struct Amount(Fp64);
-//! #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
+//! #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, From)]
 //! struct Ratio(Fp64);
 //!
 //! impl_op!(Size [cadd] Size = Size);
@@ -80,10 +79,10 @@
 //! // Use it.
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! use fixnum::ops::*;
-//! let size = Size(2);
-//! let price = Price("4.25".parse()?);
+//! let size = Size(4);
+//! let price = fixnum!(4.25); // compile-time
 //! let amount = size.cmul(price)?;
-//! assert_eq!(amount, Amount("8.5".parse()?));
+//! assert_eq!(amount, fixnum!(17));
 //! # Ok(()) }
 //! ```
 //!
@@ -116,6 +115,7 @@ use crate::ops::{
 };
 pub use typenum;
 
+mod const_fn;
 #[cfg(feature = "i128")]
 mod i256;
 mod macros;
@@ -126,6 +126,7 @@ mod tests;
 
 #[doc(hidden)]
 pub mod _priv {
+    pub use crate::const_fn::*;
     pub use crate::macros::Operand;
     pub use crate::ops::*;
 }
@@ -145,8 +146,6 @@ pub struct FixedPoint<I, P> {
 
 pub trait Precision: Unsigned {}
 impl<U: Unsigned> Precision for U {}
-
-/////////////////////////////////////////////////////////
 
 #[cfg_attr(feature = "std", derive(Error))]
 #[derive(Debug, derive_more::Display, PartialEq)]
@@ -175,18 +174,6 @@ pub enum ConvertError {
     Other(#[cfg_attr(feature = "std", error(not(source)))] &'static str),
 }
 
-macro_rules! pow10 {
-    ($convert:expr, $rhs:expr) => {{
-        let mut result = 1;
-        let mut i = $rhs;
-        while i > 0 {
-            result *= 10;
-            i -= 1;
-        }
-        $convert(result)
-    }};
-}
-
 impl<I, P> FixedPoint<I, P> {
     pub const fn from_bits(raw: I) -> Self {
         FixedPoint {
@@ -211,13 +198,8 @@ macro_rules! impl_fixed_point {
             pub const PRECISION: i32 = P::I32;
             pub const EPSILON: Self = Self::from_bits(1);
 
-            const COEF: $layout = pow10!(identity, Self::PRECISION);
-            const COEF_PROMOTED: $promotion = pow10!($convert, Self::PRECISION);
-
-            // TODO
-            //pub const HALF: Self = Self::from_bits(Self::COEF / 2);
-            //pub const MAX_MINUS_ONE: Self = Self::from_bits(i64::MAX - 1);
-            //pub const MINUS_ONE: Self = Self::from_bits(-COEF);
+            const COEF: $layout = const_fn::pow10(Self::PRECISION) as _;
+            const COEF_PROMOTED: $promotion = $convert(Self::COEF) as _;
         }
 
         impl<P: Precision> Numeric for FixedPoint<$layout, P> {

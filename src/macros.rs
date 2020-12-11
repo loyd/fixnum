@@ -127,3 +127,12 @@ macro_rules! impl_op {
         $op.map($res)
     }};
 }
+
+#[macro_export]
+macro_rules! fixnum {
+    ($val:literal) => {{
+        use $crate::_priv::*;
+        const F: Int = parse_fixed(stringify!($val), pow10(9));
+        FixedPoint::from_bits(F as _).into()
+    }};
+}

@@ -7,6 +7,7 @@ use crate::*;
 
 type FixedPoint = crate::FixedPoint<i64, typenum::U9>;
 
+// TODO: use `fixnum!(..)`.
 fn fp(s: &str) -> Result<FixedPoint> {
     FixedPoint::from_str(s).map_err(From::from)
 }
