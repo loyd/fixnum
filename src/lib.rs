@@ -9,7 +9,6 @@
 //! - `i64` — promotes to `i128` (for mul, div).
 //!
 //! ## Features
-//!
 //! Turn them on in `Cargo.toml`:
 //!
 //! - `i128` — `i128` layout support which will be promoted to internally implemented `I256` for
@@ -54,10 +53,11 @@
 //! | [`cneg`][cneg] | `let result: Result<FixedPoint, ArithmeticError> = a.cneg()` | Checked negation. Returns `Err` on overflow (you can't negate [`MIN` value](MIN)). |
 //!
 //! ## Implementing wrapper types.
-//! It's possible to restrict the domain in order to reduce chance of mistakes:
+//! It's possible to restrict the domain in order to reduce chance of mistakes.
+//! Note that copnvenient [`fixnum!` macro][fixnum] works with wrapper types too.
 //! ```
 //! use derive_more::From;
-//! use fixnum::{impl_op, fixnum, typenum::U9, FixedPoint};
+//! use fixnum::{impl_op, typenum::U9, FixedPoint, fixnum};
 //!
 //! type Fp64 = FixedPoint<i64, U9>;
 //! #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, From)]
@@ -87,9 +87,9 @@
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! use fixnum::ops::*;
 //! let size = Size(4);
-//! let price = fixnum!(4.25); // compile-time
+//! let price = fixnum!(4.25, 9); // compile-time
 //! let amount = size.cmul(price)?;
-//! assert_eq!(amount, fixnum!(17));
+//! assert_eq!(amount, fixnum!(17, 9));
 //! # Ok(()) }
 //! ```
 //!
@@ -97,6 +97,7 @@
 //! [cneg]: ./struct.FixedPoint.html#method.cneg
 //! [csub]: ./ops/trait.CheckedSub.html#tymethod.csub
 //! [cmul]: ./ops/trait.CheckedMul.html#tymethod.cmul
+//! [fixnum]: ./macros/macro.fixnum.html
 //! [FixedPoint]: ./struct.FixedPoint.html
 //! [MIN]: ./ops/trait.Numeric.html#associatedconstant.MIN
 //! [parity_scale_codec]: https://docs.rs/parity-scale-codec
@@ -148,7 +149,8 @@ type Result<T, E = ArithmeticError> = core::result::Result<T, E>;
 /// and precision.
 ///
 /// The internal representation is a fixed point decimal number,
-/// a value pre-multiplied by `10 ^ PRECISION`, where `PRECISION` is a compile-time-defined number.
+/// an integer value pre-multiplied by `10 ^ PRECISION`,
+/// where `PRECISION` is a compile-time-defined number.
 #[cfg_attr(feature = "parity", derive(Encode, Decode))]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]

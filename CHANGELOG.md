@@ -6,11 +6,12 @@ All notable changes to this project will be documented in this file.
 ## 0.2.2 - 2020-12-09
 ### Added
 - [`parity-scale-codec`](https://docs.rs/parity-scale-codec) support under the `parity` feature
-  (`Encode` and `Decode` impls).
-- `.as_str()` was implemented for errors.
+  (`Encode` and `Decode` impls; @quasiyoke).
+- `fixnum!` macro for compile-time-checked fixed-point "literals".
+- `.as_str()` was implemented for errors (@quasiyoke).
 
 ### Changed
-- Added `$crate` prefix for `impl_op` macro.
+- Added `$crate` prefix for `impl_op` macro (@quasiyoke).
 
 ## 0.2.1 - 2020-12-04
 ### Changed

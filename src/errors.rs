@@ -50,15 +50,6 @@ pub enum ConvertError {
     Other(#[cfg_attr(feature = "std", error(not(source)))] &'static str),
 }
 
-impl From<ConvertError> for &'static str {
-    fn from(x: ConvertError) -> &'static str {
-        match x {
-            ConvertError::Overflow => "overflow",
-            ConvertError::Other(_) => "other",
-        }
-    }
-}
-
 impl_error!(ConvertError,
     ConvertError::Overflow => "unsupported exponent",
     ConvertError::Other(_) => "mantissa is too big",
