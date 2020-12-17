@@ -56,7 +56,7 @@ macro_rules! impl_op {
 
             #[inline]
             fn cadd(self, rhs: $rhs) -> Result<$res, $crate::ArithmeticError> {
-                crate::impl_op!(@method (l = self, r = rhs) => l.cadd(r), $res)
+                $crate::impl_op!(@method (l = self, r = rhs) => l.cadd(r), $res)
             }
         }
     };
@@ -67,7 +67,7 @@ macro_rules! impl_op {
 
             #[inline]
             fn csub(self, rhs: $rhs) -> Result<$res, $crate::ArithmeticError> {
-                crate::impl_op!(@method (l = self, r = rhs) => l.csub(r), $res)
+                $crate::impl_op!(@method (l = self, r = rhs) => l.csub(r), $res)
             }
         }
     };
@@ -78,7 +78,7 @@ macro_rules! impl_op {
 
             #[inline]
             fn cmul(self, rhs: $rhs) -> Result<$res, $crate::ArithmeticError> {
-                crate::impl_op!(@method (l = self, r = rhs) => l.cmul(r), $res)
+                $crate::impl_op!(@method (l = self, r = rhs) => l.cmul(r), $res)
             }
         }
     };
@@ -93,7 +93,7 @@ macro_rules! impl_op {
                 rhs: $rhs,
                 mode: $crate::ops::RoundMode,
             ) -> Result<$res, $crate::ArithmeticError> {
-                crate::impl_op!(@method (l = self, r = rhs) => l.rmul(r, mode), $res)
+                $crate::impl_op!(@method (l = self, r = rhs) => l.rmul(r, mode), $res)
             }
         }
     };
@@ -109,7 +109,7 @@ macro_rules! impl_op {
                 mode: $crate::ops::RoundMode,
             ) -> Result<$res, $crate::ArithmeticError> {
                 use core::convert::TryInto;
-                crate::impl_op!(@method (l = self, r = rhs) => {
+                $crate::impl_op!(@method (l = self, r = rhs) => {
                     $res(
                         l.try_into().map_err(|_| $crate::ArithmeticError::Overflow)?
                     ).0.rdiv(r, mode)
@@ -128,11 +128,49 @@ macro_rules! impl_op {
     }};
 }
 
+/// Macro to use fixed-point "literals".
+///
+/// ```
+/// use derive_more::From;
+/// use fixnum::{FixedPoint, typenum::U9, fixnum};
+///
+/// type Currency = FixedPoint<i64, U9>;
+///
+/// #[derive(From)]
+/// struct Price(Currency);
+///
+/// #[derive(From)]
+/// struct Deposit(Currency);
+///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let p: Price = fixnum!(12.34, 9);
+/// let d: Deposit = fixnum!(-0.4321, 9);
+/// # Ok(()) }
+/// ```
+///
+/// Probably you'd like to implement your own wrapper around this macro (see also `examples`).
+///
+/// ```
+/// use fixnum::{FixedPoint, typenum::U9};
+///
+/// type Currency = FixedPoint<i64, U9>;
+///
+/// macro_rules! fp {
+///     ($val:literal) => {
+///         fixnum::fixnum!($val, 9);
+///     };
+/// }
+///
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// let c: Currency = fp!(12.34);
+/// # Ok(()) }
+/// ```
 #[macro_export]
 macro_rules! fixnum {
-    ($val:literal) => {{
+    ($val:literal, $precision:literal) => {{
+        use $crate::FixedPoint;
         use $crate::_priv::*;
-        const F: Int = parse_fixed(stringify!($val), pow10(9));
+        const F: Int = parse_fixed(stringify!($val), pow10($precision));
         FixedPoint::from_bits(F as _).into()
     }};
 }

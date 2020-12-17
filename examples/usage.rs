@@ -26,16 +26,22 @@ impl_op!(PriceDelta [cadd] PriceDelta = PriceDelta);
 impl_op!(Amount [cadd] Amount = Amount);
 impl_op!(Amount [csub] Amount = Amount);
 
+macro_rules! fp {
+    ($val:literal) => {
+        fixnum::fixnum!($val, 9);
+    };
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use fixnum::{fixnum, ops::*};
+    use fixnum::ops::*;
 
     let size = Size(4);
-    let price = fixnum!(4.25);
+    let price = fp!(4.25);
     let amount = size.cmul(price)?;
-    assert_eq!(amount, fixnum!(17));
+    assert_eq!(amount, fp!(17));
 
-    let half = price.rmul(fixnum!(0.5), RoundMode::Ceil)?;
-    assert_eq!(half, fixnum!(2.125));
+    let half = price.rmul(fp!(0.5), RoundMode::Ceil)?;
+    assert_eq!(half, fp!(2.125));
 
     Ok(())
 }

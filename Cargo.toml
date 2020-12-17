@@ -1,7 +1,7 @@
 [package]
 name = "fixnum"
-version = "0.2.1"
-description = "fixed-point numbers"
+version = "0.2.2"
+description = "Fixed-point numbers with explicit rounding"
 keywords = ["fixed", "decimal", "numbers"]
 authors = ["Paul Loyd <pavelko95@gmail.com>"]
 repository = "https://github.com/loyd/fixnum"
@@ -18,7 +18,8 @@ harness = false
 [dependencies]
 serde = { version = "1.0", features = ["derive"], optional = true }
 typenum = "1.12.0"
-derive_more = { version = "0.99.9", default-features = false, features = ["display"] }
+derive_more = { version = "0.99.9", default-features = false }
+parity-scale-codec = { version = "1.3.5", default-features = false, optional = true, features = ["derive"] }
 
 [dev-dependencies]
 anyhow = "1.0.29"
@@ -29,3 +30,4 @@ derive_more = "0.99.9"
 default = ["std", "serde"]
 std = ["derive_more/error"]
 i128 = []
+parity = ["parity-scale-codec"]
