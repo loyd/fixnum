@@ -43,18 +43,18 @@
 //!
 //! ## Available operations
 //!
-//! | Method Name | Example (pseudo-code) | Description |
-//! | ----------- | --------------------- | ----------- |
+//! | Method | Example (pseudo-code) | Description |
+//! | ------ | --------------------- | ----------- |
 //! | [`cadd`][cadd] | `let result: Result<FixedPoint, ArithmeticError> = a.cadd(b)` | Checked addition. Returns `Err` on overflow. |
 //! | [`csub`][csub] | `let result: Result<FixedPoint, ArithmeticError> = a.csub(b)` | Checked subtraction. Returns `Err` on overflow. |
 //! | [`cmul`][cmul] | `let result: Result<FixedPoint, ArithmeticError> = a.cmul(b)` | Checked multiplication. Returns `Err` on overflow. This is multiplication without rounding, hence it's available only when at least one operand is integer. |
 //! | [`rmul`][rmul] | `let result: Result<FixedPoint, ArithmeticError> = a.rmul(b, RoundMode::Ceil)` | Checked rounded multiplication. Returns `Err` on overflow. Because of provided [`RoundMode`][RoundMode] it's possible across the [`FixedPoint`][FixedPoint] values. |
 //! | [`rdiv`][rdiv] | `let result: Result<FixedPoint, ArithmeticError> = a.rdiv(b, RoundMode::Floor)` | Checked rounded division. Returns `Err` on overflow. Because of provided [`RoundMode`][RoundMode] it's possible across the [`FixedPoint`][FixedPoint] values. |
-//! | [`cneg`][cneg] | `let result: Result<FixedPoint, ArithmeticError> = a.cneg()` | Checked negation. Returns `Err` on overflow (you can't negate [`MIN` value](MIN)). |
+//! | [`cneg`][cneg] | `let result: Result<FixedPoint, ArithmeticError> = a.cneg()` | Checked negation. Returns `Err` on overflow (you can't negate [`MIN` value][MIN]). |
 //!
 //! ## Implementing wrapper types.
 //! It's possible to restrict the domain in order to reduce chance of mistakes.
-//! Note that copnvenient [`fixnum!` macro][fixnum] works with wrapper types too.
+//! Note that convenient [`fixnum!` macro][fixnum] works with wrapper types too.
 //! ```
 //! use derive_more::From;
 //! use fixnum::{impl_op, typenum::U9, FixedPoint, fixnum};
@@ -97,7 +97,7 @@
 //! [cneg]: ./struct.FixedPoint.html#method.cneg
 //! [csub]: ./ops/trait.CheckedSub.html#tymethod.csub
 //! [cmul]: ./ops/trait.CheckedMul.html#tymethod.cmul
-//! [fixnum]: ./macros/macro.fixnum.html
+//! [fixnum]: ./macro.fixnum.html
 //! [FixedPoint]: ./struct.FixedPoint.html
 //! [MIN]: ./ops/trait.Numeric.html#associatedconstant.MIN
 //! [parity_scale_codec]: https://docs.rs/parity-scale-codec
