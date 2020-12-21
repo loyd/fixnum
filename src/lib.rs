@@ -111,8 +111,6 @@ use core::convert::TryFrom;
 use core::str::FromStr;
 use core::{fmt, i64, marker::PhantomData};
 
-#[cfg(feature = "parity")]
-use parity_scale_codec::{Decode, Encode};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use typenum::Unsigned;
@@ -130,6 +128,8 @@ mod errors;
 mod i256;
 mod macros;
 pub mod ops;
+#[cfg(feature = "parity")]
+mod parity;
 mod power_table;
 #[cfg(test)]
 mod tests;
@@ -150,8 +150,17 @@ type Result<T, E = ArithmeticError> = core::result::Result<T, E>;
 ///
 /// The internal representation is a fixed point decimal number,
 /// an integer value pre-multiplied by `10 ^ PRECISION`,
-/// where `PRECISION` is a compile-time-defined number.
-#[cfg_attr(feature = "parity", derive(Encode, Decode))]
+/// where `PRECISION` is a compile-time-defined decimal places count.
+///
+/// Maximal possible value: `MAX = (2 ^ (BITS_COUNT - 1) - 1) / 10 ^ PRECISION`
+/// Maximal possible calculation error: `ERROR_MAX = 0.5 / (10 ^ PRECISION)`
+///
+/// E.g. for `i64` with 9 decimal places:
+///
+/// ```text
+/// MAX = (2 ^ (64 - 1) - 1) / 1e9 = 9223372036.854775807 ~ 9.2e9
+/// ERROR_MAX = 0.5 / 1e9 = 5e-10
+/// ```
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FixedPoint<I, P> {
@@ -421,7 +430,6 @@ macro_rules! impl_fixed_point {
                 Ok(Self::from_bits(value as $layout))
             }
 
-            #[cfg(feature = "std")]
             pub fn rounding_from_f64(value: f64) -> Result<FixedPoint<$layout, P>> {
                 let x = (value * Self::COEF as f64).round();
                 if x >= ($layout::MIN as f64) && x <= ($layout::MAX as f64) {
@@ -435,7 +443,7 @@ macro_rules! impl_fixed_point {
                 (self.inner as f64) / (Self::COEF as f64)
             }
 
-            // TODO
+            // TODO: make this operation checked
             pub fn rounding_to_i64(self) -> i64 {
                 let x = if self.inner > 0 {
                     self.inner + Self::COEF / 2

@@ -3,7 +3,7 @@ use core::fmt::{Display, Formatter, Result};
 use derive_more::Error;
 
 #[cfg_attr(feature = "std", derive(Error))]
-#[derive(Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum ArithmeticError {
     Overflow,
     DivisionByZero,
@@ -21,6 +21,13 @@ impl ArithmeticError {
 impl Display for ArithmeticError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         f.write_str(self.as_str())
+    }
+}
+
+#[cfg(feature = "no_std")]
+impl From<ArithmeticError> for NoneError {
+    fn from(value: ArithmeticError) -> Self {
+        Self
     }
 }
 
@@ -46,6 +53,13 @@ impl Display for FromDecimalError {
     }
 }
 
+#[cfg(feature = "no_std")]
+impl From<FromDecimalError> for NoneError {
+    fn from(value: ArithmeticError) -> Self {
+        Self
+    }
+}
+
 #[cfg_attr(feature = "std", derive(Error))]
 #[derive(Debug, PartialEq)]
 pub enum ConvertError {
@@ -65,5 +79,12 @@ impl ConvertError {
 impl Display for ConvertError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         f.write_str(self.as_str())
+    }
+}
+
+#[cfg(feature = "no_std")]
+impl From<ConvertError> for NoneError {
+    fn from(value: ArithmeticError) -> Self {
+        Self
     }
 }
