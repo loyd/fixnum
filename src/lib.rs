@@ -430,6 +430,7 @@ macro_rules! impl_fixed_point {
                 Ok(Self::from_bits(value as $layout))
             }
 
+            #[cfg(feature = "std")]
             pub fn rounding_from_f64(value: f64) -> Result<FixedPoint<$layout, P>> {
                 let x = (value * Self::COEF as f64).round();
                 if x >= ($layout::MIN as f64) && x <= ($layout::MAX as f64) {

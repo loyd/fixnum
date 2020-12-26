@@ -1,9 +1,10 @@
 use core::fmt::{Display, Formatter, Result};
 
+#[cfg(feature = "std")]
 use derive_more::Error;
 
 #[cfg_attr(feature = "std", derive(Error))]
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ArithmeticError {
     Overflow,
     DivisionByZero,
@@ -24,15 +25,8 @@ impl Display for ArithmeticError {
     }
 }
 
-#[cfg(feature = "no_std")]
-impl From<ArithmeticError> for NoneError {
-    fn from(value: ArithmeticError) -> Self {
-        Self
-    }
-}
-
 #[cfg_attr(feature = "std", derive(Error))]
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum FromDecimalError {
     UnsupportedExponent,
     TooBigMantissa,
@@ -53,15 +47,8 @@ impl Display for FromDecimalError {
     }
 }
 
-#[cfg(feature = "no_std")]
-impl From<FromDecimalError> for NoneError {
-    fn from(value: ArithmeticError) -> Self {
-        Self
-    }
-}
-
 #[cfg_attr(feature = "std", derive(Error))]
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ConvertError {
     Overflow,
     Other(#[cfg_attr(feature = "std", error(not(source)))] &'static str),
@@ -79,12 +66,5 @@ impl ConvertError {
 impl Display for ConvertError {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         f.write_str(self.as_str())
-    }
-}
-
-#[cfg(feature = "no_std")]
-impl From<ConvertError> for NoneError {
-    fn from(value: ArithmeticError) -> Self {
-        Self
     }
 }

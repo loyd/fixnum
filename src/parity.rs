@@ -1,6 +1,7 @@
 use core::result::Result;
 
 use parity_scale_codec::{Compact, CompactAs, Decode, Encode, EncodeLike, Error, Input, Output};
+use static_assertions::{assert_eq_align, assert_eq_size};
 
 use crate::FixedPoint;
 
@@ -32,9 +33,12 @@ macro_rules! impl_codec {
             type As = $representation;
 
             fn encode_as(&self) -> &Self::As {
+                assert_eq_size!($layout, $representation);
+                assert_eq_align!($layout, $representation);
                 // Representative type has the same size and memory layout so this cast is actually
                 // safe.
-                unsafe { &*(self.as_bits() as *const $layout as *const Self::As) }
+                // TODO: Related issue: https://github.com/paritytech/parity-scale-codec/issues/205
+                unsafe { &*(self.as_bits() as *const $layout as *const $representation) }
             }
 
             fn decode_from(value: Self::As) -> Self {
