@@ -1,9 +1,10 @@
 use core::fmt::{Display, Formatter, Result};
 
+#[cfg(feature = "std")]
 use derive_more::Error;
 
 #[cfg_attr(feature = "std", derive(Error))]
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ArithmeticError {
     Overflow,
     DivisionByZero,
@@ -25,7 +26,7 @@ impl Display for ArithmeticError {
 }
 
 #[cfg_attr(feature = "std", derive(Error))]
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum FromDecimalError {
     UnsupportedExponent,
     TooBigMantissa,
@@ -47,7 +48,7 @@ impl Display for FromDecimalError {
 }
 
 #[cfg_attr(feature = "std", derive(Error))]
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ConvertError {
     Overflow,
     Other(#[cfg_attr(feature = "std", error(not(source)))] &'static str),

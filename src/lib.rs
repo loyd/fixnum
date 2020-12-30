@@ -43,18 +43,18 @@
 //!
 //! ## Available operations
 //!
-//! | Method Name | Example (pseudo-code) | Description |
-//! | ----------- | --------------------- | ----------- |
+//! | Method | Example (pseudo-code) | Description |
+//! | ------ | --------------------- | ----------- |
 //! | [`cadd`][cadd] | `let result: Result<FixedPoint, ArithmeticError> = a.cadd(b)` | Checked addition. Returns `Err` on overflow. |
 //! | [`csub`][csub] | `let result: Result<FixedPoint, ArithmeticError> = a.csub(b)` | Checked subtraction. Returns `Err` on overflow. |
 //! | [`cmul`][cmul] | `let result: Result<FixedPoint, ArithmeticError> = a.cmul(b)` | Checked multiplication. Returns `Err` on overflow. This is multiplication without rounding, hence it's available only when at least one operand is integer. |
 //! | [`rmul`][rmul] | `let result: Result<FixedPoint, ArithmeticError> = a.rmul(b, RoundMode::Ceil)` | Checked rounded multiplication. Returns `Err` on overflow. Because of provided [`RoundMode`][RoundMode] it's possible across the [`FixedPoint`][FixedPoint] values. |
 //! | [`rdiv`][rdiv] | `let result: Result<FixedPoint, ArithmeticError> = a.rdiv(b, RoundMode::Floor)` | Checked rounded division. Returns `Err` on overflow. Because of provided [`RoundMode`][RoundMode] it's possible across the [`FixedPoint`][FixedPoint] values. |
-//! | [`cneg`][cneg] | `let result: Result<FixedPoint, ArithmeticError> = a.cneg()` | Checked negation. Returns `Err` on overflow (you can't negate [`MIN` value](MIN)). |
+//! | [`cneg`][cneg] | `let result: Result<FixedPoint, ArithmeticError> = a.cneg()` | Checked negation. Returns `Err` on overflow (you can't negate [`MIN` value][MIN]). |
 //!
 //! ## Implementing wrapper types.
 //! It's possible to restrict the domain in order to reduce chance of mistakes.
-//! Note that copnvenient [`fixnum!` macro][fixnum] works with wrapper types too.
+//! Note that convenient [`fixnum!` macro][fixnum] works with wrapper types too.
 //! ```
 //! use derive_more::From;
 //! use fixnum::{impl_op, typenum::U9, FixedPoint, fixnum};
@@ -97,7 +97,7 @@
 //! [cneg]: ./struct.FixedPoint.html#method.cneg
 //! [csub]: ./ops/trait.CheckedSub.html#tymethod.csub
 //! [cmul]: ./ops/trait.CheckedMul.html#tymethod.cmul
-//! [fixnum]: ./macros/macro.fixnum.html
+//! [fixnum]: ./macro.fixnum.html
 //! [FixedPoint]: ./struct.FixedPoint.html
 //! [MIN]: ./ops/trait.Numeric.html#associatedconstant.MIN
 //! [parity_scale_codec]: https://docs.rs/parity-scale-codec
@@ -111,8 +111,6 @@ use core::convert::TryFrom;
 use core::str::FromStr;
 use core::{fmt, i64, marker::PhantomData};
 
-#[cfg(feature = "parity")]
-use parity_scale_codec::{Decode, Encode};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 use typenum::Unsigned;
@@ -130,6 +128,8 @@ mod errors;
 mod i256;
 mod macros;
 pub mod ops;
+#[cfg(feature = "parity")]
+mod parity;
 mod power_table;
 #[cfg(test)]
 mod tests;
@@ -150,8 +150,17 @@ type Result<T, E = ArithmeticError> = core::result::Result<T, E>;
 ///
 /// The internal representation is a fixed point decimal number,
 /// an integer value pre-multiplied by `10 ^ PRECISION`,
-/// where `PRECISION` is a compile-time-defined number.
-#[cfg_attr(feature = "parity", derive(Encode, Decode))]
+/// where `PRECISION` is a compile-time-defined decimal places count.
+///
+/// Maximal possible value: `MAX = (2 ^ (BITS_COUNT - 1) - 1) / 10 ^ PRECISION`
+/// Maximal possible calculation error: `ERROR_MAX = 0.5 / (10 ^ PRECISION)`
+///
+/// E.g. for `i64` with 9 decimal places:
+///
+/// ```text
+/// MAX = (2 ^ (64 - 1) - 1) / 1e9 = 9223372036.854775807 ~ 9.2e9
+/// ERROR_MAX = 0.5 / 1e9 = 5e-10
+/// ```
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FixedPoint<I, P> {
@@ -435,7 +444,7 @@ macro_rules! impl_fixed_point {
                 (self.inner as f64) / (Self::COEF as f64)
             }
 
-            // TODO
+            // TODO: make this operation checked
             pub fn rounding_to_i64(self) -> i64 {
                 let x = if self.inner > 0 {
                     self.inner + Self::COEF / 2

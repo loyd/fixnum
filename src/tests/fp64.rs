@@ -490,6 +490,7 @@ fn rounding_to_i64() {
 }
 
 #[test]
+#[cfg(feature = "std")]
 fn to_f64() {
     fn t(x: &str, expected: f64) {
         let f = FixedPoint::from_str(x).unwrap();

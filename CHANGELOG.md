@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 `fixnum` adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### Added
+- `Compact` implementation for `parity` feature (@quasiyoke).
+- `Clone` implementation for errors (@quasiyoke).
+
+### Fixed
+- `parity`'s `Encode` and `Decode` impls (@quasiyoke).
+
 ## 0.2.2 - 2020-12-09
 ### Added
 - [`parity-scale-codec`](https://docs.rs/parity-scale-codec) support under the `parity` feature
