@@ -1,8 +1,14 @@
 use crate::ArithmeticError;
 
-pub trait Numeric: Copy {
+pub trait Zero {
     const ZERO: Self;
+}
+
+pub trait One {
     const ONE: Self;
+}
+
+pub trait Bounded {
     const MIN: Self;
     const MAX: Self;
 }
@@ -25,6 +31,50 @@ pub trait CheckedAdd<Rhs = Self> {
     /// # Ok(()) }
     /// ```
     fn cadd(self, rhs: Rhs) -> Result<Self::Output, Self::Error>;
+
+    /// Saturating addition. Computes `self + rhs`, saturating at the numeric bounds
+    /// ([`MIN`][MIN], [`MAX`][MAX]) instead of overflowing.
+    ///
+    /// ```
+    /// use fixnum::{FixedPoint, typenum::U9, ops::{Bounded, RoundMode::*, CheckedAdd}};
+    ///
+    /// type Amount = FixedPoint<i64, U9>;
+    ///
+    /// fn amount(s: &str) -> Amount { s.parse().unwrap() }
+    ///
+    /// # fn main() {
+    /// let a = amount("1000.00002");
+    /// let b = amount("9222000000");
+    /// let c = amount("9222001000.00002");
+    /// // 1000.00002 + 9222000000 = 9222001000.00002
+    /// assert_eq!(a.saturating_add(b), c);
+    ///
+    /// // 9222000000 + 9222000000 = MAX
+    /// assert_eq!(c.saturating_add(c), Amount::MAX);
+    ///
+    /// let d = amount("-9222000000");
+    /// // -9222000000 + (-9222000000) = MIN
+    /// assert_eq!(d.saturating_add(d), Amount::MIN);
+    /// # }
+    /// ```
+    ///
+    /// [MAX]: ./trait.Bounded.html#associatedconstant.MAX
+    /// [MIN]: ./trait.Bounded.html#associatedconstant.MIN
+    fn saturating_add(self, rhs: Rhs) -> Self::Output
+    where
+        Self: Sized,
+        Rhs: PartialOrd + Zero,
+        Self::Output: Bounded,
+    {
+        let is_rhs_negative = rhs < Rhs::ZERO;
+        self.cadd(rhs).unwrap_or_else(|_| {
+            if is_rhs_negative {
+                Self::Output::MIN
+            } else {
+                Self::Output::MAX
+            }
+        })
+    }
 }
 
 pub trait CheckedSub<Rhs = Self> {
@@ -45,6 +95,50 @@ pub trait CheckedSub<Rhs = Self> {
     /// # Ok(()) }
     /// ```
     fn csub(self, rhs: Rhs) -> Result<Self::Output, Self::Error>;
+
+    /// Saturating subtraction. Computes `self - rhs`, saturating at the numeric bounds
+    /// ([`MIN`][MIN], [`MAX`][MAX]) instead of overflowing.
+    ///
+    /// ```
+    /// use fixnum::{FixedPoint, typenum::U9, ops::{Bounded, RoundMode::*, CheckedSub}};
+    ///
+    /// type Amount = FixedPoint<i64, U9>;
+    ///
+    /// fn amount(s: &str) -> Amount { s.parse().unwrap() }
+    ///
+    /// # fn main() {
+    /// let a = amount("9222001000.00002");
+    /// let b = amount("9222000000");
+    /// let c = amount("1000.00002");
+    /// // 9222001000.00002 - 9222000000 = 1000.00002
+    /// assert_eq!(a.saturating_sub(b), c);
+    ///
+    /// let d = amount("-9222000000");
+    /// // 9222000000 - (-9222000000) = MAX
+    /// assert_eq!(b.saturating_sub(d), Amount::MAX);
+    ///
+    /// // -9222000000 - 9222000000 = MIN
+    /// assert_eq!(d.saturating_sub(b), Amount::MIN);
+    /// # }
+    /// ```
+    ///
+    /// [MAX]: ./trait.Bounded.html#associatedconstant.MAX
+    /// [MIN]: ./trait.Bounded.html#associatedconstant.MIN
+    fn saturating_sub(self, rhs: Rhs) -> Self::Output
+    where
+        Self: Sized,
+        Rhs: PartialOrd + Zero,
+        Self::Output: Bounded,
+    {
+        let is_rhs_negative = rhs < Rhs::ZERO;
+        self.csub(rhs).unwrap_or_else(|_| {
+            if is_rhs_negative {
+                Self::Output::MAX
+            } else {
+                Self::Output::MIN
+            }
+        })
+    }
 }
 
 pub trait CheckedMul<Rhs = Self> {
@@ -84,7 +178,7 @@ pub trait RoundingMul<Rhs = Self> {
     /// values.
     ///
     /// ```
-    /// use fixnum::{FixedPoint, typenum::U9, ops::{RoundingMul, RoundMode}};
+    /// use fixnum::{FixedPoint, typenum::U9, ops::{Zero, RoundingMul, RoundMode::*}};
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
@@ -94,18 +188,67 @@ pub trait RoundingMul<Rhs = Self> {
     /// let a = amount("0.000000001");
     /// let b = amount("0.000000002");
     /// // 1e-9 * (Ceil) 2e-9 = 1e-9
-    /// assert_eq!(a.rmul(b, RoundMode::Ceil)?, a);
-    /// assert_eq!(b.rmul(a, RoundMode::Ceil)?, a);
-    /// let zero = amount("0.0");
+    /// assert_eq!(a.rmul(b, Ceil)?, a);
+    /// assert_eq!(b.rmul(a, Ceil)?, a);
     /// // 1e-9 * (Floor) 2e-9 = 0
-    /// assert_eq!(a.rmul(b, RoundMode::Floor)?, zero);
-    /// assert_eq!(b.rmul(a, RoundMode::Floor)?, zero);
+    /// assert_eq!(a.rmul(b, Floor)?, Amount::ZERO);
+    /// assert_eq!(b.rmul(a, Floor)?, Amount::ZERO);
     /// # Ok(()) }
     /// ```
     ///
     /// [FixedPoint]: ../struct.FixedPoint.html
     /// [RoundMode]: ./enum.RoundMode.html
     fn rmul(self, rhs: Rhs, mode: RoundMode) -> Result<Self::Output, Self::Error>;
+
+    /// Saturating rounding multiplication. Computes `self * rhs`, saturating at the numeric bounds
+    /// ([`MIN`][MIN], [`MAX`][MAX]) instead of overflowing.
+    /// Because of provided [`RoundMode`][RoundMode] it's possible to perform across the [`FixedPoint`][FixedPoint]
+    /// values.
+    ///
+    /// ```
+    /// use fixnum::{FixedPoint, typenum::U9, ops::{Zero, Bounded, RoundMode::*, RoundingMul}};
+    ///
+    /// type Amount = FixedPoint<i64, U9>;
+    ///
+    /// fn amount(s: &str) -> Amount { s.parse().unwrap() }
+    ///
+    /// # fn main() {
+    /// let a = amount("0.000000001");
+    /// let b = amount("0.000000002");
+    /// // 1e-9 * (SaturatingCeil) 2e9 = 1e-9
+    /// assert_eq!(a.saturating_rmul(b, Ceil), a);
+    /// // 1e-9 * (SaturatingFloor) 2e9 = 0
+    /// assert_eq!(a.saturating_rmul(b, Floor), Amount::ZERO);
+    ///
+    /// // MIN * (SaturatingFloor) MIN = MAX
+    /// assert_eq!(Amount::MIN.saturating_rmul(Amount::MIN, Floor), Amount::MAX);
+    ///
+    /// let c = amount("-1.000000001");
+    /// // -1.000000001 * (SaturatingCeil) MAX = MIN
+    /// assert_eq!(c.saturating_rmul(Amount::MAX, Ceil), Amount::MIN);
+    /// # }
+    /// ```
+    ///
+    /// [FixedPoint]: ../struct.FixedPoint.html
+    /// [MAX]: ./trait.Bounded.html#associatedconstant.MAX
+    /// [MIN]: ./trait.Bounded.html#associatedconstant.MIN
+    /// [RoundMode]: ./enum.RoundMode.html
+    fn saturating_rmul(self, rhs: Rhs, round_mode: RoundMode) -> Self::Output
+    where
+        Self: PartialOrd + Zero + Sized,
+        Rhs: PartialOrd + Zero,
+        Self::Output: Bounded,
+    {
+        let is_lhs_negative = self < Self::ZERO;
+        let is_rhs_negative = rhs < Rhs::ZERO;
+        self.rmul(rhs, round_mode).unwrap_or_else(|_| {
+            if is_lhs_negative == is_rhs_negative {
+                Self::Output::MAX
+            } else {
+                Self::Output::MIN
+            }
+        })
+    }
 }
 
 pub trait RoundingDiv<Rhs = Self> {
@@ -117,7 +260,7 @@ pub trait RoundingDiv<Rhs = Self> {
     /// values.
     ///
     /// ```
-    /// use fixnum::{FixedPoint, typenum::U9, ops::{RoundingDiv, RoundMode}};
+    /// use fixnum::{FixedPoint, typenum::U9, ops::{Zero, RoundingDiv, RoundMode::*}};
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
@@ -127,10 +270,9 @@ pub trait RoundingDiv<Rhs = Self> {
     /// let a = amount("0.000000001");
     /// let b = amount("1000000000");
     /// // 1e-9 / (Ceil) 1e9 = 1e-9
-    /// assert_eq!(a.rdiv(b, RoundMode::Ceil)?, a);
-    /// let zero = amount("0.0");
+    /// assert_eq!(a.rdiv(b, Ceil)?, a);
     /// // 1e-9 / (Floor) 1e9 = 0
-    /// assert_eq!(a.rdiv(b, RoundMode::Floor)?, zero);
+    /// assert_eq!(a.rdiv(b, Floor)?, Amount::ZERO);
     /// # Ok(()) }
     /// ```
     ///

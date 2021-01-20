@@ -56,7 +56,12 @@ macro_rules! impl_op {
 
             #[inline]
             fn cadd(self, rhs: $rhs) -> Result<$res, $crate::ArithmeticError> {
-                $crate::impl_op!(@method (l = self, r = rhs) => l.cadd(r), $res)
+                $crate::impl_op!(@checked_method (l = self, r = rhs) => l.cadd(r), $res)
+            }
+
+            #[inline]
+            fn saturating_add(self, rhs: $rhs) -> Self::Output {
+                $crate::impl_op!(@method (l = self, r = rhs) => l.saturating_add(r), $res)
             }
         }
     };
@@ -67,7 +72,12 @@ macro_rules! impl_op {
 
             #[inline]
             fn csub(self, rhs: $rhs) -> Result<$res, $crate::ArithmeticError> {
-                $crate::impl_op!(@method (l = self, r = rhs) => l.csub(r), $res)
+                $crate::impl_op!(@checked_method (l = self, r = rhs) => l.csub(r), $res)
+            }
+
+            #[inline]
+            fn saturating_sub(self, rhs: $rhs) -> Self::Output {
+                $crate::impl_op!(@method (l = self, r = rhs) => l.saturating_sub(r), $res)
             }
         }
     };
@@ -78,7 +88,7 @@ macro_rules! impl_op {
 
             #[inline]
             fn cmul(self, rhs: $rhs) -> Result<$res, $crate::ArithmeticError> {
-                $crate::impl_op!(@method (l = self, r = rhs) => l.cmul(r), $res)
+                $crate::impl_op!(@checked_method (l = self, r = rhs) => l.cmul(r), $res)
             }
         }
     };
@@ -93,7 +103,7 @@ macro_rules! impl_op {
                 rhs: $rhs,
                 mode: $crate::ops::RoundMode,
             ) -> Result<$res, $crate::ArithmeticError> {
-                $crate::impl_op!(@method (l = self, r = rhs) => l.rmul(r, mode), $res)
+                $crate::impl_op!(@checked_method (l = self, r = rhs) => l.rmul(r, mode), $res)
             }
         }
     };
@@ -109,7 +119,7 @@ macro_rules! impl_op {
                 mode: $crate::ops::RoundMode,
             ) -> Result<$res, $crate::ArithmeticError> {
                 use core::convert::TryInto;
-                $crate::impl_op!(@method (l = self, r = rhs) => {
+                $crate::impl_op!(@checked_method (l = self, r = rhs) => {
                     $res(
                         l.try_into().map_err(|_| $crate::ArithmeticError::Overflow)?
                     ).0.rdiv(r, mode)
@@ -118,6 +128,15 @@ macro_rules! impl_op {
         }
     };
     (@method ($l:ident = $lhs:expr, $r:ident = $rhs:expr) => $op:expr, $res:tt) => {{
+        use $crate::_priv::*;
+        fn up<I, O: Operand<I>>(operand: O, _: impl FnOnce(I) -> $res) -> O::Promotion {
+            operand.promote()
+        }
+        let $l = up($lhs.0, $res);
+        let $r = up($rhs.0, $res);
+        $res::from($op)
+    }};
+    (@checked_method ($l:ident = $lhs:expr, $r:ident = $rhs:expr) => $op:expr, $res:tt) => {{
         use $crate::_priv::*;
         fn up<I, O: Operand<I>>(operand: O, _: impl FnOnce(I) -> $res) -> O::Promotion {
             operand.promote()
