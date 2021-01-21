@@ -18,7 +18,7 @@
 //!
 //! ## Example
 //! ```
-//! use fixnum::{FixedPoint, typenum::U9, ops::{CheckedAdd, RoundingMul, RoundMode::*}};
+//! use fixnum::{FixedPoint, typenum::U9, ops::{CheckedAdd, RoundingMul, RoundMode::*, Zero}};
 //!
 //! /// Signed fixed point amount over 64 bits, 9 decimal places.
 //! ///
@@ -30,12 +30,14 @@
 //! ///           = 5e-10
 //! type Amount = FixedPoint<i64, U9>;
 //!
-//! fn amount(s: &str) -> Amount { s.parse().unwrap() }
-//!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! assert_eq!(amount("0.1").cadd(amount("0.2"))?, amount("0.3"));
-//! let expences: Amount = amount("0.000000001");
-//! assert_eq!(expences.rmul(expences, Floor)?, amount("0.0"));
+//! let a: Amount = "0.1".parse()?;
+//! let b: Amount = "0.2".parse()?;
+//! assert_eq!(a.cadd(b)?, "0.3".parse()?);
+//!
+//! let expences: Amount = "0.000000001".parse()?;
+//! // 1e-9 * (Floor) 1e-9 = 0
+//! assert_eq!(expences.rmul(expences, Floor)?, Amount::ZERO);
 //! // 1e-9 * (Ceil) 1e-9 = 1e-9
 //! assert_eq!(expences.rmul(expences, Ceil)?, expences);
 //! # Ok(()) }
@@ -54,6 +56,7 @@
 //! | [`integral`][integral] | `let y: {integer} = x.integral(RoundMode::Floor)` | Takes [rounded][RoundMode] integral part of the number. |
 //! | [`saturating_add`][saturating_add] | `let z: FixedPoint = x.saturating_add(y)` | Saturating addition |
 //! | [`saturating_sub`][saturating_sub] | `let z: FixedPoint = x.saturating_sub(y)` | Saturating subtraction |
+//! | [`saturating_mul`][saturating_mul] | `let z: FixedPoint = x.saturating_mul(y)` | Saturating multiplication. This is multiplication without rounding, hence it's available only when at least one operand is integer. |
 //! | [`saturating_rmul`][saturating_rmul] | `let z: FixedPoint = x.saturating_rmul(y, RoundMode::Floor)` | Saturating rounding multiplication |
 //!
 //! ## Implementing wrapper types.
@@ -110,6 +113,7 @@
 //! [rmul]: ./ops/trait.RoundingMul.html#tymethod.rmul
 //! [RoundMode]: ./ops/enum.RoundMode.html
 //! [saturating_add]: ./ops/trait.CheckedAdd.html#tymethod.saturating_add
+//! [saturating_mul]: ./ops/trait.CheckedMul.html#tymethod.saturating_mul
 //! [saturating_rmul]: ./ops/trait.RoundingMul.html#tymethod.saturating_rmul
 //! [saturating_sub]: ./ops/trait.CheckedSub.html#tymethod.saturating_sub
 
@@ -364,6 +368,11 @@ macro_rules! impl_fixed_point {
                     .map(Self::from_bits)
                     .ok_or(ArithmeticError::Overflow)
             }
+
+            #[inline]
+            fn saturating_mul(self, rhs: $layout) -> Self::Output {
+                Self::Output::from_bits(self.inner.saturating_mul(rhs))
+            }
         }
 
         impl<P: Precision> CheckedMul<FixedPoint<$layout, P>> for $layout {
@@ -373,6 +382,11 @@ macro_rules! impl_fixed_point {
             #[inline]
             fn cmul(self, rhs: FixedPoint<$layout, P>) -> Result<FixedPoint<$layout, P>> {
                 rhs.cmul(self)
+            }
+
+            #[inline]
+            fn saturating_mul(self, rhs: FixedPoint<$layout, P>) -> Self::Output {
+                Self::Output::from_bits(self.saturating_mul(rhs.inner))
             }
         }
 
@@ -414,17 +428,15 @@ macro_rules! impl_fixed_point {
             ///
             /// type Amount = FixedPoint<i64, U9>;
             ///
-            /// fn amount(s: &str) -> Amount { s.parse().unwrap() }
-            ///
-            /// # fn main() {
-            /// let a = amount("8273.519");
+            /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+            /// let a: Amount = "8273.519".parse()?;
             /// assert_eq!(a.integral(Floor), 8273);
             /// assert_eq!(a.integral(Ceil), 8274);
             ///
-            /// let a = amount("-8273.519");
+            /// let a: Amount = "-8273.519".parse()?;
             /// assert_eq!(a.integral(Floor), -8274);
             /// assert_eq!(a.integral(Ceil), -8273);
-            /// # }
+            /// # Ok(()) }
             /// ```
             ///
             /// [RoundMode]: ./ops/enum.RoundMode.html

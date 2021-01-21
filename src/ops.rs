@@ -24,10 +24,11 @@ pub trait CheckedAdd<Rhs = Self> {
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
-    /// fn amount(s: &str) -> Amount { s.parse().unwrap() }
-    ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// assert_eq!(amount("0.1").cadd(amount("0.2"))?, amount("0.3"));
+    /// let a: Amount = "0.1".parse()?;
+    /// let b: Amount = "0.2".parse()?;
+    /// let c: Amount = "0.3".parse()?;
+    /// assert_eq!(a.cadd(b)?, c);
     /// # Ok(()) }
     /// ```
     fn cadd(self, rhs: Rhs) -> Result<Self::Output, Self::Error>;
@@ -40,22 +41,20 @@ pub trait CheckedAdd<Rhs = Self> {
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
-    /// fn amount(s: &str) -> Amount { s.parse().unwrap() }
-    ///
-    /// # fn main() {
-    /// let a = amount("1000.00002");
-    /// let b = amount("9222000000");
-    /// let c = amount("9222001000.00002");
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let a: Amount = "1000.00002".parse()?;
+    /// let b: Amount = "9222000000".parse()?;
+    /// let c: Amount = "9222001000.00002".parse()?;
     /// // 1000.00002 + 9222000000 = 9222001000.00002
     /// assert_eq!(a.saturating_add(b), c);
     ///
     /// // 9222000000 + 9222000000 = MAX
     /// assert_eq!(c.saturating_add(c), Amount::MAX);
     ///
-    /// let d = amount("-9222000000");
+    /// let d: Amount = "-9222000000".parse()?;
     /// // -9222000000 + (-9222000000) = MIN
     /// assert_eq!(d.saturating_add(d), Amount::MIN);
-    /// # }
+    /// # Ok(()) }
     /// ```
     ///
     /// [MAX]: ./trait.Bounded.html#associatedconstant.MAX
@@ -88,10 +87,11 @@ pub trait CheckedSub<Rhs = Self> {
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
-    /// fn amount(s: &str) -> FixedPoint<i64, U9> { s.parse().unwrap() }
-    ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// assert_eq!(amount("0.3").csub(amount("0.1"))?, amount("0.2"));
+    /// let a: Amount = "0.3".parse()?;
+    /// let b: Amount = "0.1".parse()?;
+    /// let c: Amount = "0.2".parse()?;
+    /// assert_eq!(a.csub(b)?, c);
     /// # Ok(()) }
     /// ```
     fn csub(self, rhs: Rhs) -> Result<Self::Output, Self::Error>;
@@ -104,22 +104,20 @@ pub trait CheckedSub<Rhs = Self> {
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
-    /// fn amount(s: &str) -> Amount { s.parse().unwrap() }
-    ///
-    /// # fn main() {
-    /// let a = amount("9222001000.00002");
-    /// let b = amount("9222000000");
-    /// let c = amount("1000.00002");
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let a: Amount = "9222001000.00002".parse()?;
+    /// let b: Amount = "9222000000".parse()?;
+    /// let c: Amount = "1000.00002".parse()?;
     /// // 9222001000.00002 - 9222000000 = 1000.00002
     /// assert_eq!(a.saturating_sub(b), c);
     ///
-    /// let d = amount("-9222000000");
+    /// let d: Amount = "-9222000000".parse()?;
     /// // 9222000000 - (-9222000000) = MAX
     /// assert_eq!(b.saturating_sub(d), Amount::MAX);
     ///
     /// // -9222000000 - 9222000000 = MIN
     /// assert_eq!(d.saturating_sub(b), Amount::MIN);
-    /// # }
+    /// # Ok(()) }
     /// ```
     ///
     /// [MAX]: ./trait.Bounded.html#associatedconstant.MAX
@@ -153,14 +151,59 @@ pub trait CheckedMul<Rhs = Self> {
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
-    /// fn amount(s: &str) -> FixedPoint<i64, U9> { s.parse().unwrap() }
-    ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// assert_eq!(amount("0.000000001").cmul(12)?, amount("0.000000012"));
-    /// assert_eq!(12.cmul(amount("0.000000001"))?, amount("0.000000012"));
+    /// let a: Amount = "0.000000001".parse()?;
+    /// let b: Amount = "0.000000012".parse()?;
+    /// assert_eq!(a.cmul(12)?, b);
+    /// assert_eq!(12.cmul(a)?, b);
     /// # Ok(()) }
     /// ```
     fn cmul(self, rhs: Rhs) -> Result<Self::Output, Self::Error>;
+
+    /// Saturating multiplication. Computes `self * rhs`, saturating at the numeric bounds
+    /// ([`MIN`][MIN], [`MAX`][MAX]) instead of overflowing.
+    /// This is multiplication without rounding, hence it's available only when at least one operand is integer.
+    ///
+    /// ```
+    /// use fixnum::{FixedPoint, typenum::U9, ops::{Zero, Bounded, RoundMode::*, CheckedMul}};
+    ///
+    /// type Amount = FixedPoint<i64, U9>;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let a: Amount = "0.000000001".parse()?;
+    /// let b: Amount = "0.000000012".parse()?;
+    /// assert_eq!(a.saturating_mul(12), b);
+    /// assert_eq!(12.saturating_mul(a), b);
+    ///
+    /// // i64::MAX * 1e-9 = MAX
+    /// assert_eq!(a.saturating_mul(i64::MAX), Amount::MAX);
+    ///
+    /// let c: Amount = "-1.000000001".parse()?;
+    /// // -1.000000001 * (SaturatingCeil) MAX = MIN
+    /// assert_eq!(c.saturating_mul(i64::MAX), Amount::MIN);
+    /// # Ok(()) }
+    /// ```
+    ///
+    /// [FixedPoint]: ../struct.FixedPoint.html
+    /// [MAX]: ./trait.Bounded.html#associatedconstant.MAX
+    /// [MIN]: ./trait.Bounded.html#associatedconstant.MIN
+    /// [RoundMode]: ./enum.RoundMode.html
+    fn saturating_mul(self, rhs: Rhs) -> Self::Output
+    where
+        Self: PartialOrd + Zero + Sized,
+        Rhs: PartialOrd + Zero,
+        Self::Output: Bounded,
+    {
+        let is_lhs_negative = self < Self::ZERO;
+        let is_rhs_negative = rhs < Rhs::ZERO;
+        self.cmul(rhs).unwrap_or_else(|_| {
+            if is_lhs_negative == is_rhs_negative {
+                Self::Output::MAX
+            } else {
+                Self::Output::MIN
+            }
+        })
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -182,11 +225,9 @@ pub trait RoundingMul<Rhs = Self> {
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
-    /// fn amount(s: &str) -> FixedPoint<i64, U9> { s.parse().unwrap() }
-    ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// let a = amount("0.000000001");
-    /// let b = amount("0.000000002");
+    /// let a: Amount = "0.000000001".parse()?;
+    /// let b: Amount = "0.000000002".parse()?;
     /// // 1e-9 * (Ceil) 2e-9 = 1e-9
     /// assert_eq!(a.rmul(b, Ceil)?, a);
     /// assert_eq!(b.rmul(a, Ceil)?, a);
@@ -210,11 +251,9 @@ pub trait RoundingMul<Rhs = Self> {
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
-    /// fn amount(s: &str) -> Amount { s.parse().unwrap() }
-    ///
-    /// # fn main() {
-    /// let a = amount("0.000000001");
-    /// let b = amount("0.000000002");
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let a: Amount = "0.000000001".parse()?;
+    /// let b: Amount = "0.000000002".parse()?;
     /// // 1e-9 * (SaturatingCeil) 2e9 = 1e-9
     /// assert_eq!(a.saturating_rmul(b, Ceil), a);
     /// // 1e-9 * (SaturatingFloor) 2e9 = 0
@@ -223,10 +262,10 @@ pub trait RoundingMul<Rhs = Self> {
     /// // MIN * (SaturatingFloor) MIN = MAX
     /// assert_eq!(Amount::MIN.saturating_rmul(Amount::MIN, Floor), Amount::MAX);
     ///
-    /// let c = amount("-1.000000001");
+    /// let c: Amount = "-1.000000001".parse()?;
     /// // -1.000000001 * (SaturatingCeil) MAX = MIN
     /// assert_eq!(c.saturating_rmul(Amount::MAX, Ceil), Amount::MIN);
-    /// # }
+    /// # Ok(()) }
     /// ```
     ///
     /// [FixedPoint]: ../struct.FixedPoint.html
@@ -264,11 +303,9 @@ pub trait RoundingDiv<Rhs = Self> {
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
-    /// fn amount(s: &str) -> FixedPoint<i64, U9> { s.parse().unwrap() }
-    ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// let a = amount("0.000000001");
-    /// let b = amount("1000000000");
+    /// let a: Amount = "0.000000001".parse()?;
+    /// let b: Amount = "1000000000".parse()?;
     /// // 1e-9 / (Ceil) 1e9 = 1e-9
     /// assert_eq!(a.rdiv(b, Ceil)?, a);
     /// // 1e-9 / (Floor) 1e9 = 0
@@ -289,6 +326,19 @@ macro_rules! impl_for_ints {
         impl_for_ints!($($rest),*);
     };
     ($int:ty) => {
+        impl Zero for $int {
+            const ZERO: Self = 0;
+        }
+
+        impl One for $int {
+            const ONE: Self = 1;
+        }
+
+        impl Bounded for $int {
+            const MIN: Self = <$int>::MIN;
+            const MAX: Self = <$int>::MAX;
+        }
+
         impl CheckedAdd for $int {
             type Output = $int;
             type Error = ArithmeticError;
@@ -296,6 +346,11 @@ macro_rules! impl_for_ints {
             #[inline]
             fn cadd(self, rhs: Self) -> Result<Self::Output, Self::Error> {
                 self.checked_add(rhs).ok_or(ArithmeticError::Overflow)
+            }
+
+            #[inline]
+            fn saturating_add(self, rhs: Self) -> Self::Output {
+                <$int>::saturating_add(self, rhs)
             }
         }
 
@@ -307,6 +362,11 @@ macro_rules! impl_for_ints {
             fn csub(self, rhs: Self) -> Result<Self::Output, Self::Error> {
                 self.checked_sub(rhs).ok_or(ArithmeticError::Overflow)
             }
+
+            #[inline]
+            fn saturating_sub(self, rhs: Self) -> Self::Output {
+                <$int>::saturating_sub(self, rhs)
+            }
         }
 
         impl CheckedMul for $int {
@@ -316,6 +376,11 @@ macro_rules! impl_for_ints {
             #[inline]
             fn cmul(self, rhs: Self) -> Result<Self::Output, Self::Error> {
                 self.checked_mul(rhs).ok_or(ArithmeticError::Overflow)
+            }
+
+            #[inline]
+            fn saturating_mul(self, rhs: Self) -> Self::Output {
+                <$int>::saturating_mul(self, rhs)
             }
         }
 

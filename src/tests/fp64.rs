@@ -548,6 +548,45 @@ fn saturating_add() -> Result<()> {
 }
 
 #[test]
+fn saturating_mul() -> Result<()> {
+    fn t(a: &str, b: i64, expected: &str) -> Result<()> {
+        let a: FixedPoint = a.parse()?;
+        let expected: FixedPoint = expected.parse()?;
+        assert_eq!(a.saturating_mul(b), expected);
+        assert_eq!(CheckedMul::saturating_mul(b, a), expected);
+        assert_eq!(a.cneg()?.saturating_mul(b), expected.cneg()?);
+        assert_eq!(a.saturating_mul(-b), expected.cneg()?);
+        assert_eq!(a.cneg()?.saturating_mul(-b), expected);
+        Ok(())
+    }
+
+    t("0", 0, "0")?;
+    t("3000.0000006", 0, "0")?;
+    t("3000.0000006", 1, "3000.0000006")?;
+    t("-1000.0000002", 0, "0")?;
+    t("-1000.0000002", 3, "-3000.0000006")?;
+    t("-1000.0000002", -4, "4000.0000008")?;
+    t("68601.48179", -468, "-32105493.47772")?;
+    assert_eq!(
+        fp("9222222222")?.saturating_mul(9222222222),
+        FixedPoint::MAX
+    );
+    assert_eq!(
+        CheckedMul::saturating_mul(4611686019, fp("4611686018.427387903")?),
+        FixedPoint::MAX
+    );
+    assert_eq!(
+        fp("-9222222222")?.saturating_mul(9222222222),
+        FixedPoint::MIN
+    );
+    assert_eq!(
+        CheckedMul::saturating_mul(4611686019, fp("-4611686018.427387903")?),
+        FixedPoint::MIN
+    );
+    Ok(())
+}
+
+#[test]
 fn saturating_rmul() -> Result<()> {
     fn t(a: &str, b: &str, expected: &str) -> Result<()> {
         let a: FixedPoint = a.parse()?;

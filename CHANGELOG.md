@@ -7,8 +7,12 @@ All notable changes to this project will be documented in this file.
 - Support of `fixnum::ops::Numeric` (@quasiyoke).
 
 ### Added
-- Traits `One`, `Zero`, `Bounded`.
-- Saturating operations: `saturating_add`, `saturating_sub`, `saturating_rmul` (@quasiyoke).
+- Traits `ops::One`, `ops::Zero`, `ops::Bounded`.
+- Saturating operations (@quasiyoke):
+  - `CheckedAdd::saturating_add`,
+  - `CheckedMul::saturating_mul`,
+  - `CheckedSub::saturating_sub`,
+  - `RoundingMul::saturating_rmul`.
 - Docs for `FixedPoint::integral` method (@quasiyoke).
 
 ## 0.2.3 - 2020-12-30
