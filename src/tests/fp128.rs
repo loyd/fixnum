@@ -568,3 +568,241 @@ fn to_f64() {
     t("-14.14", -14.14);
     t("8003332421.536753168", 8_003_332_421.536_754);
 }
+
+#[test]
+fn saturating_add() -> Result<()> {
+    fn t(a: &str, b: &str, expected: &str) -> Result<()> {
+        let a: FixedPoint = a.parse()?;
+        let b: FixedPoint = b.parse()?;
+        let expected: FixedPoint = expected.parse()?;
+        assert_eq!(a.saturating_add(b), expected);
+        assert_eq!(b.saturating_add(a), expected);
+        assert_eq!(a.cneg()?.saturating_add(b.cneg()?), expected.cneg()?);
+        Ok(())
+    }
+
+    t("0", "0", "0")?;
+    t(
+        "0",
+        "3000000000000.0000000000000006",
+        "3000000000000.0000000000000006",
+    )?;
+    t(
+        "-1000000000000.0000000000000002",
+        "0",
+        "-1000000000000.0000000000000002",
+    )?;
+    t(
+        "-1000000000000.0000000000000002",
+        "3000000000000.0000000000000006",
+        "2000000000000.0000000000000004",
+    )?;
+    t(
+        "-1000000000000.0000000000000002",
+        "-3000000000000.0000000000000006",
+        "-4000000000000.0000000000000008",
+    )?;
+    t(
+        "4611686018000000000.000000000427387903",
+        "4611686018000000000.000000000427387903",
+        "9223372036000000000.000000000854775806",
+    )?;
+    assert_eq!(
+        fp("85550005550005550005")?.saturating_add(fp("85550005550005550005")?),
+        FixedPoint::MAX
+    );
+    assert_eq!(
+        fp("85550005550005550005")?.saturating_add(fp("85550005550005550005.000000000427387903")?),
+        FixedPoint::MAX
+    );
+    assert_eq!(
+        fp("-85550005550005550005")?.saturating_add(fp("-85550005550005550005")?),
+        FixedPoint::MIN
+    );
+    assert_eq!(
+        fp("-85550005550005550005")?
+            .saturating_add(fp("-85550005550005550005.000000000427387903")?),
+        FixedPoint::MIN
+    );
+    Ok(())
+}
+
+#[test]
+fn saturating_mul() -> Result<()> {
+    fn t(a: &str, b: i128, expected: &str) -> Result<()> {
+        let a: FixedPoint = a.parse()?;
+        let expected: FixedPoint = expected.parse()?;
+        assert_eq!(a.saturating_mul(b), expected);
+        assert_eq!(CheckedMul::saturating_mul(b, a), expected);
+        assert_eq!(a.cneg()?.saturating_mul(b), expected.cneg()?);
+        assert_eq!(a.saturating_mul(-b), expected.cneg()?);
+        assert_eq!(a.cneg()?.saturating_mul(-b), expected);
+        Ok(())
+    }
+
+    t("0", 0, "0")?;
+    t("3000000000000.0000000000000006", 0, "0")?;
+    t(
+        "3000000000000.0000000000000006",
+        1,
+        "3000000000000.0000000000000006",
+    )?;
+    t("-1000000000000.0000000000000002", 0, "0")?;
+    t(
+        "-1000000000000.0000000000000002",
+        3,
+        "-3000000000000.0000000000000006",
+    )?;
+    t(
+        "-1000000000000.0000000000000002",
+        -4,
+        "4000000000000.0000000000000008",
+    )?;
+    t(
+        "68603957391461.48475635294179",
+        -85204,
+        "-5845331585582084347.18029605227516",
+    )?;
+    assert_eq!(
+        fp("85550005550005550005")?.saturating_mul(85550005550005550005),
+        FixedPoint::MAX
+    );
+    assert_eq!(
+        CheckedMul::saturating_mul(14000444000, fp("14000444000.427387903")?),
+        FixedPoint::MAX
+    );
+    assert_eq!(
+        fp("-85550005550005550005")?.saturating_mul(85550005550005550005),
+        FixedPoint::MIN
+    );
+    assert_eq!(
+        CheckedMul::saturating_mul(14000444000, fp("-14000444000.427387903")?),
+        FixedPoint::MIN
+    );
+    Ok(())
+}
+
+#[test]
+fn saturating_rmul() -> Result<()> {
+    fn t(a: &str, b: &str, expected: &str) -> Result<()> {
+        let a: FixedPoint = a.parse()?;
+        let b: FixedPoint = b.parse()?;
+        let expected: FixedPoint = expected.parse()?;
+        assert_eq!(a.saturating_rmul(b, Floor), expected);
+        assert_eq!(b.saturating_rmul(a, Floor), expected);
+        assert_eq!(a.cneg()?.saturating_rmul(b, Floor), expected.cneg()?);
+        assert_eq!(a.saturating_rmul(b.cneg()?, Floor), expected.cneg()?);
+        assert_eq!(a.cneg()?.saturating_rmul(b.cneg()?, Floor), expected);
+        Ok(())
+    }
+
+    t("0", "0", "0")?;
+    t("0", "3000000000000.0000000000000006", "0")?;
+    t(
+        "1",
+        "3000000000000.0000000000000006",
+        "3000000000000.0000000000000006",
+    )?;
+    t("-1000000000000.0000000000000002", "0", "0")?;
+    t(
+        "-1000000000000.0000000000000002",
+        "3",
+        "-3000000000000.0000000000000006",
+    )?;
+    t(
+        "-1000000000000.0000000000000002",
+        "-4",
+        "4000000000000.0000000000000008",
+    )?;
+    t("68601.48179", "-468.28", "-32124701.8926212")?;
+    assert_eq!(
+        fp("0.000000000000000001")?.saturating_rmul(fp("0.1")?, Floor),
+        fp("0")?
+    );
+    assert_eq!(
+        fp("0.000000000000000001")?.saturating_rmul(fp("-0.1")?, Floor),
+        fp("-0.000000000000000001")?
+    );
+    assert_eq!(
+        fp("0.000000000000000001")?.saturating_rmul(fp("0.1")?, Ceil),
+        fp("0.000000000000000001")?
+    );
+    assert_eq!(
+        fp("-0.000000000000000001")?.saturating_rmul(fp("0.1")?, Ceil),
+        fp("0")?
+    );
+    assert_eq!(
+        fp("85550005550005550005")?.saturating_rmul(fp("85550005550005550005")?, Floor),
+        FixedPoint::MAX
+    );
+    assert_eq!(
+        fp("4611686019")?.saturating_rmul(fp("4611686018000000000.000000000427387903")?, Floor),
+        FixedPoint::MAX
+    );
+    assert_eq!(
+        fp("-85550005550005550005")?.saturating_rmul(fp("85550005550005550005")?, Floor),
+        FixedPoint::MIN
+    );
+    assert_eq!(
+        fp("4611686019")?.saturating_rmul(fp("-4611686018000000000.000000000427387903")?, Floor),
+        FixedPoint::MIN
+    );
+    Ok(())
+}
+
+#[test]
+fn saturating_sub() -> Result<()> {
+    fn t(a: &str, b: &str, expected: &str) -> Result<()> {
+        let a: FixedPoint = a.parse()?;
+        let b: FixedPoint = b.parse()?;
+        let expected: FixedPoint = expected.parse()?;
+        assert_eq!(a.saturating_sub(b), expected);
+        assert_eq!(b.saturating_sub(a), expected.cneg()?);
+        assert_eq!(a.cneg()?.saturating_sub(b.cneg()?), expected.cneg()?);
+        Ok(())
+    }
+
+    t("0", "0", "0")?;
+    t(
+        "0",
+        "3000000000000.0000000000000006",
+        "-3000000000000.0000000000000006",
+    )?;
+    t(
+        "-1000000000000.0000000000000002",
+        "0",
+        "-1000000000000.0000000000000002",
+    )?;
+    t(
+        "-1000000000000.0000000000000002",
+        "3000000000000.0000000000000006",
+        "-4000000000000.0000000000000008",
+    )?;
+    t(
+        "-1000000000000.0000000000000002",
+        "-3000000000000.0000000000000006",
+        "2000000000000.0000000000000004",
+    )?;
+    t(
+        "4611686018000000000.000000000427387903",
+        "-4611686018000000000.000000000427387903",
+        "9223372036000000000.000000000854775806",
+    )?;
+    assert_eq!(
+        fp("85550005550005550005")?.saturating_sub(fp("-85550005550005550005")?),
+        FixedPoint::MAX
+    );
+    assert_eq!(
+        fp("85550005550005550005")?.saturating_sub(fp("-85550005550005550005.000000000427387903")?),
+        FixedPoint::MAX
+    );
+    assert_eq!(
+        fp("-85550005550005550005")?.saturating_sub(fp("85550005550005550005")?),
+        FixedPoint::MIN
+    );
+    assert_eq!(
+        fp("-85550005550005550005")?.saturating_sub(fp("85550005550005550005.000000000427387903")?),
+        FixedPoint::MIN
+    );
+    Ok(())
+}
