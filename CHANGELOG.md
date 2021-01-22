@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 `fixnum` adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
+- Const fixed-point literal macro `fixnum_const!` (@quasiyoke).
+
+## 0.2.3 - 2020-12-30
+### Added
 - `Compact` implementation for `parity` feature (@quasiyoke).
 - `Clone` implementation for errors (@quasiyoke).
 
