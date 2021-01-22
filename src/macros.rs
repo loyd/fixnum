@@ -147,7 +147,48 @@ macro_rules! impl_op {
     }};
 }
 
-/// Macro to use fixed-point "literals".
+/// Macro to create fixed-point const "literals".
+///
+/// ```
+/// use derive_more::From;
+/// use fixnum::{FixedPoint, typenum::U9, fixnum_const};
+///
+/// type Amount = FixedPoint<i64, U9>;
+///
+/// # fn main() {
+/// let a: Amount = fixnum_const!(12.34, 9);
+/// # }
+/// ```
+///
+/// Probably you'd like to implement your own wrapper around this macro (see also `examples`).
+///
+/// ```
+/// use fixnum::{FixedPoint, typenum::U9};
+///
+/// type Amount = FixedPoint<i64, U9>;
+///
+/// macro_rules! fp_const {
+///     ($value:literal) => {
+///         fixnum::fixnum_const!($value, 9);
+///     };
+/// }
+///
+/// # fn main() {
+/// let a: Amount = fp_const!(12.34);
+/// # }
+/// ```
+#[macro_export]
+macro_rules! fixnum_const {
+    ($value:literal, $precision:literal) => {{
+        use $crate::FixedPoint;
+        use $crate::_priv::*;
+        const VALUE_INNER: Int = parse_fixed(stringify!($value), pow10($precision));
+        FixedPoint::from_bits(VALUE_INNER as _)
+    }};
+}
+
+/// Macro to create fixed-point "literals". Contains `.into()` call inside so you can use it with your
+/// `From<FixedPoint>` wrapper types.
 ///
 /// ```
 /// use derive_more::From;
@@ -186,10 +227,7 @@ macro_rules! impl_op {
 /// ```
 #[macro_export]
 macro_rules! fixnum {
-    ($val:literal, $precision:literal) => {{
-        use $crate::FixedPoint;
-        use $crate::_priv::*;
-        const F: Int = parse_fixed(stringify!($val), pow10($precision));
-        FixedPoint::from_bits(F as _).into()
-    }};
+    ($value:literal, $precision:literal) => {
+        $crate::fixnum_const!($value, $precision).into()
+    };
 }

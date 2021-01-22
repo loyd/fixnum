@@ -17,6 +17,10 @@ All notable changes to this project will be documented in this file.
 
 ## 0.2.3 - 2020-12-30
 ### Added
+- Const fixed-point literal macro `fixnum_const!` (@quasiyoke).
+
+## 0.2.3 - 2020-12-30
+### Added
 - `Compact` implementation for `parity` feature (@quasiyoke).
 - `Clone` implementation for errors (@quasiyoke).
 
