@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 ### Added
 - Method `FixedPoint::into_bits` (@KalitaAlexey).
+- More thorough feature testing.
+- "Compile fail" test for `fixnum_const!` macro.
+
+### Changed
+- Unit tests for default fixnum feature set and `i128` feature were unified (@quasiyoke).
 
 ## [0.3.0] - 2021-01-25
 ### Removed
@@ -23,9 +28,6 @@ All notable changes to this project will be documented in this file.
 ## [0.2.3] - 2020-12-30
 ### Added
 - Const fixed-point literal macro `fixnum_const!` (@quasiyoke).
-
-## [0.2.3] - 2020-12-30
-### Added
 - `Compact` implementation for `parity` feature (@quasiyoke).
 - `Clone` implementation for errors (@quasiyoke).
 
