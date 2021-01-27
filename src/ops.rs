@@ -251,7 +251,7 @@ pub trait RoundingMul<Rhs = Self> {
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// # fn main() -> Result<(), fixnum::ConvertError> {
     /// let a: Amount = "0.000000001".parse()?;
     /// let b: Amount = "0.000000002".parse()?;
     /// // 1e-9 * (SaturatingCeil) 2e9 = 1e-9

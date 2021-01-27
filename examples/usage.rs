@@ -1,5 +1,5 @@
 use derive_more::From;
-use fixnum::{impl_op, typenum::U9, FixedPoint};
+use fixnum::{impl_op, typenum::U9, ArithmeticError, FixedPoint};
 
 type Fp = FixedPoint<i64, U9>;
 
@@ -28,11 +28,11 @@ impl_op!(Amount [csub] Amount = Amount);
 
 macro_rules! fp {
     ($val:literal) => {
-        fixnum::fixnum!($val, 9);
+        fixnum::fixnum!($val, 9)
     };
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), ArithmeticError> {
     use fixnum::ops::*;
 
     let size = Size(4);

@@ -154,7 +154,7 @@ mod tests {
 
     #[test]
     fn it_compares() {
-        use std::cmp::Ordering::{self, *};
+        use core::cmp::Ordering::{self, *};
         fn t(a: i128, b: i128, ord: Ordering) {
             let a = I256::from(a);
             let b = I256::from(b);
