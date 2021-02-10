@@ -194,6 +194,10 @@ impl<I, P> FixedPoint<I, P> {
     pub const fn as_bits(&self) -> &I {
         &self.inner
     }
+
+    pub fn into_bits(self) -> I {
+        self.inner
+    }
 }
 
 macro_rules! impl_fixed_point {
