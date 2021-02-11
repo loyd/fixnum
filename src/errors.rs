@@ -4,7 +4,7 @@ use core::fmt::{Display, Formatter, Result};
 use derive_more::Error;
 
 #[cfg_attr(feature = "std", derive(Error))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ArithmeticError {
     Overflow,
     DivisionByZero,
@@ -26,7 +26,7 @@ impl Display for ArithmeticError {
 }
 
 #[cfg_attr(feature = "std", derive(Error))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FromDecimalError {
     UnsupportedExponent,
     TooBigMantissa,
