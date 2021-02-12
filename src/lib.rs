@@ -195,6 +195,7 @@ impl<I, P> FixedPoint<I, P> {
         &self.inner
     }
 
+    #[inline]
     pub fn into_bits(self) -> I {
         self.inner
     }
