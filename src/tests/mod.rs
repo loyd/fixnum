@@ -1,7 +1,6 @@
-#[cfg(feature = "no_std")]
-extern crate std;
-
-use core::{f64, i64};
+#[cfg(feature = "std")]
+use core::f64;
+use core::i64;
 
 use anyhow::Result;
 
@@ -88,16 +87,14 @@ fn from_bad_str() -> Result<()> {
             ("13.9999999999999999999999999999999999999999999999999999999999999");
             ("100000000000000000000000");
             ("170141183460469231731687303715.884105728");
+            ("13.0000000000000000001");
+            ("13.1000000000000000001");
+            ("9223372036.8547758204856183567");
         },
         fp64 {
             ("13.0000000001");
             ("13.1000000001");
             ("9223372036.854775808");
-        },
-        fp128 {
-            ("13.0000000000000000001");
-            ("13.1000000000000000001");
-            ("9223372036.8547758204856183567");
         },
     };
     Ok(())
@@ -133,48 +130,40 @@ fn cmul_overflow() -> Result<()> {
 #[test]
 fn rmul_exact() -> Result<()> {
     test_fixed_point! {
-        case (a | FixedPoint, b | FixedPoint, mode | RoundMode, expected | FixedPoint) => {
-            // Check the commutative property.
-            assert_eq!(a.rmul(b, mode), b.rmul(a, mode));
-            // Check the result.
-            assert_eq!(a.rmul(b, mode)?, expected);
+        case (a | FixedPoint, b | FixedPoint, expected | FixedPoint) => {
+            // Check the result
+            assert_eq!(a.rmul(b, Floor)?, expected);
+            // Check the commutative property
+            assert_eq!(b.rmul(a, Floor)?, expected);
+            // Check that round mode doesn't matter
+            assert_eq!(a.rmul(b, Ceil)?, expected);
+            assert_eq!(b.rmul(a, Ceil)?, expected);
         },
         all {
-            (fp!(525), fp!(10), Ceil, fp!(5250));
-            (fp!(525), fp!(10), Floor, fp!(5250));
-            (fp!(-525), fp!(10), Ceil, fp!(-5250));
-            (fp!(-525), fp!(10), Floor, fp!(-5250));
-            (fp!(-525), fp!(-10), Ceil, fp!(5250));
-            (fp!(-525), fp!(-10), Floor, fp!(5250));
-            (fp!(525), fp!(-10), Ceil, fp!(-5250));
-            (fp!(525), fp!(-10), Floor, fp!(-5250));
-            (fp!(525), fp!(0.0001), Ceil, fp!(0.0525));
-            (fp!(525), fp!(0.0001), Floor, fp!(0.0525));
-            (fp!(-525), fp!(0.0001), Ceil, fp!(-0.0525));
-            (fp!(-525), fp!(0.0001), Floor, fp!(-0.0525));
-            (fp!(-525), fp!(-0.0001), Ceil, fp!(0.0525));
-            (fp!(-525), fp!(-0.0001), Floor, fp!(0.0525));
-            (FixedPoint::MAX, FixedPoint::ONE, Ceil, FixedPoint::MAX);
-            (FixedPoint::MAX, FixedPoint::ONE, Floor, FixedPoint::MAX);
-            (FixedPoint::ONE, fp!(0.000000001), Ceil, fp!(0.000000001));
-            (FixedPoint::ONE, fp!(0.000000001), Floor, fp!(0.000000001));
-            (fp!(-1), fp!(-0.000000001), Ceil, fp!(0.000000001));
-            (fp!(-1), fp!(-0.000000001), Floor, fp!(0.000000001));
+            (fp!(525), fp!(10), fp!(5250));
+            (fp!(-525), fp!(10), fp!(-5250));
+            (fp!(-525), fp!(-10), fp!(5250));
+            (fp!(525), fp!(-10), fp!(-5250));
+            (fp!(525), fp!(0.0001), fp!(0.0525));
+            (fp!(-525), fp!(0.0001), fp!(-0.0525));
+            (fp!(-525), fp!(-0.0001), fp!(0.0525));
+            (FixedPoint::MAX, FixedPoint::ONE, FixedPoint::MAX);
+            (FixedPoint::MIN, FixedPoint::ONE, FixedPoint::MIN);
+            (FixedPoint::ONE, fp!(0.000000001), fp!(0.000000001));
+            (fp!(-1), fp!(-0.000000001), fp!(0.000000001));
             (
                 FixedPoint::from_bits(Layout::MAX / 10 * 10),
                 fp!(0.1),
-                Ceil,
                 FixedPoint::from_bits(Layout::MAX / 10),
             );
             (
-                FixedPoint::from_bits(Layout::MAX / 10 * 10),
+                FixedPoint::from_bits(Layout::MIN / 10 * 10),
                 fp!(0.1),
-                Floor,
-                FixedPoint::from_bits(Layout::MAX / 10),
+                FixedPoint::from_bits(Layout::MIN / 10),
             );
         },
         fp128 {
-            (fp!(13043817825.332782), fp!(13043817825.332782), Ceil, fp!(170141183460469226191.989043859524));
+            (fp!(13043817825.332782), fp!(13043817825.332782), fp!(170141183460469226191.989043859524));
         },
     };
     Ok(())
@@ -183,55 +172,33 @@ fn rmul_exact() -> Result<()> {
 #[test]
 fn rmul_round() -> Result<()> {
     test_fixed_point! {
-        case (a | FixedPoint, b | FixedPoint, mode | RoundMode, expected | FixedPoint) => {
-            // Check the commutative property.
-            assert_eq!(a.rmul(b, mode), b.rmul(a, mode));
-            // Check the result.
-            assert_eq!(a.rmul(b, mode)?, expected);
+        case (
+            a | FixedPoint,
+            b | FixedPoint,
+            expected_floor | FixedPoint,
+            expected_ceil | FixedPoint,
+        ) => {
+            // Check the result
+            assert_eq!(a.rmul(b, Floor)?, expected_floor);
+            assert_eq!(a.rmul(b, Ceil)?, expected_ceil);
+            // Check the commutative property
+            assert_eq!(b.rmul(a, Floor)?, expected_floor);
+            assert_eq!(b.rmul(a, Ceil)?, expected_ceil);
+            // Arguments' negation doesn't change the result
+            assert_eq!(b.cneg()?.rmul(a.cneg()?, Floor)?, expected_floor);
+            assert_eq!(b.cneg()?.rmul(a.cneg()?, Ceil)?, expected_ceil);
         },
         fp64 {
-            (fp!(0.1), fp!(0.000000001), Ceil, fp!(0.000000001));
-            (fp!(0.1), fp!(0.000000001), Floor, fp!(0));
-            (fp!(-0.1), fp!(0.000000001), Ceil, fp!(0));
-            (fp!(-0.1), fp!(0.000000001), Floor, fp!(-0.000000001));
-            (fp!(-0.1), fp!(-0.000000001), Ceil, fp!(0.000000001));
-            (fp!(-0.1), fp!(-0.000000001), Floor, fp!(0));
-            (fp!(0.000000001), fp!(0.000000001), Ceil, fp!(0.000000001));
-            (fp!(0.000000001), fp!(0.000000001), Floor, fp!(0));
-            (fp!(-0.000000001), fp!(0.000000001), Ceil, fp!(0));
-            (fp!(-0.000000001), fp!(0.000000001), Floor, fp!(-0.000000001));
+            (fp!(0.1), fp!(0.000000001), fp!(0), fp!(0.000000001));
+            (fp!(-0.1), fp!(0.000000001), fp!(-0.000000001), fp!(0));
+            (fp!(0.000000001), fp!(0.000000001), fp!(0), fp!(0.000000001));
+            (fp!(-0.000000001), fp!(0.000000001), fp!(-0.000000001), fp!(0));
         },
         fp128 {
-            (fp!(0.1), fp!(0.000000000000000001), Ceil, fp!(0.000000000000000001));
-            (fp!(0.1), fp!(0.000000000000000001), Floor, FixedPoint::ZERO);
-            (fp!(-0.1), fp!(0.000000000000000001), Ceil, FixedPoint::ZERO);
-            (
-                fp!(-0.1),
-                fp!(0.000000000000000001),
-                Floor,
-                fp!(-0.000000000000000001),
-            );
-            (
-                fp!(-0.1),
-                fp!(-0.000000000000000001),
-                Ceil,
-                fp!(0.000000000000000001)
-            );
-            (fp!(-0.1), fp!(-0.000000000000000001), Floor, FixedPoint::ZERO);
-            (
-                fp!(0.000000000000000001),
-                fp!(0.000000000000000001),
-                Ceil,
-                fp!(0.000000000000000001)
-            );
-            (fp!(0.000000000000000001), fp!(0.000000000000000001), Floor, FixedPoint::ZERO);
-            (fp!(-0.000000000000000001), fp!(0.000000000000000001), Ceil, FixedPoint::ZERO);
-            (
-                fp!(-0.000000000000000001),
-                fp!(0.000000000000000001),
-                Floor,
-                fp!(-0.000000000000000001)
-            );
+            (fp!(0.1), fp!(0.000000000000000001), FixedPoint::ZERO, fp!(0.000000000000000001));
+            (fp!(-0.1), fp!(0.000000000000000001), fp!(-0.000000000000000001), FixedPoint::ZERO);
+            (fp!(0.000000000000000001), fp!(0.000000000000000001), FixedPoint::ZERO, fp!(0.000000000000000001));
+            (fp!(-0.000000000000000001), fp!(0.000000000000000001), fp!(-0.000000000000000001), FixedPoint::ZERO);
         },
     };
     Ok(())
@@ -285,45 +252,38 @@ fn rdiv_exact() -> Result<()> {
 }
 
 #[test]
-fn rdiv_i64() -> Result<()> {
+fn rdiv_by_layout() -> Result<()> {
     test_fixed_point! {
-        case (a | FixedPoint, b | Layout, mode | RoundMode, expected | FixedPoint) => {
-            assert_eq!(a.rdiv(b, mode)?, expected);
+        case (
+            a | FixedPoint,
+            b | Layout,
+            expected_floor | FixedPoint,
+            expected_ceil | FixedPoint,
+        ) => {
+            assert_eq!(a.rdiv(b, Floor)?, expected_floor);
+            assert_eq!(a.rdiv(b, Ceil)?, expected_ceil);
         },
         all {
-            (fp!(2.4), 2, Ceil, fp!(1.2));
-            (fp!(0), 5, Ceil, fp!(0));
+            (fp!(2.4), 2, fp!(1.2), fp!(1.2));
+            (fp!(0), 5, FixedPoint::ZERO, FixedPoint::ZERO);
         },
         fp64 {
-            (fp!(7), 3, Floor, fp!(2.333333333));
-            (fp!(7), 3, Ceil, fp!(2.333333334));
-            (fp!(-7), 3, Floor, fp!(-2.333333334));
-            (fp!(-7), 3, Ceil, fp!(-2.333333333));
-            (fp!(-7), -3, Floor, fp!(2.333333333));
-            (fp!(-7), -3, Ceil, fp!(2.333333334));
-            (fp!(7), -3, Floor, fp!(-2.333333334));
-            (fp!(7), -3, Ceil, fp!(-2.333333333));
-            (fp!(0.000000003), 2, Ceil, fp!(0.000000002));
-            (fp!(0.000000003), 2, Floor, fp!(0.000000001));
-            (fp!(0.000000003), 7, Floor, fp!(0));
-            (fp!(0.000000003), 7, Ceil, fp!(0.000000001));
-            (fp!(0.000000001), 7, Ceil, fp!(0.000000001));
+            (fp!(7), 3, fp!(2.333333333), fp!(2.333333334));
+            (fp!(-7), 3, fp!(-2.333333334), fp!(-2.333333333));
+            (fp!(-7), -3, fp!(2.333333333), fp!(2.333333334));
+            (fp!(7), -3, fp!(-2.333333334), fp!(-2.333333333));
+            (fp!(0.000000003), 2, fp!(0.000000001), fp!(0.000000002));
+            (fp!(0.000000003), 7, fp!(0), fp!(0.000000001));
+            (fp!(0.000000001), 7, fp!(0), fp!(0.000000001));
         },
         fp128 {
-            (fp!(7), 3, Floor, fp!(2.333333333333333333));
-            (fp!(7), 3, Ceil, fp!(2.333333333333333334));
-            (fp!(-7), 3, Floor, fp!(-2.333333333333333334));
-            (fp!(-7), 3, Ceil, fp!(-2.333333333333333333));
-            (fp!(-7), -3, Floor, fp!(2.333333333333333333));
-            (fp!(-7), -3, Ceil, fp!(2.333333333333333334));
-            (fp!(7), -3, Floor, fp!(-2.333333333333333334));
-            (fp!(7), -3, Ceil, fp!(-2.333333333333333333));
-            (fp!(0), 5, Ceil, fp!(0));
-            (fp!(0.000000000000000003), 2, Ceil, fp!(0.000000000000000002));
-            (fp!(0.000000000000000003), 2, Floor, fp!(0.000000000000000001));
-            (fp!(0.000000000000000003), 7, Floor, fp!(0));
-            (fp!(0.000000000000000003), 7, Ceil, fp!(0.000000000000000001));
-            (fp!(0.000000000000000001), 7, Ceil, fp!(0.000000000000000001));
+            (fp!(7), 3, fp!(2.333333333333333333), fp!(2.333333333333333334));
+            (fp!(-7), 3, fp!(-2.333333333333333334), fp!(-2.333333333333333333));
+            (fp!(-7), -3, fp!(2.333333333333333333), fp!(2.333333333333333334));
+            (fp!(7), -3, fp!(-2.333333333333333334), fp!(-2.333333333333333333));
+            (fp!(0.000000000000000003), 2, fp!(0.000000000000000001), fp!(0.000000000000000002));
+            (fp!(0.000000000000000003), 7, fp!(0), fp!(0.000000000000000001));
+            (fp!(0.000000000000000001), 7, fp!(0), fp!(0.000000000000000001));
         },
     };
     Ok(())
@@ -518,6 +478,13 @@ fn next_power_of_ten() -> Result<()> {
             (fp!(2), fp!(10));
             (fp!(1234567), fp!(10000000));
             (fp!(923372036.654775807), fp!(1000000000));
+            (fp!(-0.000000001), fp!(-0.000000001));
+            (fp!(-0.000000002), fp!(-0.00000001));
+            (fp!(-0.000000009), fp!(-0.00000001));
+            (fp!(-0.00000001), fp!(-0.00000001));
+            (fp!(-0.00000002), fp!(-0.0000001));
+            (fp!(-0.100000001), fp!(-1));
+            (fp!(-923372021.854775808), fp!(-1000000000));
         },
         fp128 {
             (fp!(0.000000000000000001), fp!(0.000000000000000001));
@@ -528,7 +495,6 @@ fn next_power_of_ten() -> Result<()> {
             (fp!(0.100000000000000001), fp!(1));
             (fp!(1234567891234567), fp!(10000000000000000));
             (fp!(923372036987654321.854775807), fp!(1000000000000000000));
-
             (fp!(-0.000000000000000001), fp!(-0.000000000000000001));
             (fp!(-0.000000000000000002), fp!(-0.00000000000000001));
             (fp!(-0.000000000000000009), fp!(-0.00000000000000001));
@@ -682,7 +648,8 @@ fn saturating_mul() -> Result<()> {
         },
     };
     test_fixed_point! {
-        case (a | FixedPoint, b | Layout, expected | FixedPoint) => {
+        case (a | FixedPoint, b | i128, expected | FixedPoint) => {
+            let b = b as Layout;
             assert_eq!(a.saturating_mul(b), expected);
         },
         fp64 {
@@ -798,4 +765,12 @@ fn saturating_sub() -> Result<()> {
         },
     };
     Ok(())
+}
+
+#[test]
+fn const_fn() {
+    let test_cases = trybuild::TestCases::new();
+    test_cases.compile_fail(
+        "src/tests/const_fn/01_fixnum_const_bad_str_with_too_long_fractional_part.rs",
+    );
 }

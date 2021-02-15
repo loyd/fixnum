@@ -6,8 +6,8 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 ### Added
 - Method `FixedPoint::into_bits` (@KalitaAlexey).
-- More thorough feature testing.
-- "Compile fail" test for `fixnum_const!` macro.
+- More thorough feature testing (@quasiyoke).
+- "Compile fail" test for `fixnum_const!` macro (@quasiyoke).
 
 ### Changed
 - Unit tests for default fixnum feature set and `i128` feature were unified (@quasiyoke).

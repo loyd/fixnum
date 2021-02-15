@@ -26,6 +26,7 @@ static_assertions = "1.1.0"
 anyhow = { version = "1.0.38", default-features = false }
 criterion = "0.3.3"
 derive_more = "0.99.9"
+trybuild = "1.0.39"
 
 [features]
 default = ["std", "serde"]
