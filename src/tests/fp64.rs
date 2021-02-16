@@ -296,13 +296,11 @@ fn rdiv_round() -> Result<()> {
 }
 
 #[test]
-fn rdiv_division_by_zero() -> Result<()> {
+fn rdiv_division_by_zero() {
     assert_eq!(
         FixedPoint::MAX.rdiv(FixedPoint::ZERO, Ceil),
         Err(ArithmeticError::DivisionByZero)
     );
-
-    Ok(())
 }
 
 #[test]

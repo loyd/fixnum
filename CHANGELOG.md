@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 `fixnum` adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Method `FixedPoint::into_bits` (@KalitaAlexey).
 
 ## [0.3.0] - 2021-01-25
 ### Removed
