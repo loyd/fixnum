@@ -10,5 +10,11 @@ script:
     - cargo clippy --all-targets -- -D warnings
     - cargo clippy --all-targets --all-features -- -D warnings
     - cargo test
+    - cargo test --no-default-features --lib
+    - cargo test --no-default-features --lib --features i128
+    - cargo test --no-default-features --lib --features parity
+    - cargo test --no-default-features --lib --features std
+    - cargo test --no-default-features --lib --features serde
+    - cargo test --no-default-features --lib --features i128,parity
     - cargo test --all-features
     - cargo run --example usage

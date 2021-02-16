@@ -155,9 +155,7 @@ macro_rules! impl_op {
 ///
 /// type Amount = FixedPoint<i64, U9>;
 ///
-/// # fn main() {
-/// let a: Amount = fixnum_const!(12.34, 9);
-/// # }
+/// const AMOUNT: Amount = fixnum_const!(12.34, 9);
 /// ```
 ///
 /// Probably you'd like to implement your own wrapper around this macro (see also `examples`).
@@ -173,9 +171,7 @@ macro_rules! impl_op {
 ///     };
 /// }
 ///
-/// # fn main() {
-/// let a: Amount = fp_const!(12.34);
-/// # }
+/// const AMOUNT: Amount = fp_const!(12.34);
 /// ```
 #[macro_export]
 macro_rules! fixnum_const {
