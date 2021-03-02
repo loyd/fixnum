@@ -16,16 +16,17 @@ macro_rules! impl_codec {
         impl<P> EncodeLike for FixedPoint<$layout, P> {}
 
         impl<P> Encode for FixedPoint<$layout, P> {
-            fn encode_to<O: Output>(&self, destination: &mut O) {
-                destination.push(self.encode_as());
+            fn encode_to<O: Output + ?Sized>(&self, destination: &mut O) {
+                destination.write(&self.encode_as().encode());
             }
         }
 
         impl<P> Decode for FixedPoint<$layout, P> {
             fn decode<In: Input>(input: &mut In) -> Result<Self, Error> {
-                let raw = <$representation as Decode>::decode(input)
+                let fp = <$representation as Decode>::decode(input)
+                    .and_then(FixedPoint::decode_from)
                     .map_err(|_| "Error decoding FixedPoint value")?;
-                Ok(FixedPoint::decode_from(raw))
+                Ok(fp)
             }
         }
 
@@ -41,8 +42,8 @@ macro_rules! impl_codec {
                 unsafe { &*(self.as_bits() as *const $layout as *const $representation) }
             }
 
-            fn decode_from(value: Self::As) -> Self {
-                Self::from_bits(value as $layout)
+            fn decode_from(value: Self::As) -> Result<Self, parity_scale_codec::Error> {
+                Ok(Self::from_bits(value as $layout))
             }
         }
     };
