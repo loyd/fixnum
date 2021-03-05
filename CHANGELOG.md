@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0] - 2021-03-05
+### Changed
+- `parity-scale-codec v2` (@KalitaAlexey)
+
 ## [0.3.1] - 2021-02-16
 ### Added
 - Method `FixedPoint::into_bits` (@KalitaAlexey).
