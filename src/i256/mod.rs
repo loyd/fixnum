@@ -1,8 +1,9 @@
 use core::cmp::{Ordering, PartialOrd};
 use core::convert::TryFrom;
-use core::ops::{Div, Mul, Neg, Sub};
+use core::ops::{Add, Div, Mul, Neg, Sub};
 
-use crate::ArithmeticError;
+use crate::ops::{One, Sqrt, Zero};
+use crate::{ArithmeticError, ConvertError};
 
 const TOTAL_BITS_COUNT: usize = 256;
 const UINT_CHUNK_BITS_COUNT: usize = 64;
@@ -22,6 +23,7 @@ pub struct I256 {
 impl I256 {
     pub const I128_MAX: Self = Self::from_i128(i128::MAX);
     pub const I128_MIN: Self = Self::from_i128(i128::MIN);
+    pub const U128_MAX: Self = Self::new(U256([u64::MAX, u64::MAX, 0, 0]));
     pub const MAX: Self = Self::new(U256([u64::MAX, u64::MAX, u64::MAX, !SIGN_MASK]));
     pub const MIN: Self = Self::new(U256([0, 0, 0, SIGN_MASK]));
 
@@ -47,6 +49,7 @@ impl I256 {
 impl Mul for I256 {
     type Output = Self;
 
+    #[inline]
     fn mul(self, rhs: Self) -> Self::Output {
         let lhs_was_negative = self.is_negative();
         let rhs_was_negative = rhs.is_negative();
@@ -67,6 +70,7 @@ impl Mul for I256 {
 impl Div for I256 {
     type Output = Self;
 
+    #[inline]
     fn div(self, rhs: Self) -> Self::Output {
         let lhs_was_negative = self.is_negative();
         let rhs_was_negative = rhs.is_negative();
@@ -83,9 +87,20 @@ impl Div for I256 {
     }
 }
 
+impl Add for I256 {
+    type Output = Self;
+
+    #[inline]
+    fn add(self, rhs: Self) -> Self::Output {
+        let (x, _) = self.inner.overflowing_add(rhs.inner);
+        Self::new(x)
+    }
+}
+
 impl Sub for I256 {
     type Output = Self;
 
+    #[inline]
     fn sub(self, rhs: Self) -> Self::Output {
         let (x, _) = self.inner.overflowing_sub(rhs.inner);
         Self::new(x)
@@ -95,17 +110,18 @@ impl Sub for I256 {
 impl Neg for I256 {
     type Output = Self;
 
+    #[inline]
     fn neg(self) -> Self::Output {
         // Neg isn't defined for `I256::MIN` because on two's complement we always have one extra negative value.
         debug_assert_ne!(self, Self::MIN);
-        const U1: U256 = I256::from_i128(1).inner;
         // Overflow takes place when we negate zero.
-        let (x, _) = (!self.inner).overflowing_add(U1);
+        let (x, _) = (!self.inner).overflowing_add(Self::ONE.inner);
         Self::new(x)
     }
 }
 
 impl Ord for I256 {
+    #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
         match (self.is_negative(), other.is_negative()) {
             (true, false) => Ordering::Less,
@@ -116,6 +132,7 @@ impl Ord for I256 {
 }
 
 impl PartialOrd for I256 {
+    #[inline]
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
@@ -138,8 +155,61 @@ impl TryFrom<I256> for i128 {
     }
 }
 
+impl From<u128> for I256 {
+    fn from(x: u128) -> Self {
+        Self::new(U256([x as _, (x >> 64) as _, 0, 0]))
+    }
+}
+
+impl TryFrom<I256> for u128 {
+    type Error = ConvertError;
+
+    fn try_from(x: I256) -> Result<Self, Self::Error> {
+        if x > I256::U128_MAX || x < I256::ZERO {
+            return Err(ConvertError::Overflow);
+        }
+        Ok(u128::from(x.chunks()[0]) | (u128::from(x.chunks()[1]) << 64))
+    }
+}
+
+impl One for I256 {
+    const ONE: Self = Self::from_i128(1);
+}
+
+impl Zero for I256 {
+    const ZERO: Self = Self::from_i128(0);
+}
+
+impl Sqrt for I256 {
+    type Error = ArithmeticError;
+
+    #[inline]
+    fn sqrt(self) -> Result<Self, Self::Error> {
+        if self.is_negative() {
+            return Err(ArithmeticError::DomainViolation);
+        }
+        let result = match u128::try_from(self) {
+            Ok(x) => x.sqrt()?.into(),
+            Err(_) => {
+                let inner_lo = Self::new(self.inner >> 2u32).sqrt()?.inner << 1u32;
+                // `sqrt` will always be closer to zero than `self` so overflow will never happen
+                let (inner_hi, _) = inner_lo.overflowing_add(Self::ONE.inner);
+                let (hi_square, _): (U256, _) = inner_hi.overflowing_mul(inner_hi);
+                Self::new(if hi_square <= self.inner {
+                    inner_hi
+                } else {
+                    inner_lo
+                })
+            }
+        };
+        Ok(result)
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use anyhow::Result;
+
     use super::*;
 
     #[test]
@@ -220,6 +290,24 @@ mod tests {
     #[should_panic]
     fn it_doesnt_negate_i256_min() {
         let _x = -I256::MIN;
+    }
+
+    #[test]
+    fn it_adds() -> Result<()> {
+        fn t(a: i128, b: i128, expected: i128) -> Result<()> {
+            let a = I256::from(a);
+            let b = I256::from(b);
+            assert_eq!(i128::try_from(a + b)?, expected);
+            assert_eq!(i128::try_from(b + a)?, expected);
+            assert_eq!(i128::try_from((-a) + (-b))?, -expected);
+            assert_eq!(i128::try_from((-b) + (-a))?, -expected);
+            Ok(())
+        }
+        t(0, 0, 0)?;
+        t(4321, 1111, 5432)?;
+        t(4321, -1111, 3210)?;
+        t(1111, -4321, -3210)?;
+        Ok(())
     }
 
     #[test]

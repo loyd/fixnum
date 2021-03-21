@@ -25,6 +25,9 @@ macro_rules! impl_error {
 pub enum ArithmeticError {
     Overflow,
     DivisionByZero,
+    /// When someone tries to use operand out of the set of departure of the function.
+    /// E.g.: when you try to compute the square root of a negative number.
+    DomainViolation,
 }
 
 impl ArithmeticError {
@@ -32,6 +35,7 @@ impl ArithmeticError {
         match self {
             Self::Overflow => "overflow",
             Self::DivisionByZero => "division by zero",
+            Self::DomainViolation => "domain violation",
         }
     }
 }

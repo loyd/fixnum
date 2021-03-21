@@ -503,7 +503,7 @@ macro_rules! uint {
 
             /// Multiply with overflow, returning a flag if it does.
             #[inline(always)]
-            fn overflowing_mul(self, other: $name) -> ($name, bool) {
+            pub fn overflowing_mul(self, other: $name) -> ($name, bool) {
                 uint_overflowing_mul!($name, $n_words, self, other)
             }
 

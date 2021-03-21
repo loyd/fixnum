@@ -119,7 +119,8 @@
 
 #![warn(rust_2018_idioms)]
 #![cfg_attr(not(feature = "std"), no_std)]
-use core::convert::TryFrom;
+use core::cmp::Ord;
+use core::convert::{TryFrom, TryInto};
 use core::str::FromStr;
 use core::{fmt, i64, marker::PhantomData};
 
@@ -129,9 +130,7 @@ use typenum::Unsigned;
 
 #[cfg(feature = "i128")]
 use crate::i256::I256;
-use crate::ops::{
-    Bounded, CheckedAdd, CheckedMul, CheckedSub, One, RoundMode, RoundingDiv, RoundingMul, Zero,
-};
+use crate::ops::*;
 pub use typenum;
 
 mod const_fn;
@@ -395,6 +394,28 @@ macro_rules! impl_fixed_point {
             }
         }
 
+        impl<P: Precision> RoundingSqrt for FixedPoint<$layout, P> {
+            type Error = ArithmeticError;
+
+            #[inline]
+            fn rsqrt(self, mode: RoundMode) -> Result<Self> {
+                // At first we have `S_inner = S * COEF`.
+                // We'd like to gain `sqrt(S) * COEF`:
+                // `sqrt(S) * COEF = sqrt(S * COEF^2) = sqrt(S_inner * COEF)`
+                let inner_squared = $promotion::from(self.inner) * Self::COEF_PROMOTED;
+                let inner_lo = inner_squared.sqrt()?;
+                let inner = match mode {
+                    RoundMode::Floor => inner_lo,
+                    RoundMode::Ceil => if inner_lo * inner_lo == inner_squared { inner_lo } else {
+                        inner_lo + $promotion::ONE
+                    },
+                }
+                    .try_into()
+                    .map_err(|_| ArithmeticError::Overflow)?;
+                Ok(Self::from_bits(inner))
+            }
+        }
+
         impl<P: Precision> FixedPoint<$layout, P> {
             #[inline]
             pub fn recip(self, mode: RoundMode) -> Result<FixedPoint<$layout, P>> {
@@ -416,13 +437,15 @@ macro_rules! impl_fixed_point {
             pub fn half_sum(
                 a: FixedPoint<$layout, P>,
                 b: FixedPoint<$layout, P>,
+                mode: RoundMode,
             ) -> FixedPoint<$layout, P> {
                 if a.inner.signum() != b.inner.signum() {
-                    Self::from_bits((a.inner + b.inner) / 2)
+                    Self::from_bits(a.inner + b.inner).rdiv(2, mode).unwrap()
                 } else {
                     let min = a.inner.min(b.inner);
                     let max = a.inner.max(b.inner);
-                    Self::from_bits(min + (max - min) / 2)
+                    let half_diff = Self::from_bits(max - min).rdiv(2, mode).unwrap();
+                    Self::from_bits(min + half_diff.inner)
                 }
             }
 
@@ -514,6 +537,15 @@ macro_rules! impl_fixed_point {
                     self.inner - Self::COEF / 2
                 };
                 (x / Self::COEF) as i64
+            }
+
+            #[inline]
+            pub fn abs(self) -> Result<Self> {
+                if self.inner < 0 {
+                    self.cneg()
+                } else {
+                    Ok(self)
+                }
             }
         }
 

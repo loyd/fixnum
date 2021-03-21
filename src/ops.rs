@@ -1,3 +1,6 @@
+use core::convert::TryFrom;
+use core::mem;
+
 use crate::ArithmeticError;
 
 pub trait Zero {
@@ -318,14 +321,55 @@ pub trait RoundingDiv<Rhs = Self> {
     fn rdiv(self, rhs: Rhs, mode: RoundMode) -> Result<Self::Output, Self::Error>;
 }
 
+pub trait RoundingSqrt: Sized {
+    type Error;
+
+    /// Checked rounded square root.
+    /// Returns `Err` for negative arguments.
+    ///
+    /// ```
+    /// use fixnum::{FixedPoint, typenum::U9, ops::{Zero, RoundingSqrt, RoundMode::*}};
+    ///
+    /// type Amount = FixedPoint<i64, U9>;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let a: Amount = "81".parse()?;
+    /// assert_eq!(a.rsqrt(Floor)?, "9".parse()?);
+    /// # Ok(()) }
+    /// ```
+    ///
+    /// [FixedPoint]: ../struct.FixedPoint.html
+    /// [RoundMode]: ./enum.RoundMode.html
+    fn rsqrt(self, mode: RoundMode) -> Result<Self, Self::Error>;
+}
+
+pub trait Sqrt: Sized {
+    type Error;
+
+    /// Checked integer square root.
+    /// Returns `Err` for negative arguments.
+    ///
+    /// ```
+    /// use fixnum::ops::Sqrt;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// assert_eq!(81.sqrt()?, 9);
+    /// assert_eq!(80.sqrt()?, 8);
+    /// # Ok(()) }
+    /// ```
+    ///
+    /// [FixedPoint]: ../struct.FixedPoint.html
+    /// [RoundMode]: ./enum.RoundMode.html
+    fn sqrt(self) -> Result<Self, Self::Error>;
+}
+
 // Impls for primitives.
 
 macro_rules! impl_for_ints {
-    ($int:ty, $($rest:ty),*) => {
-        impl_for_ints!($int);
-        impl_for_ints!($($rest),*);
+    ($( $int:ty ),+ $(,)?) => {
+        $( impl_for_ints!(@single $int); )*
     };
-    ($int:ty) => {
+    (@single $int:ty) => {
         impl Zero for $int {
             const ZERO: Self = 0;
         }
@@ -413,14 +457,80 @@ macro_rules! impl_for_ints {
 
 impl_for_ints!(i8, i16, i32, i64, i128); // TODO: unsigned?
 
-#[test]
-fn it_rounds_rdiv() {
-    assert_eq!(5.rdiv(2, RoundMode::Floor), Ok(2));
-    assert_eq!(5.rdiv(2, RoundMode::Ceil), Ok(3));
-    assert_eq!((-5).rdiv(2, RoundMode::Floor), Ok(-3));
-    assert_eq!((-5).rdiv(2, RoundMode::Ceil), Ok(-2));
-    assert_eq!(5.rdiv(-2, RoundMode::Floor), Ok(-3));
-    assert_eq!(5.rdiv(-2, RoundMode::Ceil), Ok(-2));
-    assert_eq!((-5).rdiv(-2, RoundMode::Floor), Ok(2));
-    assert_eq!((-5).rdiv(-2, RoundMode::Ceil), Ok(3));
+macro_rules! impl_sqrt {
+    ($( $int:ty ),+ $(,)?) => {
+        $( impl_sqrt!(@single $int); )*
+    };
+    (@single $int:ty) => {
+        impl Sqrt for $int {
+            type Error = ArithmeticError;
+
+            /// Implementation courtesy to `num` crate.
+            /// @see https://github.com/rust-num/num-integer/blob/4d166cbb754244760e28ea4ce826d54fafd3e629/src/roots.rs#L278
+            #[inline]
+            fn sqrt(self) -> Result<Self, Self::Error> {
+                #[inline]
+                const fn bits<T>() -> u32 {
+                    (mem::size_of::<T>() * 8) as _
+                }
+
+                #[inline]
+                fn fixpoint(mut x: $int, f: impl Fn($int) -> $int) -> $int {
+                    let mut xn = f(x);
+                    while x < xn {
+                        x = xn;
+                        xn = f(x);
+                    }
+                    while x > xn {
+                        x = xn;
+                        xn = f(x);
+                    }
+                    x
+                }
+
+                #[cfg(feature = "std")]
+                #[inline]
+                fn guess(x: $int) -> $int {
+                    (x as f64).sqrt() as $int
+                }
+
+                #[cfg(not(feature = "std"))]
+                #[inline]
+                fn guess(x: $int) -> $int {
+                    #[inline]
+                    fn log2_estimate(x: $int) -> u32 {
+                        debug_assert!(x > 0);
+                        bits::<$int>() - 1 - x.leading_zeros()
+                    }
+
+                    1 << ((log2_estimate(x) + 1) / 2)
+                }
+
+                #[allow(unused_comparisons)]
+                if self < 0 {
+                    return Err(ArithmeticError::DomainViolation);
+                }
+                if bits::<$int>() > 64 {
+                    // 128-bit division is slow, so do a recursive bitwise `sqrt` until it's small enough.
+                    let result = match u64::try_from(self) {
+                        Ok(x) => x.sqrt()? as _,
+                        Err(_) => {
+                            let lo = (self >> 2u32).sqrt()? << 1;
+                            let hi = lo + 1;
+                            if hi * hi <= self { hi } else { lo }
+                        }
+                    };
+                    return Ok(result);
+                }
+                if self < 4 {
+                    return Ok((self > 0).into());
+                }
+                // https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method
+                let next = |x: $int| (self / x + x) >> 1;
+                Ok(fixpoint(guess(self), next))
+            }
+        }
+    }
 }
+
+impl_sqrt!(i8, u8, i16, u16, i32, u32, i64, u64, i128, u128);
