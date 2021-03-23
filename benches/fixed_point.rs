@@ -1,3 +1,6 @@
+use std::convert::TryInto;
+use std::time::Instant;
+
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 use fixnum::{ops::*, FixedPoint};
@@ -29,6 +32,32 @@ macro_rules! define_bench {
                 let lhs = black_box($fp::from_bits(987654));
                 let rhs = black_box($fp::from_bits(54321));
                 b.iter(move || lhs.rdiv(rhs, RoundMode::Ceil))
+            });
+
+            group.bench_function("rsqrt (~10^4, precise cases)", |b| {
+                let x: $fp = black_box(21234.try_into().unwrap());
+                b.iter(move || x.rsqrt(RoundMode::Ceil))
+            });
+
+            group.bench_function("rsqrt (deviation)", |b| {
+                let x = black_box($fp::MAX);
+                b.iter(move || x.rsqrt(RoundMode::Ceil))
+            });
+
+            group.bench_function("rsqrt (adaptive)", |b| {
+                b.iter_custom(|iters| {
+                    let mut num = $fp::ZERO;
+                    let step = $fp::MAX
+                        .rdiv(*$fp::from_bits(iters as _).as_bits(), RoundMode::Floor)
+                        .unwrap();
+
+                    let started_time = Instant::now();
+                    for _ in 0..iters {
+                        num = num.cadd(step).unwrap();
+                        let _ = black_box(num.rsqrt(RoundMode::Ceil));
+                    }
+                    started_time.elapsed()
+                })
             });
 
             group.bench_function("next_power_of_ten", |b| {

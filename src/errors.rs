@@ -22,6 +22,7 @@ macro_rules! impl_error {
 
 #[cfg_attr(feature = "std", derive(Error))]
 #[derive(Clone, Debug, PartialEq)]
+#[non_exhaustive]
 pub enum ArithmeticError {
     Overflow,
     DivisionByZero,

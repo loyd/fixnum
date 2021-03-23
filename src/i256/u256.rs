@@ -2,7 +2,13 @@
 //!
 //! Expanded unsigned 256-bit integer.
 //!
-//! Implementation courtesy to [`uint` crate](https://crates.io/crates/uint).
+//! Implementation courtesy of [`uint` crate](https://crates.io/crates/uint).
+
+use core::convert::TryFrom;
+
+use crate::errors::{ArithmeticError, ConvertError};
+use crate::ops::sqrt::Sqrt;
+use crate::ops::Zero;
 
 macro_rules! impl_map_from {
     ($thing:ident, $from:ty, $to:ty) => {
@@ -299,7 +305,6 @@ macro_rules! uint {
                 return true;
             }
 
-
             /// Return the least number of bits needed to represent the number
             #[inline]
             fn bits(&self) -> usize {
@@ -593,7 +598,6 @@ macro_rules! uint {
                 ((a >> 64) as _, (a & 0xFFFFFFFFFFFFFFFF) as _)
             }
 
-
             /// Overflowing multiplication by u64.
             /// Returns the result and carry.
             fn overflowing_mul_u64(mut self, other: u64) -> (Self, u64) {
@@ -607,12 +611,43 @@ macro_rules! uint {
 
                 (self, carry)
             }
+
+            fn leading_zeros(&self) -> u32 {
+                self.0.iter().rev().fold((0, false), |(acc, one_was_met), &chunk| {
+                    if one_was_met {
+                        (acc, true)
+                    } else {
+                        (acc + chunk.leading_zeros(), chunk != 0)
+                    }
+                }).0
+            }
         }
 
         impl core::convert::From<u64> for $name {
             fn from(value: u64) -> $name {
                 let mut ret = [0; $n_words];
                 ret[0] = value;
+                $name(ret)
+            }
+        }
+
+        impl core::convert::TryFrom<$name> for u128 {
+            type Error = ConvertError;
+
+            fn try_from(value: $name) -> Result<Self, Self::Error> {
+                if $n_words * $name::WORD_BITS as u32 - value.leading_zeros() > 128 {
+                    return Err(ConvertError::Overflow);
+                }
+                let ret = (value.0[0] as u128) | ((value.0[1] as u128) << $name::WORD_BITS as u32);
+                Ok(ret)
+            }
+        }
+
+        impl core::convert::From<u128> for $name {
+            fn from(value: u128) -> Self {
+                let mut ret = [0u64; $n_words];
+                ret[0] = value as _ ;
+                ret[1] = (value >> 64) as _;
                 $name(ret)
             }
         }
@@ -751,6 +786,38 @@ macro_rules! uint {
                 Some(self.cmp(other))
             }
         }
+
+        impl Zero for $name {
+            const ZERO: Self = Self([0; $n_words]);
+        }
+
+        impl Sqrt for $name {
+            type Error = ArithmeticError;
+
+            #[inline]
+            fn sqrt(self) -> Result<Self, Self::Error> {
+                #[inline]
+                fn least_significant_word_or(mut a: $name, b: u64) -> $name {
+                    a.0[0] |= b;
+                    a
+                }
+
+                let result = match u128::try_from(self) {
+                    Ok(x) => x.sqrt()?.into(),
+                    Err(_) => {
+                        let lo = (self >> 2u32).sqrt()? << 1u32;
+                        let hi = least_significant_word_or(lo, 1);
+                        let (hi_square, _): (U256, _) = hi.overflowing_mul(hi);
+                        if hi_square <= self {
+                            hi
+                        } else {
+                            lo
+                        }
+                    }
+                };
+                Ok(result)
+            }
+        }
     };
 
     (@unroll for $v:ident in $start:tt..$end:tt {$($c:tt)*}) => {
@@ -774,4 +841,24 @@ macro_rules! uint {
 
 uint! {
     pub(crate) struct U256(4);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_counts_leading_zeros() {
+        fn t(x: U256, expected: u32) {
+            assert_eq!(x.leading_zeros(), expected);
+        }
+        t(U256::ZERO, 256);
+        t(1u128.into(), 255);
+        t(2u128.into(), 254);
+        t((1u128 << 127).into(), 128);
+        t(u128::MAX.into(), 128);
+        t((1u128 << 117).into(), 138);
+        t((u128::MAX >> 10).into(), 138);
+        t((u128::MAX >> 10).into(), 138);
+    }
 }

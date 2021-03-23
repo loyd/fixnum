@@ -5,11 +5,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 ### Added
-- Trait `ops::RoundingSqrt` and its implementation for `FixedPoint` (@quasiyoke).
+- Trait `ops::RoundingSqrt` and its implementation for `FixedPoint` and `int`s (@quasiyoke).
 - `ArithmeticError::DomainViolation` error for attempts to compute a square root of a negative number (@quasiyoke).
 
 ### Changed
-- `FixedPoint::half_sum` now takes `RoundMode` parameter (@quasiyoke)
+- `FixedPoint::half_sum` now takes `RoundMode` parameter (@quasiyoke).
 
 ## [0.4.0] - 2021-03-05
 ### Changed

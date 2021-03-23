@@ -1,8 +1,9 @@
 use core::cmp::{Ordering, PartialOrd};
 use core::convert::TryFrom;
-use core::ops::{Add, Div, Mul, Neg, Sub};
+use core::ops::{Div, Mul, Neg, Sub};
 
-use crate::ops::{One, Sqrt, Zero};
+use crate::ops::sqrt::Sqrt;
+use crate::ops::{One, RoundMode, RoundingSqrt, Zero};
 use crate::{ArithmeticError, ConvertError};
 
 const TOTAL_BITS_COUNT: usize = 256;
@@ -87,16 +88,6 @@ impl Div for I256 {
     }
 }
 
-impl Add for I256 {
-    type Output = Self;
-
-    #[inline]
-    fn add(self, rhs: Self) -> Self::Output {
-        let (x, _) = self.inner.overflowing_add(rhs.inner);
-        Self::new(x)
-    }
-}
-
 impl Sub for I256 {
     type Output = Self;
 
@@ -157,7 +148,7 @@ impl TryFrom<I256> for i128 {
 
 impl From<u128> for I256 {
     fn from(x: u128) -> Self {
-        Self::new(U256([x as _, (x >> 64) as _, 0, 0]))
+        Self::new(x.into())
     }
 }
 
@@ -180,36 +171,36 @@ impl Zero for I256 {
     const ZERO: Self = Self::from_i128(0);
 }
 
-impl Sqrt for I256 {
+impl RoundingSqrt for I256 {
     type Error = ArithmeticError;
 
+    /// Integer square root of a non-negative integer S is a non-negative integer Q such that:
+    /// Floor: `Q ≤ sqrt(S)`
+    /// Ceil: `Q ≥ sqrt(S)`
     #[inline]
-    fn sqrt(self) -> Result<Self, Self::Error> {
+    fn rsqrt(self, mode: RoundMode) -> Result<Self, Self::Error> {
         if self.is_negative() {
             return Err(ArithmeticError::DomainViolation);
         }
-        let result = match u128::try_from(self) {
-            Ok(x) => x.sqrt()?.into(),
-            Err(_) => {
-                let inner_lo = Self::new(self.inner >> 2u32).sqrt()?.inner << 1u32;
-                // `sqrt` will always be closer to zero than `self` so overflow will never happen
-                let (inner_hi, _) = inner_lo.overflowing_add(Self::ONE.inner);
-                let (hi_square, _): (U256, _) = inner_hi.overflowing_mul(inner_hi);
-                Self::new(if hi_square <= self.inner {
-                    inner_hi
+        let lo = self.inner.sqrt()?;
+        let inner = match mode {
+            RoundMode::Floor => lo,
+            RoundMode::Ceil => {
+                if lo * lo == self.inner {
+                    lo
                 } else {
-                    inner_lo
-                })
+                    // `sqrt` will always be closer to zero than `self` so overflow will never happen
+                    let (hi, _) = lo.overflowing_add(Self::ONE.inner);
+                    hi
+                }
             }
         };
-        Ok(result)
+        Ok(Self::new(inner))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
-
     use super::*;
 
     #[test]
@@ -290,24 +281,6 @@ mod tests {
     #[should_panic]
     fn it_doesnt_negate_i256_min() {
         let _x = -I256::MIN;
-    }
-
-    #[test]
-    fn it_adds() -> Result<()> {
-        fn t(a: i128, b: i128, expected: i128) -> Result<()> {
-            let a = I256::from(a);
-            let b = I256::from(b);
-            assert_eq!(i128::try_from(a + b)?, expected);
-            assert_eq!(i128::try_from(b + a)?, expected);
-            assert_eq!(i128::try_from((-a) + (-b))?, -expected);
-            assert_eq!(i128::try_from((-b) + (-a))?, -expected);
-            Ok(())
-        }
-        t(0, 0, 0)?;
-        t(4321, 1111, 5432)?;
-        t(4321, -1111, 3210)?;
-        t(1111, -4321, -3210)?;
-        Ok(())
     }
 
     #[test]
