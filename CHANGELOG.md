@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 `fixnum` adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.5.0] - 2021-03-24
 ### Added
 - Trait `ops::RoundingSqrt` and its implementation for `FixedPoint` and `int`s (@quasiyoke).
 - `ArithmeticError::DomainViolation` error for attempts to compute a square root of a negative number (@quasiyoke).
