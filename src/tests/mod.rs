@@ -318,13 +318,45 @@ fn rdiv_round() -> Result<()> {
 }
 
 #[test]
+fn rdiv_layout() -> Result<()> {
+    test_fixed_point! {
+        case (
+            a | Layout,
+            b | Layout,
+            expected_floor | Layout,
+            expected_ceil | Layout,
+        ) => {
+            assert_eq!(a.rdiv(b, Floor)?, expected_floor);
+            assert_eq!(a.rdiv(b, Ceil)?, expected_ceil);
+            assert_eq!(a.rdiv(-b, Floor)?, -expected_ceil);
+            assert_eq!((-a).rdiv(b, Floor)?, -expected_ceil);
+            assert_eq!(a.rdiv(-b, Ceil)?, -expected_floor);
+            assert_eq!((-a).rdiv(b, Ceil)?, -expected_floor);
+            assert_eq!((-a).rdiv(-b, Floor)?, expected_floor);
+            assert_eq!((-a).rdiv(-b, Ceil)?, expected_ceil);
+        },
+        all {
+            (5, 2, 2, 3);
+            (0, 5, 0, 0);
+        },
+    };
+    Ok(())
+}
+
+#[test]
 fn rdiv_division_by_zero() -> Result<()> {
     test_fixed_point! {
-        case () => {
-            assert_eq!(
-                FixedPoint::MAX.rdiv(FixedPoint::ZERO, Ceil),
-                Err(ArithmeticError::DivisionByZero)
-            );
+        case (x | FixedPoint) => {
+            let expected = Err(ArithmeticError::DivisionByZero);
+            assert_eq!(x.rdiv(FixedPoint::ZERO, Floor), expected);
+            assert_eq!(x.rdiv(FixedPoint::ZERO, Ceil), expected);
+        },
+        all {
+            (fp!(0));
+            (fp!(1));
+            (fp!(-1));
+            (FixedPoint::MAX);
+            (FixedPoint::MIN);
         },
     };
     Ok(())
@@ -388,14 +420,31 @@ fn float_mul_overflow() -> Result<()> {
 }
 
 #[test]
-fn half_sum() -> Result<()> {
+fn half_sum_exact() -> Result<()> {
+    test_fixed_point! {
+        case (expected | FixedPoint) => {
+            assert_eq!(FixedPoint::half_sum(expected, expected, Floor), expected);
+            assert_eq!(FixedPoint::half_sum(expected, expected, Ceil), expected);
+        },
+        all {
+            (fp!(0));
+            (fp!(1));
+            (fp!(-1));
+            (FixedPoint::MAX);
+            (FixedPoint::MIN);
+        },
+    };
     test_fixed_point! {
         case (a | FixedPoint, b | FixedPoint, expected | FixedPoint) => {
-            assert_eq!(FixedPoint::half_sum(a, b), expected);
+            assert_eq!(FixedPoint::half_sum(a, b, Floor), expected);
+            assert_eq!(FixedPoint::half_sum(b, a, Floor), expected);
+            assert_eq!(FixedPoint::half_sum(a, b, Ceil), expected);
+            assert_eq!(FixedPoint::half_sum(b, a, Ceil), expected);
         },
         all {
             (fp!(1), fp!(3), fp!(2));
             (fp!(1), fp!(2), fp!(1.5));
+            (fp!(7.123456789), fp!(7.123456783), fp!(7.123456786));
             (fp!(9000), fp!(9050), fp!(9025));
             (fp!(9000), fp!(-9000), fp!(0));
             (fp!(9000000000), fp!(9000000002), fp!(9000000001));
@@ -404,12 +453,39 @@ fn half_sum() -> Result<()> {
                 fp!(-9000000000.000000005),
                 fp!(-0.000000002),
             );
-        },
-        fp64 {
-            (fp!(7.123456789), fp!(7.123456788), fp!(7.123456788));
+            (FixedPoint::MAX, FixedPoint::MIN.cadd(FixedPoint::EPSILON)?, fp!(0));
         },
         fp128 {
-            (fp!(7.123456789123456789), fp!(7.123456789123456788), fp!(7.123456789123456788));
+            (fp!(7.123456789123456789), fp!(7.123456789123456783), fp!(7.123456789123456786));
+        },
+    };
+    Ok(())
+}
+
+#[test]
+fn half_sum_rounded() -> Result<()> {
+    test_fixed_point! {
+        case (a | FixedPoint, b | FixedPoint, expected_floor | FixedPoint, expected_ceil | FixedPoint) => {
+            assert_eq!(FixedPoint::half_sum(a, b, Floor), expected_floor);
+            assert_eq!(FixedPoint::half_sum(b, a, Floor), expected_floor);
+            assert_eq!(FixedPoint::half_sum(a, b, Ceil), expected_ceil);
+            assert_eq!(FixedPoint::half_sum(b, a, Ceil), expected_ceil);
+        },
+        all {
+            (FixedPoint::MIN, FixedPoint::MAX, FixedPoint::EPSILON.cneg()?, fp!(0));
+        },
+        fp64 {
+            (fp!(9000000000.000000394), fp!(9000000001.000000397), fp!(9000000000.500000395), fp!(9000000000.500000396));
+            (
+                fp!(9000000000.000000001),
+                fp!(-9000000000.000000006),
+                fp!(-0.000000003),
+                fp!(-0.000000002),
+            );
+            (fp!(7.123456789), fp!(7.123456788), fp!(7.123456788), fp!(7.123456789));
+        },
+        fp128 {
+            (fp!(7.123456789123456789), fp!(7.123456789123456788), fp!(7.123456789123456788), fp!(7.123456789123456789));
         },
     };
     Ok(())
@@ -762,6 +838,70 @@ fn saturating_sub() -> Result<()> {
             (fp!(85550005550005550005), fp!(-85550005550005550005.000000000427387903), FixedPoint::MAX);
             (fp!(-85550005550005550005), fp!(85550005550005550005), FixedPoint::MIN);
             (fp!(-85550005550005550005), fp!(85550005550005550005.000000000427387903), FixedPoint::MIN);
+        },
+    };
+    Ok(())
+}
+
+#[test]
+fn sqrt_exact() -> Result<()> {
+    test_fixed_point! {
+        case (expected | FixedPoint) => {
+            let square = expected.rmul(expected, Floor)?;
+            assert_eq!(expected.rmul(expected, Ceil)?, square);
+            assert_eq!(square.rsqrt(Floor)?, expected);
+            assert_eq!(square.rsqrt(Ceil)?, expected);
+        },
+        all {
+            (fp!(0));
+            (fp!(1));
+            (fp!(2));
+            (fp!(3));
+            (fp!(1000));
+            (fp!(96038));
+            (FixedPoint::MAX.rsqrt(Floor)?.integral(Floor).try_into()?);
+        },
+        fp128 {
+            (fp!(10431725));
+            (fp!(13043817825));
+        },
+    };
+    Ok(())
+}
+
+#[test]
+fn sqrt_approx() -> Result<()> {
+    test_fixed_point! {
+        case (x | FixedPoint, expected_floor | FixedPoint) => {
+            assert_eq!(x.rsqrt(Floor)?, expected_floor);
+            assert_eq!(x.rsqrt(Ceil)?.inner, expected_floor.inner + 1);
+        },
+        fp64 {
+            (fp!(2), fp!(1.414213562));
+            (FixedPoint::MAX, fp!(96038.388349944));
+        },
+        fp128 {
+            (fp!(2), fp!(1.414213562373095048));
+            (fp!(3.14159265358979323), fp!(1.772453850905516024));
+            (fp!(5), fp!(2.236067977499789696));
+            (FixedPoint::MAX, fp!(13043817825.332782212349571806));
+        },
+    };
+    Ok(())
+}
+
+#[test]
+fn sqrt_negative() -> Result<()> {
+    test_fixed_point! {
+        case (x | FixedPoint) => {
+            let expected = Err(ArithmeticError::DomainViolation);
+            assert_eq!(x.rsqrt(Floor), expected);
+            assert_eq!(x.rsqrt(Ceil), expected);
+        },
+        all {
+            (fp!(-1));
+            (FixedPoint::EPSILON.cneg()?);
+            (FixedPoint::MIN);
         },
     };
     Ok(())

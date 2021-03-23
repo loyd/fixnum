@@ -79,11 +79,13 @@ macro_rules! test_fixed_point {
     };
     (@suite_impl fp64) => {
         type Layout = i64;
+        #[allow(unused)]
         type FixedPoint = crate::FixedPoint<Layout, typenum::U9>;
         impl_test_case!();
     };
     (@suite_impl fp128) => {
         type Layout = i128;
+        #[allow(unused)]
         type FixedPoint = crate::FixedPoint<Layout, typenum::U18>;
         impl_test_case!();
     };

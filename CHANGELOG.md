@@ -4,10 +4,16 @@ All notable changes to this project will be documented in this file.
 `fixnum` adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Trait `ops::RoundingSqrt` and its implementation for `FixedPoint` and `int`s (@quasiyoke).
+- `ArithmeticError::DomainViolation` error for attempts to compute a square root of a negative number (@quasiyoke).
+
+### Changed
+- `FixedPoint::half_sum` now takes `RoundMode` parameter (@quasiyoke).
 
 ## [0.4.0] - 2021-03-05
 ### Changed
-- `parity-scale-codec v2` (@KalitaAlexey)
+- `parity-scale-codec v2` (@KalitaAlexey).
 
 ## [0.3.1] - 2021-02-16
 ### Added

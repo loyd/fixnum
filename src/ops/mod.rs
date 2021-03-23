@@ -1,5 +1,9 @@
 use crate::ArithmeticError;
 
+pub(crate) mod sqrt;
+
+use sqrt::Sqrt;
+
 pub trait Zero {
     const ZERO: Self;
 }
@@ -318,14 +322,40 @@ pub trait RoundingDiv<Rhs = Self> {
     fn rdiv(self, rhs: Rhs, mode: RoundMode) -> Result<Self::Output, Self::Error>;
 }
 
+pub trait RoundingSqrt: Sized {
+    type Error;
+
+    /// Checked [rounding][RoundMode] square root.
+    /// Returns `Err` for negative argument.
+    ///
+    /// ```
+    /// use fixnum::{ArithmeticError, FixedPoint, typenum::U9};
+    /// use fixnum::ops::{Zero, RoundingSqrt, RoundMode::*};
+    ///
+    /// type Amount = FixedPoint<i64, U9>;
+    ///
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// let a: Amount = "81".parse()?;
+    /// let b: Amount = "2".parse()?;
+    /// let c: Amount = "-100".parse()?;
+    /// assert_eq!(a.rsqrt(Floor)?, "9".parse()?);
+    /// assert_eq!(b.rsqrt(Floor)?, "1.414213562".parse()?);
+    /// assert_eq!(b.rsqrt(Ceil)?, "1.414213563".parse()?);
+    /// assert_eq!(c.rsqrt(Floor), Err(ArithmeticError::DomainViolation));
+    /// # Ok(()) }
+    /// ```
+    ///
+    /// [RoundMode]: ./enum.RoundMode.html
+    fn rsqrt(self, mode: RoundMode) -> Result<Self, Self::Error>;
+}
+
 // Impls for primitives.
 
 macro_rules! impl_for_ints {
-    ($int:ty, $($rest:ty),*) => {
-        impl_for_ints!($int);
-        impl_for_ints!($($rest),*);
+    ($( $int:ty ),+ $(,)?) => {
+        $( impl_for_ints!(@single $int); )*
     };
-    ($int:ty) => {
+    (@single $int:ty) => {
         impl Zero for $int {
             const ZERO: Self = 0;
         }
@@ -408,19 +438,22 @@ macro_rules! impl_for_ints {
                 Ok(result)
             }
         }
+
+        impl RoundingSqrt for $int {
+            type Error = ArithmeticError;
+
+            #[inline]
+            fn rsqrt(self, mode: RoundMode) -> Result<Self, Self::Error> {
+                let lo = self.sqrt()?;
+                Ok(match mode {
+                    RoundMode::Floor => lo,
+                    RoundMode::Ceil => if lo * lo == self { lo } else {
+                        lo + <$int>::ONE
+                    },
+                })
+            }
+        }
     };
 }
 
 impl_for_ints!(i8, i16, i32, i64, i128); // TODO: unsigned?
-
-#[test]
-fn it_rounds_rdiv() {
-    assert_eq!(5.rdiv(2, RoundMode::Floor), Ok(2));
-    assert_eq!(5.rdiv(2, RoundMode::Ceil), Ok(3));
-    assert_eq!((-5).rdiv(2, RoundMode::Floor), Ok(-3));
-    assert_eq!((-5).rdiv(2, RoundMode::Ceil), Ok(-2));
-    assert_eq!(5.rdiv(-2, RoundMode::Floor), Ok(-3));
-    assert_eq!(5.rdiv(-2, RoundMode::Ceil), Ok(-2));
-    assert_eq!((-5).rdiv(-2, RoundMode::Floor), Ok(2));
-    assert_eq!((-5).rdiv(-2, RoundMode::Ceil), Ok(3));
-}

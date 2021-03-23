@@ -52,6 +52,7 @@
 //! | [`cmul`][cmul] | `let result: Result<FixedPoint, ArithmeticError> = a.cmul(b)` | Checked multiplication. Returns `Err` on overflow. This is multiplication without rounding, hence it's available only when at least one operand is integer. |
 //! | [`rmul`][rmul] | `let result: Result<FixedPoint, ArithmeticError> = a.rmul(b, RoundMode::Ceil)` | Checked rounding multiplication. Returns `Err` on overflow. Because of provided [`RoundMode`][RoundMode] it's possible across the [`FixedPoint`][FixedPoint] values. |
 //! | [`rdiv`][rdiv] | `let result: Result<FixedPoint, ArithmeticError> = a.rdiv(b, RoundMode::Floor)` | Checked [rounding][RoundMode] division. Returns `Err` on overflow. |
+//! | [`rsqrt`][rsqrt] | `let result: Result<FixedPoint, ArithmeticError> = a.rsqrt(RoundMode::Floor)` | Checked [rounding][RoundMode] square root. Returns `Err` for negative argument. |
 //! | [`cneg`][cneg] | `let result: Result<FixedPoint, ArithmeticError> = a.cneg()` | Checked negation. Returns `Err` on overflow (you can't negate [`MIN` value][MIN]). |
 //! | [`integral`][integral] | `let y: {integer} = x.integral(RoundMode::Floor)` | Takes [rounded][RoundMode] integral part of the number. |
 //! | [`saturating_add`][saturating_add] | `let z: FixedPoint = x.saturating_add(y)` | Saturating addition |
@@ -111,6 +112,7 @@
 //! [parity_scale_codec]: https://docs.rs/parity-scale-codec
 //! [rdiv]: ./ops/trait.RoundingDiv.html#tymethod.rdiv
 //! [rmul]: ./ops/trait.RoundingMul.html#tymethod.rmul
+//! [rsqrt]: ./ops/trait.RoundingSqrt.html#tymethod.rsqrt
 //! [RoundMode]: ./ops/enum.RoundMode.html
 //! [saturating_add]: ./ops/trait.CheckedAdd.html#tymethod.saturating_add
 //! [saturating_mul]: ./ops/trait.CheckedMul.html#tymethod.saturating_mul
@@ -119,7 +121,8 @@
 
 #![warn(rust_2018_idioms)]
 #![cfg_attr(not(feature = "std"), no_std)]
-use core::convert::TryFrom;
+use core::cmp::Ord;
+use core::convert::{TryFrom, TryInto};
 use core::str::FromStr;
 use core::{fmt, i64, marker::PhantomData};
 
@@ -129,9 +132,7 @@ use typenum::Unsigned;
 
 #[cfg(feature = "i128")]
 use crate::i256::I256;
-use crate::ops::{
-    Bounded, CheckedAdd, CheckedMul, CheckedSub, One, RoundMode, RoundingDiv, RoundingMul, Zero,
-};
+use crate::ops::*;
 pub use typenum;
 
 mod const_fn;
@@ -395,6 +396,24 @@ macro_rules! impl_fixed_point {
             }
         }
 
+        impl<P: Precision> RoundingSqrt for FixedPoint<$layout, P> {
+            type Error = ArithmeticError;
+
+            #[inline]
+            fn rsqrt(self, mode: RoundMode) -> Result<Self, Self::Error> {
+                if self.inner.is_negative() {
+                    return Err(ArithmeticError::DomainViolation);
+                }
+                // At first we have `S_inner = S * COEF`.
+                // We'd like to gain `sqrt(S) * COEF`:
+                // `sqrt(S) * COEF = sqrt(S * COEF^2) = sqrt(S_inner * COEF)`
+                let inner_squared = $promotion::from(self.inner) * Self::COEF_PROMOTED;
+                let inner = inner_squared.rsqrt(mode)?;
+                let inner = inner.try_into().unwrap(); // `sqrt` can't take more bits than `self` already does
+                Ok(Self::from_bits(inner))
+            }
+        }
+
         impl<P: Precision> FixedPoint<$layout, P> {
             #[inline]
             pub fn recip(self, mode: RoundMode) -> Result<FixedPoint<$layout, P>> {
@@ -416,13 +435,15 @@ macro_rules! impl_fixed_point {
             pub fn half_sum(
                 a: FixedPoint<$layout, P>,
                 b: FixedPoint<$layout, P>,
+                mode: RoundMode,
             ) -> FixedPoint<$layout, P> {
                 if a.inner.signum() != b.inner.signum() {
-                    Self::from_bits((a.inner + b.inner) / 2)
+                    Self::from_bits(a.inner + b.inner).rdiv(2, mode).unwrap()
                 } else {
                     let min = a.inner.min(b.inner);
                     let max = a.inner.max(b.inner);
-                    Self::from_bits(min + (max - min) / 2)
+                    let half_diff = (max - min).rdiv(2, mode).unwrap();
+                    Self::from_bits(min + half_diff)
                 }
             }
 
@@ -514,6 +535,15 @@ macro_rules! impl_fixed_point {
                     self.inner - Self::COEF / 2
                 };
                 (x / Self::COEF) as i64
+            }
+
+            #[inline]
+            pub fn abs(self) -> Result<Self> {
+                if self.inner < 0 {
+                    self.cneg()
+                } else {
+                    Ok(self)
+                }
             }
         }
 
