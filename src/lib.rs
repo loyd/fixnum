@@ -121,6 +121,8 @@
 
 #![warn(rust_2018_idioms)]
 #![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
+
 use core::cmp::Ord;
 use core::convert::{TryFrom, TryInto};
 use core::str::FromStr;
@@ -204,11 +206,13 @@ impl<I, P> FixedPoint<I, P> {
 
 macro_rules! impl_fixed_point {
     (
+        $(#[$attr:meta])?
         inner = $layout:tt;
         promoted_to = $promotion:tt;
         convert = $convert:expr;
         try_from = [$($try_from:ty),*];
     ) => {
+        $(#[$attr])?
         impl<P: Precision> FixedPoint<$layout, P> {
             pub const PRECISION: i32 = P::I32;
             pub const EPSILON: Self = Self::from_bits(1);
@@ -217,19 +221,23 @@ macro_rules! impl_fixed_point {
             const COEF_PROMOTED: $promotion = $convert(Self::COEF) as _;
         }
 
+        $(#[$attr])?
         impl<P: Precision> Zero for FixedPoint<$layout, P> {
             const ZERO: Self = Self::from_bits(0);
         }
 
+        $(#[$attr])?
         impl<P: Precision> One for FixedPoint<$layout, P> {
             const ONE: Self = Self::from_bits(Self::COEF);
         }
 
+        $(#[$attr])?
         impl<P: Precision> Bounded for FixedPoint<$layout, P> {
             const MIN: Self = Self::from_bits($layout::MIN);
             const MAX: Self = Self::from_bits($layout::MAX);
         }
 
+        $(#[$attr])?
         impl<P: Precision> RoundingMul for FixedPoint<$layout, P> {
             type Output = FixedPoint<$layout, P>;
             type Error = ArithmeticError;
@@ -256,6 +264,7 @@ macro_rules! impl_fixed_point {
             }
         }
 
+        $(#[$attr])?
         impl<P: Precision> RoundingDiv for FixedPoint<$layout, P> {
             type Output = FixedPoint<$layout, P>;
             type Error = ArithmeticError;
@@ -289,6 +298,7 @@ macro_rules! impl_fixed_point {
             }
         }
 
+        $(#[$attr])?
         impl<P: Precision> RoundingDiv<$layout> for FixedPoint<$layout, P> {
             type Output = FixedPoint<$layout, P>;
             type Error = ArithmeticError;
@@ -316,6 +326,7 @@ macro_rules! impl_fixed_point {
             }
         }
 
+        $(#[$attr])?
         impl<P: Precision> RoundingDiv<FixedPoint<$layout, P>> for $layout {
             type Output = FixedPoint<$layout, P>;
             type Error = ArithmeticError;
@@ -327,6 +338,7 @@ macro_rules! impl_fixed_point {
             }
         }
 
+        $(#[$attr])?
         impl<P: Precision> CheckedAdd for FixedPoint<$layout, P> {
             type Output = FixedPoint<$layout, P>;
             type Error = ArithmeticError;
@@ -345,6 +357,7 @@ macro_rules! impl_fixed_point {
             }
         }
 
+        $(#[$attr])?
         impl<P: Precision> CheckedSub for FixedPoint<$layout, P> {
             type Output = FixedPoint<$layout, P>;
             type Error = ArithmeticError;
@@ -363,6 +376,7 @@ macro_rules! impl_fixed_point {
             }
         }
 
+        $(#[$attr])?
         impl<P: Precision> CheckedMul<$layout> for FixedPoint<$layout, P> {
             type Output = FixedPoint<$layout, P>;
             type Error = ArithmeticError;
@@ -381,6 +395,7 @@ macro_rules! impl_fixed_point {
             }
         }
 
+        $(#[$attr])?
         impl<P: Precision> CheckedMul<FixedPoint<$layout, P>> for $layout {
             type Output = FixedPoint<$layout, P>;
             type Error = ArithmeticError;
@@ -396,6 +411,7 @@ macro_rules! impl_fixed_point {
             }
         }
 
+        $(#[$attr])?
         impl<P: Precision> RoundingSqrt for FixedPoint<$layout, P> {
             type Error = ArithmeticError;
 
@@ -414,6 +430,7 @@ macro_rules! impl_fixed_point {
             }
         }
 
+        $(#[$attr])?
         impl<P: Precision> FixedPoint<$layout, P> {
             #[inline]
             pub fn recip(self, mode: RoundMode) -> Result<FixedPoint<$layout, P>> {
@@ -514,6 +531,7 @@ macro_rules! impl_fixed_point {
             }
 
             #[cfg(feature = "std")]
+            #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
             pub fn rounding_from_f64(value: f64) -> Result<FixedPoint<$layout, P>> {
                 let x = (value * Self::COEF as f64).round();
                 if x >= ($layout::MIN as f64) && x <= ($layout::MAX as f64) {
@@ -547,12 +565,14 @@ macro_rules! impl_fixed_point {
             }
         }
 
+        $(#[$attr])?
         impl<P: Precision> fmt::Debug for FixedPoint<$layout, P> {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 write!(f, "{}", self)
             }
         }
 
+        $(#[$attr])?
         impl<P: Precision> fmt::Display for FixedPoint<$layout, P> {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                 let sign = self.inner.signum();
@@ -580,6 +600,7 @@ macro_rules! impl_fixed_point {
             }
         }
 
+        $(#[$attr])?
         impl<P: Precision> FixedPoint<$layout, P> {
             pub fn from_decimal(
                 mantissa: $layout,
@@ -600,6 +621,7 @@ macro_rules! impl_fixed_point {
         }
 
         $(
+            // TODO: how to make the repetition replacement trick with `$(#[$attr])`?
             impl<P: Precision> TryFrom<$try_from> for FixedPoint<$layout, P> {
                 type Error = ConvertError;
 
@@ -613,6 +635,7 @@ macro_rules! impl_fixed_point {
             }
         )*
 
+        $(#[$attr])?
         impl<P: Precision> FromStr for FixedPoint<$layout, P> {
             type Err = ConvertError;
 
@@ -694,6 +717,7 @@ impl_fixed_point!(
 );
 #[cfg(feature = "i128")]
 impl_fixed_point!(
+    #[cfg_attr(docsrs, doc(cfg(feature = "i128")))]
     inner = i128;
     promoted_to = I256;
     convert = I256::from_i128;

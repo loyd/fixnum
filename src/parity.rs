@@ -5,7 +5,9 @@ use static_assertions::{assert_eq_align, assert_eq_size};
 
 use crate::FixedPoint;
 
+#[cfg_attr(docsrs, doc(cfg(feature = "parity")))]
 impl<I, P> From<Compact<Self>> for FixedPoint<I, P> {
+    #[inline]
     fn from(value: Compact<Self>) -> Self {
         value.0
     }
@@ -13,15 +15,26 @@ impl<I, P> From<Compact<Self>> for FixedPoint<I, P> {
 
 macro_rules! impl_codec {
     ($layout:ty, $representation:ty) => {
+        impl_codec!($layout, $representation,);
+    };
+    ($layout:ty, $representation:ty, $(#[$attr:meta])?) => {
+        #[cfg_attr(docsrs, doc(cfg(feature = "parity")))]
+        $(#[$attr])?
         impl<P> EncodeLike for FixedPoint<$layout, P> {}
 
+        #[cfg_attr(docsrs, doc(cfg(feature = "parity")))]
+        $(#[$attr])?
         impl<P> Encode for FixedPoint<$layout, P> {
+            #[inline]
             fn encode_to<O: Output + ?Sized>(&self, destination: &mut O) {
                 destination.write(&self.encode_as().encode());
             }
         }
 
+        #[cfg_attr(docsrs, doc(cfg(feature = "parity")))]
+        $(#[$attr])?
         impl<P> Decode for FixedPoint<$layout, P> {
+            #[inline]
             fn decode<In: Input>(input: &mut In) -> Result<Self, Error> {
                 let fp = <$representation as Decode>::decode(input)
                     .and_then(FixedPoint::decode_from)
@@ -30,9 +43,12 @@ macro_rules! impl_codec {
             }
         }
 
+        #[cfg_attr(docsrs, doc(cfg(feature = "parity")))]
+        $(#[$attr])?
         impl<P> CompactAs for FixedPoint<$layout, P> {
             type As = $representation;
 
+            #[inline]
             fn encode_as(&self) -> &Self::As {
                 assert_eq_size!($layout, $representation);
                 assert_eq_align!($layout, $representation);
@@ -42,6 +58,7 @@ macro_rules! impl_codec {
                 unsafe { &*(self.as_bits() as *const $layout as *const $representation) }
             }
 
+            #[inline]
             fn decode_from(value: Self::As) -> Result<Self, parity_scale_codec::Error> {
                 Ok(Self::from_bits(value as $layout))
             }
@@ -53,4 +70,4 @@ impl_codec!(i16, u16);
 impl_codec!(i32, u32);
 impl_codec!(i64, u64);
 #[cfg(feature = "i128")]
-impl_codec!(i128, u128);
+impl_codec!(i128, u128, #[cfg_attr(docsrs, doc(cfg(feature = "i128")))]);
