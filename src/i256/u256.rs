@@ -263,7 +263,7 @@ macro_rules! uint {
         #[repr(C)]
         $(#[$attr])*
         #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-        $visibility struct $name (pub [u64; $n_words]);
+        $visibility struct $name (pub(crate) [u64; $n_words]);
 
         /// Get a reference to the underlying little-endian words.
         impl AsRef<[u64]> for $name {
@@ -484,7 +484,7 @@ macro_rules! uint {
 
             /// Add with overflow.
             #[inline(always)]
-            pub fn overflowing_add(self, other: $name) -> ($name, bool) {
+            pub(crate) fn overflowing_add(self, other: $name) -> ($name, bool) {
                 uint_overflowing_binop!(
                     $name,
                     $n_words,
@@ -496,7 +496,7 @@ macro_rules! uint {
 
             /// Subtraction which underflows and returns a flag if it does.
             #[inline(always)]
-            pub fn overflowing_sub(self, other: $name) -> ($name, bool) {
+            pub(crate) fn overflowing_sub(self, other: $name) -> ($name, bool) {
                 uint_overflowing_binop!(
                     $name,
                     $n_words,
@@ -508,7 +508,7 @@ macro_rules! uint {
 
             /// Multiply with overflow, returning a flag if it does.
             #[inline(always)]
-            pub fn overflowing_mul(self, other: $name) -> ($name, bool) {
+            pub(crate) fn overflowing_mul(self, other: $name) -> ($name, bool) {
                 uint_overflowing_mul!($name, $n_words, self, other)
             }
 

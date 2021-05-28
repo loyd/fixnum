@@ -24,7 +24,7 @@ for lz, (value, power) in enumerate(zip(values, powers)):
 #[rustfmt::skip]
 #[cfg(feature = "i128")]
 #[allow(clippy::all, non_upper_case_globals)]
-pub static i128: [i128; 129] = [
+pub(crate) static i128: [i128; 129] = [
     //  lz |                  value                   | next power of ten
     //-----+------------------------------------------+------------------
     /*   0 | 170141183460469231731687303715884105728 */ 0 /* overflow */,
@@ -162,7 +162,7 @@ pub static i128: [i128; 129] = [
 /// Leading zeros count in `x` -> The closest power of ten
 #[rustfmt::skip]
 #[allow(clippy::all, non_upper_case_globals)]
-pub static i64: [i64; 65] = [
+pub(crate) static i64: [i64; 65] = [
     //  lz |                  value                   | next power of ten
     //-----+------------------------------------------+------------------
     /*   0 |                     9223372036854775808 */ 0 /* overflow */,
@@ -236,7 +236,7 @@ pub static i64: [i64; 65] = [
 /// Leading zeros count in `x` -> The closest power of ten
 #[rustfmt::skip]
 #[allow(clippy::all, non_upper_case_globals)]
-pub static i32: [i32; 33] = [
+pub(crate) static i32: [i32; 33] = [
     //  lz |                  value                   | next power of ten
     //-----+------------------------------------------+------------------
     /*   0 |                              2147483648 */ 0 /* overflow */,
@@ -278,7 +278,7 @@ pub static i32: [i32; 33] = [
 /// Leading zeros count in `x` -> The closest power of ten
 #[rustfmt::skip]
 #[allow(clippy::all, non_upper_case_globals)]
-pub static i16: [i16; 17] = [
+pub(crate) static i16: [i16; 17] = [
     //  lz |                  value                   | next power of ten
     //-----+------------------------------------------+------------------
     /*   0 |                                   32768 */ 0 /* overflow */,

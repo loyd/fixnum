@@ -119,7 +119,7 @@
 //! [saturating_rmul]: ./ops/trait.RoundingMul.html#tymethod.saturating_rmul
 //! [saturating_sub]: ./ops/trait.CheckedSub.html#tymethod.saturating_sub
 
-#![warn(rust_2018_idioms)]
+#![warn(rust_2018_idioms, unreachable_pub)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 

@@ -1,4 +1,4 @@
-pub fn assert_fails<F: FnOnce() -> anyhow::Result<()>>(#[allow(unused)] case: F) {
+pub(crate) fn assert_fails<F: FnOnce() -> anyhow::Result<()>>(#[allow(unused)] case: F) {
     #[cfg(feature = "std")]
     {
         use std::panic::{catch_unwind, AssertUnwindSafe};
