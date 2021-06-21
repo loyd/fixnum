@@ -541,7 +541,9 @@ macro_rules! impl_fixed_point {
             }
 
             pub fn to_f64(self) -> f64 {
-                (self.inner as f64) / (Self::COEF as f64)
+                let integral = (self.inner / Self::COEF) as f64;
+                let fractional = ((self.inner % Self::COEF) as f64) / (Self::COEF as f64);
+                integral + fractional
             }
 
             // TODO: make this operation checked
