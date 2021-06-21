@@ -45,6 +45,24 @@ impl_error!(ArithmeticError);
 
 #[cfg_attr(feature = "std", derive(Error))]
 #[derive(Clone, Debug, PartialEq)]
+pub enum TryFromFloatError {
+    NotFinite,
+    TooBig,
+}
+
+impl TryFromFloatError {
+    pub const fn as_str(&self) -> &'static str {
+        match self {
+            Self::NotFinite => "the number is not finite",
+            Self::TooBig => "the number is too big",
+        }
+    }
+}
+
+impl_error!(TryFromFloatError);
+
+#[cfg_attr(feature = "std", derive(Error))]
+#[derive(Clone, Debug, PartialEq)]
 pub enum FromDecimalError {
     UnsupportedExponent,
     TooBigMantissa,
