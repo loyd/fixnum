@@ -671,7 +671,7 @@ fn rounding_to_i64() -> Result<()> {
 fn to_f64() -> Result<()> {
     test_fixed_point! {
         case (x | FixedPoint, expected | f64) => {
-            assert_eq!(x.to_f64(), expected);
+            assert_eq!(f64::from(x), expected);
         },
         all {
             (fp!(0), 0.0);

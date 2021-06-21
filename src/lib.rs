@@ -540,10 +540,9 @@ macro_rules! impl_fixed_point {
                 }
             }
 
+            #[deprecated(since = "0.6.0", note = "Use `f64::from` instead")]
             pub fn to_f64(self) -> f64 {
-                let integral = (self.inner / Self::COEF) as f64;
-                let fractional = ((self.inner % Self::COEF) as f64) / (Self::COEF as f64);
-                integral + fractional
+                self.into()
             }
 
             // TODO: make this operation checked
@@ -618,6 +617,15 @@ macro_rules! impl_fixed_point {
                     .checked_mul(multiplier)
                     .map(Self::from_bits)
                     .map_or_else(|| Err(FromDecimalError::TooBigMantissa), Ok)
+            }
+        }
+
+        impl<P: Precision> From<FixedPoint<$layout, P>> for f64 {
+            fn from(value: FixedPoint<$layout, P>) -> Self {
+                let coef = FixedPoint::<$layout, P>::COEF;
+                let integral = (value.inner / coef) as f64;
+                let fractional = ((value.inner % coef) as f64) / (coef as f64);
+                integral + fractional
             }
         }
 
