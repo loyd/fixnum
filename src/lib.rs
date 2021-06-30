@@ -128,8 +128,6 @@ use core::convert::{TryFrom, TryInto};
 use core::str::FromStr;
 use core::{fmt, i64, marker::PhantomData};
 
-#[cfg(feature = "serde")]
-use serde::{Deserialize, Serialize};
 use typenum::Unsigned;
 
 #[cfg(feature = "i128")]
@@ -146,6 +144,8 @@ pub mod ops;
 #[cfg(feature = "parity")]
 mod parity;
 mod power_table;
+#[cfg(all(feature = "serde", feature = "std"))]
+mod serde;
 #[cfg(test)]
 mod tests;
 
@@ -176,7 +176,6 @@ type Result<T, E = ArithmeticError> = core::result::Result<T, E>;
 /// MAX = (2 ^ (64 - 1) - 1) / 1e9 = 9223372036.854775807 ~ 9.2e9
 /// ERROR_MAX = 0.5 / 1e9 = 5e-10
 /// ```
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct FixedPoint<I, P> {
     inner: I,
