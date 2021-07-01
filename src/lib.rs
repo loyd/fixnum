@@ -140,16 +140,17 @@ mod errors;
 #[cfg(feature = "i128")]
 mod i256;
 mod macros;
-pub mod ops;
 #[cfg(feature = "parity")]
 mod parity;
 mod power_table;
-#[cfg(all(feature = "serde", feature = "std"))]
-mod serde;
 #[cfg(test)]
 mod tests;
 
 pub use errors::*;
+
+pub mod ops;
+#[cfg(all(feature = "serde", feature = "std"))]
+pub mod serde;
 
 #[doc(hidden)]
 pub mod _priv {
