@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `serde::as_string`, `serde::as_float`, `serde::as_repr`.
+
 ### Changed
 - (De)serialize `FixedPoint` as a string in case of human readable formats.
 
