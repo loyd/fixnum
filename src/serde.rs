@@ -1,13 +1,24 @@
+//! A module that contains instances of `Serialize` and `Deserialize` for `FixedPoint`.
+//! Also contains submodule that can be provided to `serde(with)` in order to
+//! change the implementation.
+//!
+//! By default `FixedPoint` is serialized using `as_string` for human readable formats
+//! and `as_repr` for other ones.
+
 use std::{
+    convert::TryFrom,
     fmt::{self, Display},
     io::{Cursor, Write as _},
     marker::PhantomData,
     str::{self, FromStr},
 };
 
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{
+    de::{self, Error as _},
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 
-use super::FixedPoint;
+use crate::{errors::TryFromFloatError, FixedPoint};
 
 impl<I, P> Serialize for FixedPoint<I, P>
 where
@@ -123,5 +134,33 @@ pub mod as_string {
         }
 
         // TODO: visit_f64
+    }
+}
+
+/// (De)serializes `FixedPoint` as `f64`.
+pub mod as_f64 {
+    use super::*;
+
+    #[inline]
+    pub fn serialize<I, P, S>(fp: &FixedPoint<I, P>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        I: Serialize,
+        FixedPoint<I, P>: Into<f64> + Clone,
+        S: Serializer,
+    {
+        serializer.serialize_f64(fp.clone().into())
+    }
+
+    #[inline]
+    pub fn deserialize<'de, I, P, D>(deserializer: D) -> Result<FixedPoint<I, P>, D::Error>
+    where
+        I: Deserialize<'de>,
+        FixedPoint<I, P>: TryFrom<f64, Error = TryFromFloatError>,
+        D: Deserializer<'de>,
+    {
+        let f = f64::deserialize(deserializer)?;
+
+        FixedPoint::<I, P>::try_from(f)
+            .map_err(|err| D::Error::invalid_value(de::Unexpected::Float(f), &err.as_str()))
     }
 }

@@ -134,6 +134,32 @@ fn from_bad_str() -> Result<()> {
 }
 
 #[test]
+#[cfg(all(feature = "std", feature = "serde"))]
+fn serde_with() -> Result<()> {
+    test_fixed_point! {
+        case (input | f64, expected | Layout) => {
+            #[derive(::serde::Serialize, ::serde::Deserialize)]
+            struct Struct {
+                #[serde(with = "crate::serde::as_f64")]
+                number: FixedPoint,
+            }
+
+            let actual = serde_json::from_str::<Struct>(&format!(r#"{{"number":{}}}"#, input)).unwrap().number;
+            assert_eq!(expected, *actual.as_bits());
+        },
+        all {
+            (1., 1000000000);
+            (1.1, 1100000000);
+            (1.02, 1020000000);
+            (-1.02, -1020000000);
+            (0.1234, 123400000);
+            (-0.1234, -123400000);
+        },
+    };
+    Ok(())
+}
+
+#[test]
 #[allow(clippy::assertions_on_constants)]
 fn exp_and_coef_should_agree() -> Result<()> {
     test_fixed_point! {

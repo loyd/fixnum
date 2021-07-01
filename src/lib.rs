@@ -150,6 +150,8 @@ pub use errors::*;
 
 pub mod ops;
 #[cfg(all(feature = "serde", feature = "std"))]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 pub mod serde;
 
 #[doc(hidden)]
