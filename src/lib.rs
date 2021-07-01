@@ -153,8 +153,7 @@ pub use errors::*;
 
 pub mod ops;
 #[cfg(all(feature = "serde", feature = "std"))]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "std", feature = "serde"))))]
 pub mod serde;
 
 #[doc(hidden)]
@@ -183,6 +182,10 @@ type Result<T, E = ArithmeticError> = core::result::Result<T, E>;
 /// ERROR_MAX = 0.5 / 1e9 = 5e-10
 /// ```
 #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(
+    docsrs,
+    doc(cfg(any(feature = "i128", feature = "i64", feature = "i32", feature = "i16")))
+)]
 pub struct FixedPoint<I, P> {
     inner: I,
     _marker: PhantomData<P>,
