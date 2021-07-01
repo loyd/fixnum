@@ -161,6 +161,7 @@ pub(crate) static i128: [i128; 129] = [
 /// Acts as a map for any given `x: i64`:
 /// Leading zeros count in `x` -> The closest power of ten
 #[rustfmt::skip]
+#[cfg(feature = "i64")]
 #[allow(clippy::all, non_upper_case_globals)]
 pub(crate) static i64: [i64; 65] = [
     //  lz |                  value                   | next power of ten
@@ -235,6 +236,7 @@ pub(crate) static i64: [i64; 65] = [
 /// Acts as a map for any given `x: i32`:
 /// Leading zeros count in `x` -> The closest power of ten
 #[rustfmt::skip]
+#[cfg(feature = "i32")]
 #[allow(clippy::all, non_upper_case_globals)]
 pub(crate) static i32: [i32; 33] = [
     //  lz |                  value                   | next power of ten
@@ -277,6 +279,7 @@ pub(crate) static i32: [i32; 33] = [
 /// Acts as a map for any given `x: i16`:
 /// Leading zeros count in `x` -> The closest power of ten
 #[rustfmt::skip]
+#[cfg(feature = "i16")]
 #[allow(clippy::all, non_upper_case_globals)]
 pub(crate) static i16: [i16; 17] = [
     //  lz |                  value                   | next power of ten

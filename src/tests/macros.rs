@@ -37,6 +37,7 @@ macro_rules! test_fixed_point {
         };
     };
     (@section all {$( ($( $args:expr )*) )*}) => {
+        #[cfg(feature = "i64")]
         {
             test_fixed_point!(@suite_impl fp64);
             test_fixed_point!(@suite_passes {$( ($( $args )*) )*});
@@ -48,6 +49,7 @@ macro_rules! test_fixed_point {
         }
     };
     (@section fp64 {$( ($( $args:expr )*) )*}) => {
+        #[cfg(feature = "i64")]
         {
             test_fixed_point!(@suite_impl fp64);
             test_fixed_point!(@suite_passes {$( ($( $args )*) )*});
@@ -64,6 +66,7 @@ macro_rules! test_fixed_point {
             test_fixed_point!(@suite_impl fp128);
             test_fixed_point!(@suite_passes {$( ($( $args )*) )*});
         }
+        #[cfg(feature = "i64")]
         {
             test_fixed_point!(@suite_impl fp64);
             test_fixed_point!(@suite_fails {$( ($( $args )*) )*});

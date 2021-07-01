@@ -146,6 +146,9 @@ mod power_table;
 #[cfg(test)]
 mod tests;
 
+#[cfg(not(any(feature = "i16", feature = "i32", feature = "i64", feature = "i128")))]
+compile_error!("Some of the next features must be enabled: \"i128\", \"i64\", \"i32\", \"i16\"");
+
 pub use errors::*;
 
 pub mod ops;
@@ -733,23 +736,30 @@ macro_rules! impl_fixed_point {
     };
 }
 
+#[cfg(any(feature = "i64", feature = "i32", feature = "i16"))]
 const fn identity<T>(x: T) -> T {
     x
 }
 
+#[cfg(feature = "i16")]
 impl_fixed_point!(
+    #[cfg_attr(docsrs, doc(cfg(feature = "i16")))]
     inner = i16;
     promoted_to = i32;
     convert = identity;
     try_from = [i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize];
 );
+#[cfg(feature = "i32")]
 impl_fixed_point!(
+    #[cfg_attr(docsrs, doc(cfg(feature = "i32")))]
     inner = i32;
     promoted_to = i64;
     convert = identity;
     try_from = [i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize];
 );
+#[cfg(feature = "i64")]
 impl_fixed_point!(
+    #[cfg_attr(docsrs, doc(cfg(feature = "i64")))]
     inner = i64;
     promoted_to = i128;
     convert = identity;
