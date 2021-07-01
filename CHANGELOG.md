@@ -6,9 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2021-07-01
 ### Added
 - `serde::as_string`, `serde::as_float`, `serde::as_repr`.
 - `i64`, `i32`, `i16` features.
+
+### Fixes
+- To/from f64 conversion.
 
 ### Changed
 - No implementation is provded by default, use `i64` or `i128` features.
@@ -87,7 +91,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Initial release.
 
-[unreleased]: https://github.com/loyd/fixnum/compare/v0.5.1...HEAD
+[unreleased]: https://github.com/loyd/fixnum/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/loyd/fixnum/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/loyd/fixnum/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/loyd/fixnum/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/loyd/fixnum/compare/v0.3.1...v0.4.0
