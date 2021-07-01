@@ -140,16 +140,19 @@ mod errors;
 #[cfg(feature = "i128")]
 mod i256;
 mod macros;
-pub mod ops;
 #[cfg(feature = "parity")]
 mod parity;
 mod power_table;
-#[cfg(all(feature = "serde", feature = "std"))]
-mod serde;
 #[cfg(test)]
 mod tests;
 
 pub use errors::*;
+
+pub mod ops;
+#[cfg(all(feature = "serde", feature = "std"))]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+pub mod serde;
 
 #[doc(hidden)]
 pub mod _priv {
@@ -531,17 +534,14 @@ macro_rules! impl_fixed_point {
 
             #[cfg(feature = "std")]
             #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
+            #[deprecated(since = "0.6.0", note = "Use `TryFrom` instead")]
             pub fn rounding_from_f64(value: f64) -> Result<FixedPoint<$layout, P>> {
-                let x = (value * Self::COEF as f64).round();
-                if x >= ($layout::MIN as f64) && x <= ($layout::MAX as f64) {
-                    Ok(Self::from_bits(x as $layout))
-                } else {
-                    Err(ArithmeticError::Overflow)
-                }
+                value.try_into().map_err(|_| ArithmeticError::Overflow)
             }
 
+            #[deprecated(since = "0.6.0", note = "Use `From` instead")]
             pub fn to_f64(self) -> f64 {
-                (self.inner as f64) / (Self::COEF as f64)
+                self.into()
             }
 
             // TODO: make this operation checked
@@ -616,6 +616,47 @@ macro_rules! impl_fixed_point {
                     .checked_mul(multiplier)
                     .map(Self::from_bits)
                     .map_or_else(|| Err(FromDecimalError::TooBigMantissa), Ok)
+            }
+        }
+
+        impl<P: Precision> From<FixedPoint<$layout, P>> for f64 {
+            fn from(value: FixedPoint<$layout, P>) -> Self {
+                let coef = FixedPoint::<$layout, P>::COEF;
+                let integral = (value.inner / coef) as f64;
+                let fractional = ((value.inner % coef) as f64) / (coef as f64);
+                integral + fractional
+            }
+        }
+
+        #[cfg(feature = "std")]
+        impl<P: Precision> TryFrom<f64> for FixedPoint<$layout, P> {
+            type Error = TryFromFloatError;
+
+            // TODO: it's a baseline implementation. See #18.
+            fn try_from(value: f64) -> Result<Self, Self::Error> {
+                use std::io::Write;
+
+                if !value.is_finite() {
+                    return Err(TryFromFloatError::NotFinite);
+                }
+
+                let mut buffer = [0u8; 64];
+
+                let abs = value.abs();
+
+                // f64 seems to have at least 15 significant decimal digits.
+                let prec = 15usize.saturating_sub(abs.log10().ceil() as usize)
+                    .min(Self::PRECISION as usize)
+                    .max(0);
+
+                write!(&mut buffer[..], "{:.*}", prec, value)
+                    .map_err(|_| TryFromFloatError::TooBig)?;
+
+                let s = std::str::from_utf8(&buffer)
+                    .map_err(|_| TryFromFloatError::NotFinite)?
+                    .trim_end_matches('\0');
+
+                s.parse().map_err(|_| TryFromFloatError::NotFinite)
             }
         }
 
