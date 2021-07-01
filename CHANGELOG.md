@@ -8,8 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `serde::as_string`, `serde::as_float`, `serde::as_repr`.
+- `i64`, `i32`, `i16` features.
 
 ### Changed
+- No implementation is provded by default, use `i64` or `i128` features.
 - (De)serialize `FixedPoint` as a string in case of human readable formats.
 
 ## [0.5.1] - 2021-05-28

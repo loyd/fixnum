@@ -17,7 +17,7 @@
 //!   implementations).
 //!
 //! ## Example
-//! ```
+//! ```ignore
 //! use fixnum::{FixedPoint, typenum::U9, ops::{CheckedAdd, RoundingMul, RoundMode::*, Zero}};
 //!
 //! /// Signed fixed point amount over 64 bits, 9 decimal places.
@@ -63,7 +63,7 @@
 //! ## Implementing wrapper types.
 //! It's possible to restrict the domain in order to reduce chance of mistakes.
 //! Note that convenient [`fixnum!` macro][fixnum] works with wrapper types too.
-//! ```
+//! ```ignore
 //! use derive_more::From;
 //! use fixnum::{impl_op, typenum::U9, FixedPoint, fixnum};
 //!
@@ -146,12 +146,14 @@ mod power_table;
 #[cfg(test)]
 mod tests;
 
+#[cfg(not(any(feature = "i16", feature = "i32", feature = "i64", feature = "i128")))]
+compile_error!("Some of the next features must be enabled: \"i128\", \"i64\", \"i32\", \"i16\"");
+
 pub use errors::*;
 
 pub mod ops;
 #[cfg(all(feature = "serde", feature = "std"))]
-#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
+#[cfg_attr(docsrs, doc(cfg(all(feature = "std", feature = "serde"))))]
 pub mod serde;
 
 #[doc(hidden)]
@@ -180,6 +182,10 @@ type Result<T, E = ArithmeticError> = core::result::Result<T, E>;
 /// ERROR_MAX = 0.5 / 1e9 = 5e-10
 /// ```
 #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(
+    docsrs,
+    doc(cfg(any(feature = "i128", feature = "i64", feature = "i32", feature = "i16")))
+)]
 pub struct FixedPoint<I, P> {
     inner: I,
     _marker: PhantomData<P>,
@@ -468,7 +474,7 @@ macro_rules! impl_fixed_point {
 
             /// Takes [rounded][RoundMode] integral part of the number.
             ///
-            /// ```
+            /// ```ignore
             /// use fixnum::{FixedPoint, typenum::U9, ops::RoundMode::*};
             ///
             /// type Amount = FixedPoint<i64, U9>;
@@ -733,23 +739,30 @@ macro_rules! impl_fixed_point {
     };
 }
 
+#[cfg(any(feature = "i64", feature = "i32", feature = "i16"))]
 const fn identity<T>(x: T) -> T {
     x
 }
 
+#[cfg(feature = "i16")]
 impl_fixed_point!(
+    #[cfg_attr(docsrs, doc(cfg(feature = "i16")))]
     inner = i16;
     promoted_to = i32;
     convert = identity;
     try_from = [i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize];
 );
+#[cfg(feature = "i32")]
 impl_fixed_point!(
+    #[cfg_attr(docsrs, doc(cfg(feature = "i32")))]
     inner = i32;
     promoted_to = i64;
     convert = identity;
     try_from = [i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize];
 );
+#[cfg(feature = "i64")]
 impl_fixed_point!(
+    #[cfg_attr(docsrs, doc(cfg(feature = "i64")))]
     inner = i64;
     promoted_to = i128;
     convert = identity;

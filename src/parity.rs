@@ -66,8 +66,11 @@ macro_rules! impl_codec {
     };
 }
 
-impl_codec!(i16, u16);
-impl_codec!(i32, u32);
-impl_codec!(i64, u64);
+#[cfg(feature = "i16")]
+impl_codec!(i16, u16, #[cfg_attr(docsrs, doc(cfg(feature = "i16")))]);
+#[cfg(feature = "i32")]
+impl_codec!(i32, u32, #[cfg_attr(docsrs, doc(cfg(feature = "i32")))]);
+#[cfg(feature = "i64")]
+impl_codec!(i64, u64, #[cfg_attr(docsrs, doc(cfg(feature = "i64")))]);
 #[cfg(feature = "i128")]
 impl_codec!(i128, u128, #[cfg_attr(docsrs, doc(cfg(feature = "i128")))]);

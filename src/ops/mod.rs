@@ -23,7 +23,7 @@ pub trait CheckedAdd<Rhs = Self> {
 
     /// Checked addition. Returns `Err` on overflow.
     ///
-    /// ```
+    /// ```ignore
     /// use fixnum::{FixedPoint, typenum::U9, ops::CheckedAdd};
     ///
     /// type Amount = FixedPoint<i64, U9>;
@@ -40,7 +40,7 @@ pub trait CheckedAdd<Rhs = Self> {
     /// Saturating addition. Computes `self + rhs`, saturating at the numeric bounds
     /// ([`MIN`][MIN], [`MAX`][MAX]) instead of overflowing.
     ///
-    /// ```
+    /// ```ignore
     /// use fixnum::{FixedPoint, typenum::U9, ops::{Bounded, RoundMode::*, CheckedAdd}};
     ///
     /// type Amount = FixedPoint<i64, U9>;
@@ -86,7 +86,7 @@ pub trait CheckedSub<Rhs = Self> {
 
     /// Checked subtraction. Returns `Err` on overflow.
     ///
-    /// ```
+    /// ```ignore
     /// use fixnum::{FixedPoint, typenum::U9, ops::CheckedSub};
     ///
     /// type Amount = FixedPoint<i64, U9>;
@@ -103,7 +103,7 @@ pub trait CheckedSub<Rhs = Self> {
     /// Saturating subtraction. Computes `self - rhs`, saturating at the numeric bounds
     /// ([`MIN`][MIN], [`MAX`][MAX]) instead of overflowing.
     ///
-    /// ```
+    /// ```ignore
     /// use fixnum::{FixedPoint, typenum::U9, ops::{Bounded, RoundMode::*, CheckedSub}};
     ///
     /// type Amount = FixedPoint<i64, U9>;
@@ -150,7 +150,7 @@ pub trait CheckedMul<Rhs = Self> {
     /// Checked multiplication. Returns `Err` on overflow.
     /// This is multiplication without rounding, hence it's available only when at least one operand is integer.
     ///
-    /// ```
+    /// ```ignore
     /// use fixnum::{FixedPoint, typenum::U9, ops::CheckedMul};
     ///
     /// type Amount = FixedPoint<i64, U9>;
@@ -168,7 +168,7 @@ pub trait CheckedMul<Rhs = Self> {
     /// ([`MIN`][MIN], [`MAX`][MAX]) instead of overflowing.
     /// This is multiplication without rounding, hence it's available only when at least one operand is integer.
     ///
-    /// ```
+    /// ```ignore
     /// use fixnum::{FixedPoint, typenum::U9, ops::{Zero, Bounded, RoundMode::*, CheckedMul}};
     ///
     /// type Amount = FixedPoint<i64, U9>;
@@ -224,7 +224,7 @@ pub trait RoundingMul<Rhs = Self> {
     /// Because of provided [`RoundMode`][RoundMode] it's possible to perform across the [`FixedPoint`][FixedPoint]
     /// values.
     ///
-    /// ```
+    /// ```ignore
     /// use fixnum::{FixedPoint, typenum::U9, ops::{Zero, RoundingMul, RoundMode::*}};
     ///
     /// type Amount = FixedPoint<i64, U9>;
@@ -250,7 +250,7 @@ pub trait RoundingMul<Rhs = Self> {
     /// Because of provided [`RoundMode`][RoundMode] it's possible to perform across the [`FixedPoint`][FixedPoint]
     /// values.
     ///
-    /// ```
+    /// ```ignore
     /// use fixnum::{FixedPoint, typenum::U9, ops::{Zero, Bounded, RoundMode::*, RoundingMul}};
     ///
     /// type Amount = FixedPoint<i64, U9>;
@@ -302,7 +302,7 @@ pub trait RoundingDiv<Rhs = Self> {
     /// Because of provided [`RoundMode`][RoundMode] it's possible to perform across the [`FixedPoint`][FixedPoint]
     /// values.
     ///
-    /// ```
+    /// ```ignore
     /// use fixnum::{FixedPoint, typenum::U9, ops::{Zero, RoundingDiv, RoundMode::*}};
     ///
     /// type Amount = FixedPoint<i64, U9>;
@@ -328,7 +328,7 @@ pub trait RoundingSqrt: Sized {
     /// Checked [rounding][RoundMode] square root.
     /// Returns `Err` for negative argument.
     ///
-    /// ```
+    /// ```ignore
     /// use fixnum::{ArithmeticError, FixedPoint, typenum::U9};
     /// use fixnum::ops::{Zero, RoundingSqrt, RoundMode::*};
     ///

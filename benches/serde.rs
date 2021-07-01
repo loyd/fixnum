@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use fixnum::{ops::*, FixedPoint};
 
+#[cfg(feature = "i64")]
 type F64p9 = FixedPoint<i64, typenum::U9>;
 #[cfg(feature = "i128")]
 type F128p18 = FixedPoint<i128, typenum::U18>;
@@ -104,10 +105,13 @@ macro_rules! define_bench {
 
 #[cfg(feature = "i128")]
 define_bench!(F128p18);
+#[cfg(feature = "i64")]
 define_bench!(F64p9);
 
-#[cfg(feature = "i128")]
+#[cfg(all(feature = "i128", feature = "i64"))]
 criterion_group!(benches, F128p18, F64p9);
+#[cfg(not(feature = "i64"))]
+criterion_group!(benches, F128p18);
 #[cfg(not(feature = "i128"))]
 criterion_group!(benches, F64p9);
 
