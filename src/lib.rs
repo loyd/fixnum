@@ -628,6 +628,7 @@ macro_rules! impl_fixed_point {
             }
         }
 
+        #[cfg(feature = "std")]
         impl<P: Precision> TryFrom<f64> for FixedPoint<$layout, P> {
             type Error = TryFromFloatError;
 
