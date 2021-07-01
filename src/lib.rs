@@ -17,7 +17,7 @@
 //!   implementations).
 //!
 //! ## Example
-//! ```
+//! ```ignore
 //! use fixnum::{FixedPoint, typenum::U9, ops::{CheckedAdd, RoundingMul, RoundMode::*, Zero}};
 //!
 //! /// Signed fixed point amount over 64 bits, 9 decimal places.
@@ -63,7 +63,7 @@
 //! ## Implementing wrapper types.
 //! It's possible to restrict the domain in order to reduce chance of mistakes.
 //! Note that convenient [`fixnum!` macro][fixnum] works with wrapper types too.
-//! ```
+//! ```ignore
 //! use derive_more::From;
 //! use fixnum::{impl_op, typenum::U9, FixedPoint, fixnum};
 //!
@@ -471,7 +471,7 @@ macro_rules! impl_fixed_point {
 
             /// Takes [rounded][RoundMode] integral part of the number.
             ///
-            /// ```
+            /// ```ignore
             /// use fixnum::{FixedPoint, typenum::U9, ops::RoundMode::*};
             ///
             /// type Amount = FixedPoint<i64, U9>;
