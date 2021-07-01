@@ -157,7 +157,7 @@ impl TryFrom<I256> for u128 {
 
     fn try_from(x: I256) -> Result<Self, Self::Error> {
         if x > I256::U128_MAX || x < I256::ZERO {
-            return Err(ConvertError::Overflow);
+            return Err(ConvertError::new("too big integer"));
         }
         Ok(u128::from(x.chunks()[0]) | (u128::from(x.chunks()[1]) << 64))
     }

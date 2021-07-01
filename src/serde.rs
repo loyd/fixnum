@@ -18,7 +18,7 @@ use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
 };
 
-use crate::{errors::TryFromFloatError, FixedPoint};
+use crate::{errors::ConvertError, FixedPoint};
 
 impl<I, P> Serialize for FixedPoint<I, P>
 where
@@ -155,7 +155,7 @@ pub mod as_f64 {
     pub fn deserialize<'de, I, P, D>(deserializer: D) -> Result<FixedPoint<I, P>, D::Error>
     where
         I: Deserialize<'de>,
-        FixedPoint<I, P>: TryFrom<f64, Error = TryFromFloatError>,
+        FixedPoint<I, P>: TryFrom<f64, Error = ConvertError>,
         D: Deserializer<'de>,
     {
         let f = f64::deserialize(deserializer)?;

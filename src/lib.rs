@@ -610,9 +610,9 @@ macro_rules! impl_fixed_point {
             pub fn from_decimal(
                 mantissa: $layout,
                 exponent: i32,
-            ) -> Result<FixedPoint<$layout, P>, FromDecimalError> {
+            ) -> Result<FixedPoint<$layout, P>, ConvertError> {
                 if exponent < -Self::PRECISION || exponent > 10 {
-                    return Err(FromDecimalError::UnsupportedExponent);
+                    return Err(ConvertError::new("unsupported exponent"));
                 }
 
                 let ten: $layout = 10;
@@ -621,7 +621,7 @@ macro_rules! impl_fixed_point {
                 mantissa
                     .checked_mul(multiplier)
                     .map(Self::from_bits)
-                    .map_or_else(|| Err(FromDecimalError::TooBigMantissa), Ok)
+                    .map_or_else(|| Err(ConvertError::new("too big mantissa")), Ok)
             }
         }
 
@@ -636,14 +636,14 @@ macro_rules! impl_fixed_point {
 
         #[cfg(feature = "std")]
         impl<P: Precision> TryFrom<f64> for FixedPoint<$layout, P> {
-            type Error = TryFromFloatError;
+            type Error = ConvertError;
 
             // TODO: it's a baseline implementation. See #18.
             fn try_from(value: f64) -> Result<Self, Self::Error> {
                 use std::io::Write;
 
                 if !value.is_finite() {
-                    return Err(TryFromFloatError::NotFinite);
+                    return Err(ConvertError::new("not finite"));
                 }
 
                 let mut buffer = [0u8; 64];
@@ -656,13 +656,13 @@ macro_rules! impl_fixed_point {
                     .max(0);
 
                 write!(&mut buffer[..], "{:.*}", prec, value)
-                    .map_err(|_| TryFromFloatError::TooBig)?;
+                    .map_err(|_| ConvertError::new("too big number"))?;
 
                 let s = std::str::from_utf8(&buffer)
-                    .map_err(|_| TryFromFloatError::NotFinite)?
+                    .map_err(|_| ConvertError::new("not finite"))?
                     .trim_end_matches('\0');
 
-                s.parse().map_err(|_| TryFromFloatError::NotFinite)
+                s.parse().map_err(|_| ConvertError::new("not finite"))
             }
         }
 
@@ -673,10 +673,10 @@ macro_rules! impl_fixed_point {
 
                 fn try_from(value: $try_from) -> Result<Self, Self::Error> {
                     $layout::try_from(value)
-                        .map_err(|_| ConvertError::Overflow)?
+                        .map_err(|_| ConvertError::new("too big number"))?
                         .checked_mul(Self::COEF)
                         .map(Self::from_bits)
-                        .ok_or(ConvertError::Overflow)
+                        .ok_or(ConvertError::new("too big number"))
                 }
             }
         )*
@@ -693,47 +693,47 @@ macro_rules! impl_fixed_point {
                     Some(index) => index,
                     None => {
                         let integral: $layout = str.parse().map_err(|_| {
-                            ConvertError::Other("can't parse integral part of the str")
+                            ConvertError::new("can't parse integral part of the str")
                         })?;
                         return integral
                             .checked_mul(coef)
-                            .ok_or(ConvertError::Overflow)
+                            .ok_or(ConvertError::new("too big integral part"))
                             .map(Self::from_bits);
                     }
                 };
 
                 let integral: $layout = str[0..index]
                     .parse()
-                    .map_err(|_| ConvertError::Other("can't parse integral part"))?;
+                    .map_err(|_| ConvertError::new("can't parse integral part"))?;
                 let fractional_str = &str[index + 1..];
 
                 if !fractional_str.chars().all(|c| c.is_digit(10)) {
-                    return Err(ConvertError::Other("can't parse fractional part: must contain digits only"));
+                    return Err(ConvertError::new("can't parse fractional part: must contain digits only"));
                 }
 
                 if fractional_str.len() > Self::PRECISION.abs() as usize {
-                    return Err(ConvertError::Other("requested precision is too high"));
+                    return Err(ConvertError::new("requested precision is too high"));
                 }
 
                 let ten: $layout = 10;
                 let exp = ten.pow(fractional_str.len() as u32);
 
                 if exp > coef {
-                    return Err(ConvertError::Other("requested precision is too high"));
+                    return Err(ConvertError::new("requested precision is too high"));
                 }
 
                 let fractional: $layout = fractional_str.parse().map_err(|_| {
-                    ConvertError::Other("can't parse fractional part")
+                    ConvertError::new("can't parse fractional part")
                 })?;
 
-                let final_integral = integral.checked_mul(coef).ok_or(ConvertError::Overflow)?;
+                let final_integral = integral.checked_mul(coef).ok_or(ConvertError::new("too big integral"))?;
                 let signum = if str.as_bytes()[0] == b'-' { -1 } else { 1 };
                 let final_fractional = signum * coef / exp * fractional;
 
                 final_integral
                     .checked_add(final_fractional)
                     .map(Self::from_bits)
-                    .ok_or(ConvertError::Overflow)
+                    .ok_or(ConvertError::new("too big number"))
             }
         }
     };

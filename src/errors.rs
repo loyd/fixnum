@@ -45,53 +45,17 @@ impl_error!(ArithmeticError);
 
 #[cfg_attr(feature = "std", derive(Error))]
 #[derive(Clone, Debug, PartialEq)]
-pub enum TryFromFloatError {
-    NotFinite,
-    TooBig,
-}
-
-impl TryFromFloatError {
-    pub const fn as_str(&self) -> &'static str {
-        match self {
-            Self::NotFinite => "the number is not finite",
-            Self::TooBig => "the number is too big",
-        }
-    }
-}
-
-impl_error!(TryFromFloatError);
-
-#[cfg_attr(feature = "std", derive(Error))]
-#[derive(Clone, Debug, PartialEq)]
-pub enum FromDecimalError {
-    UnsupportedExponent,
-    TooBigMantissa,
-}
-
-impl FromDecimalError {
-    pub const fn as_str(&self) -> &'static str {
-        match self {
-            Self::UnsupportedExponent => "unsupported exponent",
-            Self::TooBigMantissa => "mantissa is too big",
-        }
-    }
-}
-
-impl_error!(FromDecimalError);
-
-#[cfg_attr(feature = "std", derive(Error))]
-#[derive(Clone, Debug, PartialEq)]
-pub enum ConvertError {
-    Overflow,
-    Other(#[cfg_attr(feature = "std", error(not(source)))] &'static str),
+pub struct ConvertError {
+    reason: &'static str,
 }
 
 impl ConvertError {
+    pub(crate) fn new(reason: &'static str) -> Self {
+        Self { reason }
+    }
+
     pub const fn as_str(&self) -> &'static str {
-        match self {
-            Self::Overflow => "unsupported exponent",
-            Self::Other(_) => "mantissa is too big",
-        }
+        self.reason
     }
 }
 

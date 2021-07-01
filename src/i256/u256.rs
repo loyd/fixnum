@@ -636,7 +636,7 @@ macro_rules! uint {
 
             fn try_from(value: $name) -> Result<Self, Self::Error> {
                 if $n_words * $name::WORD_BITS as u32 - value.leading_zeros() > 128 {
-                    return Err(ConvertError::Overflow);
+                    return Err(ConvertError::new("too big integer"));
                 }
                 let ret = (value.0[0] as u128) | ((value.0[1] as u128) << $name::WORD_BITS as u32);
                 Ok(ret)
