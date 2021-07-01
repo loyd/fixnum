@@ -109,6 +109,6 @@ define_bench!(F64p9);
 #[cfg(feature = "i128")]
 criterion_group!(benches, F128p18, F64p9);
 #[cfg(not(feature = "i128"))]
-criterion_group!(benches, F64p9, F32p5);
+criterion_group!(benches, F64p9);
 
 criterion_main!(benches);

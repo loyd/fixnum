@@ -137,7 +137,7 @@ fn from_bad_str() -> Result<()> {
 #[cfg(all(feature = "std", feature = "serde"))]
 fn serde_with() -> Result<()> {
     test_fixed_point! {
-        case (input | f64, expected | Layout) => {
+        case (input | f64, expected | FixedPoint) => {
             #[derive(::serde::Serialize, ::serde::Deserialize)]
             struct Struct {
                 #[serde(with = "crate::serde::as_f64")]
@@ -145,15 +145,15 @@ fn serde_with() -> Result<()> {
             }
 
             let actual = serde_json::from_str::<Struct>(&format!(r#"{{"number":{}}}"#, input)).unwrap().number;
-            assert_eq!(expected, *actual.as_bits());
+            assert_eq!(expected, actual);
         },
         all {
-            (1., 1000000000);
-            (1.1, 1100000000);
-            (1.02, 1020000000);
-            (-1.02, -1020000000);
-            (0.1234, 123400000);
-            (-0.1234, -123400000);
+            (1., fp!(1.0));
+            (1.1, fp!(1.1));
+            (1.02, fp!(1.02));
+            (-1.02, fp!(-1.02));
+            (0.1234, fp!(0.1234));
+            (-0.1234, fp!(-0.1234));
         },
     };
     Ok(())
