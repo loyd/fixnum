@@ -504,6 +504,7 @@ macro_rules! impl_fixed_point {
             }
 
             #[inline]
+            #[must_use]
             pub fn round_towards_zero_by(
                 self,
                 precision: FixedPoint<$layout, P>,

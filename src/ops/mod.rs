@@ -70,7 +70,7 @@ pub trait CheckedAdd<Rhs = Self> {
         Self::Output: Bounded,
     {
         let is_rhs_negative = rhs < Rhs::ZERO;
-        self.cadd(rhs).unwrap_or_else(|_| {
+        self.cadd(rhs).unwrap_or({
             if is_rhs_negative {
                 Self::Output::MIN
             } else {
@@ -133,7 +133,7 @@ pub trait CheckedSub<Rhs = Self> {
         Self::Output: Bounded,
     {
         let is_rhs_negative = rhs < Rhs::ZERO;
-        self.csub(rhs).unwrap_or_else(|_| {
+        self.csub(rhs).unwrap_or({
             if is_rhs_negative {
                 Self::Output::MAX
             } else {
@@ -200,7 +200,7 @@ pub trait CheckedMul<Rhs = Self> {
     {
         let is_lhs_negative = self < Self::ZERO;
         let is_rhs_negative = rhs < Rhs::ZERO;
-        self.cmul(rhs).unwrap_or_else(|_| {
+        self.cmul(rhs).unwrap_or({
             if is_lhs_negative == is_rhs_negative {
                 Self::Output::MAX
             } else {
@@ -284,7 +284,7 @@ pub trait RoundingMul<Rhs = Self> {
     {
         let is_lhs_negative = self < Self::ZERO;
         let is_rhs_negative = rhs < Rhs::ZERO;
-        self.rmul(rhs, round_mode).unwrap_or_else(|_| {
+        self.rmul(rhs, round_mode).unwrap_or({
             if is_lhs_negative == is_rhs_negative {
                 Self::Output::MAX
             } else {

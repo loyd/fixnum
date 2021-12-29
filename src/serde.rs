@@ -56,7 +56,7 @@ where
     }
 }
 
-/// (De)serializer `FixedPoint` as inner representation.
+/// (De)serializes `FixedPoint` as inner representation.
 pub mod as_repr {
     use super::*;
 
