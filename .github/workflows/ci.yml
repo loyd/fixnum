@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - run: rustc --version
     - run: cargo build --all-targets --all-features
 
   rustfmt:
@@ -39,6 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - run: rustc --version
     - run: cargo test --features i64
     - run: cargo test --features i128
     - run: cargo test --no-default-features --lib --features i64
