@@ -5,10 +5,9 @@
 //! By default `FixedPoint` is serialized using `as_string` for human readable formats
 //! and `as_repr` for other ones.
 
-use std::{
+use core::{
     convert::TryFrom,
-    fmt::{self, Display},
-    io::{Cursor, Write as _},
+    fmt::{self, Display, Write as _},
     marker::PhantomData,
     str::{self, FromStr},
 };
@@ -18,7 +17,7 @@ use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
 };
 
-use crate::{errors::ConvertError, FixedPoint};
+use crate::{errors::ConvertError, no_std::Cursor, FixedPoint};
 
 impl<I, P> Serialize for FixedPoint<I, P>
 where
@@ -96,7 +95,7 @@ pub mod as_string {
         let mut buf = [0; MAX_LEN];
         let mut cursor = Cursor::new(&mut buf[..]);
         let _ = write!(cursor, "{}", fp);
-        let p = cursor.position() as usize;
+        let p = cursor.position();
 
         // The Display instance for numbers produces valid utf-8.
         let s = unsafe { str::from_utf8_unchecked(&buf[..p]) };
