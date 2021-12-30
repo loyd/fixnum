@@ -1,4 +1,8 @@
-#[cfg(feature = "std")]
+#[cfg(not(feature = "std"))]
+extern crate alloc;
+#[cfg(not(feature = "std"))]
+use alloc::{format, string::String};
+
 use core::f64;
 use core::i64;
 
@@ -27,7 +31,6 @@ fn from_decimal() -> Result<()> {
 }
 
 #[test]
-#[cfg(feature = "std")]
 fn display() -> Result<()> {
     test_fixed_point! {
         case (x | FixedPoint, expected | &str) => {
@@ -64,7 +67,7 @@ fn from_good_str() -> Result<()> {
             let input: FixedPoint = input.parse()?;
             assert_eq!(input, expected);
 
-            #[cfg(all(feature = "std", feature = "serde"))]
+            #[cfg(feature = "serde")]
             assert_eq!(
                 serde_json::from_str::<FixedPoint>(&format!("\"{}\"", input)).unwrap(),
                 expected
@@ -109,7 +112,7 @@ fn from_bad_str() -> Result<()> {
             let result: Result<FixedPoint, ConvertError> = bad_str.parse();
             assert!(result.is_err(), "must not parse '{}'", bad_str);
 
-            #[cfg(all(feature = "std", feature = "serde"))]
+            #[cfg(feature = "serde")]
             assert!(serde_json::from_str::<FixedPoint>(&format!("\"{}\"", bad_str)).is_err());
         },
         all {
@@ -134,7 +137,7 @@ fn from_bad_str() -> Result<()> {
 }
 
 #[test]
-#[cfg(all(feature = "std", feature = "serde"))]
+#[cfg(feature = "serde")]
 fn serde_with() -> Result<()> {
     test_fixed_point! {
         case (input | f64, expected | FixedPoint) => {
@@ -692,7 +695,6 @@ fn rounding_to_i64() -> Result<()> {
 }
 
 #[test]
-#[cfg(feature = "std")]
 #[allow(clippy::float_cmp)]
 fn to_f64() -> Result<()> {
     test_fixed_point! {
@@ -731,7 +733,6 @@ fn to_f64() -> Result<()> {
 }
 
 #[test]
-#[cfg(feature = "std")]
 #[allow(clippy::float_cmp)]
 fn from_f64() -> Result<()> {
     test_fixed_point! {

@@ -131,8 +131,9 @@ use core::{fmt, i64, marker::PhantomData};
 use typenum::Unsigned;
 
 #[cfg(feature = "i128")]
-use crate::i256::I256;
-use crate::ops::*;
+use i256::I256;
+use no_std::{f64_significant_digits, Cursor};
+use ops::*;
 pub use typenum;
 
 mod const_fn;
@@ -140,6 +141,7 @@ mod errors;
 #[cfg(feature = "i128")]
 mod i256;
 mod macros;
+mod no_std;
 #[cfg(feature = "parity")]
 mod parity;
 mod power_table;
@@ -152,8 +154,8 @@ compile_error!("Some of the next features must be enabled: \"i128\", \"i64\", \"
 pub use errors::*;
 
 pub mod ops;
-#[cfg(all(feature = "serde", feature = "std"))]
-#[cfg_attr(docsrs, doc(cfg(all(feature = "std", feature = "serde"))))]
+#[cfg(feature = "serde")]
+#[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 pub mod serde;
 
 #[doc(hidden)]
@@ -635,31 +637,28 @@ macro_rules! impl_fixed_point {
             }
         }
 
-        #[cfg(feature = "std")]
         impl<P: Precision> TryFrom<f64> for FixedPoint<$layout, P> {
             type Error = ConvertError;
 
             // TODO: it's a baseline implementation. See #18.
             fn try_from(value: f64) -> Result<Self, Self::Error> {
-                use std::io::Write;
+                use core::fmt::Write;
 
                 if !value.is_finite() {
                     return Err(ConvertError::new("not finite"));
                 }
 
-                let mut buffer = [0u8; 64];
-
-                let abs = value.abs();
-
                 // f64 seems to have at least 15 significant decimal digits.
-                let prec = 15usize.saturating_sub(abs.log10().ceil() as usize)
-                    .min(Self::PRECISION as usize)
-                    .max(0);
+                let significant_digits = f64_significant_digits(value);
+                let precision = 15usize.saturating_sub(significant_digits)
+                    .min(Self::PRECISION as usize);
 
-                write!(&mut buffer[..], "{:.*}", prec, value)
+                let mut buffer = [0u8; 64];
+                let mut cursor = Cursor::new(&mut buffer);
+                write!(&mut cursor, "{:.*}", precision, value)
                     .map_err(|_| ConvertError::new("too big number"))?;
 
-                let s = std::str::from_utf8(&buffer)
+                let s = core::str::from_utf8(&buffer)
                     .map_err(|_| ConvertError::new("not finite"))?
                     .trim_end_matches('\0');
 
