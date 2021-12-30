@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2021-12-30
+### Changed
+- serde: can be used in no_std environments ([@mversic](https://github.com/mversic)).
+- `TryFrom<f64>` can be used in no_std environments ([@mversic](https://github.com/mversic)).
+
 ## [0.6.0] - 2021-07-01
 ### Added
 - `serde::as_string`, `serde::as_float`, `serde::as_repr`.
@@ -25,73 +30,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.5.0] - 2021-03-24
 ### Added
-- Trait `ops::RoundingSqrt` and its implementation for `FixedPoint` and `int`s (@quasiyoke).
-- `ArithmeticError::DomainViolation` error for attempts to compute a square root of a negative number (@quasiyoke).
+- Trait `ops::RoundingSqrt` and its implementation for `FixedPoint` and `int`s ([@quasiyoke](https://github.com/quasiyoke)).
+- `ArithmeticError::DomainViolation` error for attempts to compute a square root of a negative number ([@quasiyoke](https://github.com/quasiyoke)).
 
 ### Changed
-- `FixedPoint::half_sum` now takes `RoundMode` parameter (@quasiyoke).
+- `FixedPoint::half_sum` now takes `RoundMode` parameter ([@quasiyoke](https://github.com/quasiyoke)).
 
 ## [0.4.0] - 2021-03-05
 ### Changed
-- `parity-scale-codec v2` (@KalitaAlexey).
+- `parity-scale-codec v2` ([@KalitaAlexey](https://github.com/KalitaAlexey)).
 
 ## [0.3.1] - 2021-02-16
 ### Added
-- Method `FixedPoint::into_bits` (@KalitaAlexey).
-- More thorough feature testing (@quasiyoke).
-- "Compile fail" test for `fixnum_const!` macro (@quasiyoke).
+- Method `FixedPoint::into_bits` ([@KalitaAlexey](https://github.com/KalitaAlexey)).
+- More thorough feature testing ([@quasiyoke](https://github.com/quasiyoke)).
+- "Compile fail" test for `fixnum_const!` macro ([@quasiyoke](https://github.com/quasiyoke)).
 
 ### Changed
-- Unit tests for default fixnum feature set and `i128` feature were unified (@quasiyoke).
+- Unit tests for default fixnum feature set and `i128` feature were unified ([@quasiyoke](https://github.com/quasiyoke)).
 
 ## [0.3.0] - 2021-01-25
 ### Removed
-- Support of `fixnum::ops::Numeric` (@quasiyoke).
+- Support of `fixnum::ops::Numeric` ([@quasiyoke](https://github.com/quasiyoke)).
 
 ### Added
 - Traits `ops::One`, `ops::Zero`, `ops::Bounded`.
-- Saturating operations (@quasiyoke):
+- Saturating operations ([@quasiyoke](https://github.com/quasiyoke)):
   - `CheckedAdd::saturating_add`,
   - `CheckedMul::saturating_mul`,
   - `CheckedSub::saturating_sub`,
   - `RoundingMul::saturating_rmul`.
-- Docs for `FixedPoint::integral` method (@quasiyoke).
+- Docs for `FixedPoint::integral` method ([@quasiyoke](https://github.com/quasiyoke)).
 
 ## [0.2.3] - 2020-12-30
 ### Added
-- Const fixed-point literal macro `fixnum_const!` (@quasiyoke).
-- `Compact` implementation for `parity` feature (@quasiyoke).
-- `Clone` implementation for errors (@quasiyoke).
+- Const fixed-point literal macro `fixnum_const!` ([@quasiyoke](https://github.com/quasiyoke)).
+- `Compact` implementation for `parity` feature ([@quasiyoke](https://github.com/quasiyoke)).
+- `Clone` implementation for errors ([@quasiyoke](https://github.com/quasiyoke)).
 
 ### Fixed
-- `parity`'s `Encode` and `Decode` impls (@quasiyoke).
+- `parity`'s `Encode` and `Decode` impls ([@quasiyoke](https://github.com/quasiyoke)).
 
 ## [0.2.2] - 2020-12-09
 ### Added
-- [`parity-scale-codec`](https://docs.rs/parity-scale-codec) support under the `parity` feature.
-  (`Encode` and `Decode` impls; @quasiyoke).
+- [`parity-scale-codec`](https://docs.rs/parity-scale-codec) support under the `parity` feature: `Encode` and `Decode` instances ([@quasiyoke](https://github.com/quasiyoke)).
 - `fixnum!` macro for compile-time-checked fixed-point "literals".
-- `.as_str()` was implemented for errors (@quasiyoke).
+- `.as_str()` was implemented for errors ([@quasiyoke](https://github.com/quasiyoke)).
 
 ### Changed
-- Added `$crate` prefix for `impl_op` macro (@quasiyoke).
+- Added `$crate` prefix for `impl_op` macro ([@quasiyoke](https://github.com/quasiyoke)).
 
 ## [0.2.1] - 2020-12-04
 ### Changed
-- Docs' links were fixed (@quasiyoke).
+- Docs' links were fixed ([@quasiyoke](https://github.com/quasiyoke)).
 
 ## [0.2.0] - 2020-12-04
 ### Removed
-- Support of `fixnum::ops::CheckedDiv` (@quasiyoke).
+- Support of `fixnum::ops::CheckedDiv` ([@quasiyoke](https://github.com/quasiyoke)).
 
 ### Changed
-- There's no need in `uint` crate anymore. This significantly helps in `no_std` environments (@quasiyoke).
+- There's no need in `uint` crate anymore. This significantly helps in `no_std` environments ([@quasiyoke](https://github.com/quasiyoke)).
 
 ## [0.1.0] - 2020-12-03
 ### Added
 - Initial release.
 
-[unreleased]: https://github.com/loyd/fixnum/compare/v0.6.0...HEAD
+[unreleased]: https://github.com/loyd/fixnum/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/loyd/fixnum/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/loyd/fixnum/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/loyd/fixnum/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/loyd/fixnum/compare/v0.4.0...v0.5.0
