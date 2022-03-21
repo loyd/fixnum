@@ -733,12 +733,11 @@ fn to_f64() -> Result<()> {
 }
 
 #[test]
-#[allow(clippy::float_cmp)]
 fn from_f64() -> Result<()> {
     test_fixed_point! {
-        case (x | FixedPoint, expected | f64) => {
-            assert_eq!(Ok(x), expected.try_into());
-            assert_eq!(Ok(x.cneg().unwrap()), (-expected).try_into());
+        case (expected | FixedPoint, x | f64) => {
+            assert_eq!(FixedPoint::try_from(x)?, expected);
+            assert_eq!(FixedPoint::try_from(-x)?, expected.cneg()?);
         },
         all {
             (fp!(0), 0.0);
@@ -771,6 +770,55 @@ fn from_f64() -> Result<()> {
             (fp!(803332421536753), 803332421536753.);
             (fp!(8033324215367530), 8033324215367530.);
             (fp!(8033324215367533), 8033324215367533.);
+        },
+    };
+    Ok(())
+}
+
+#[test]
+fn from_f64_exact() -> Result<()> {
+    test_fixed_point! {
+        case (x | f64, expected | FixedPoint) => {
+            assert_eq!(FixedPoint::try_from(x)?, expected);
+            assert_eq!(FixedPoint::try_from(-x)?, expected.cneg()?);
+        },
+        all {
+            (f64::MIN_POSITIVE, fp!(0));
+            (1e-19, fp!(0));
+            (0.000006927_f64, fp!(0.000006927));
+            (0.00006927_f64, fp!(0.00006927));
+            (0.1_f64, fp!(0.1));
+            (0.12345_f64, fp!(0.12345));
+            (0.6927_f64, fp!(0.6927));
+            (5.1_f64, fp!(5.1));
+            (1643804666.060961, fp!(1643804666.060961));
+        },
+        fp64 {
+            (f64::EPSILON, fp!(0));
+            (0.123_456_789_412_345_61_f64, fp!(0.123456789));
+            (0.123_456_789_512_345_61_f64, fp!(0.12345679));
+        },
+        fp128 {
+            (f64::EPSILON, fp!(0.000000000000000222));
+            (0.123_456_789_012_345_61_f64, fp!(0.1234567890123456));
+            (0.123_456_789_012_345_68_f64, fp!(0.1234567890123457));
+        },
+    };
+    Ok(())
+}
+
+#[test]
+fn from_f64_limits() -> Result<()> {
+    test_fixed_point! {
+        case (x | f64, expected | ConvertError) => {
+            assert_eq!(FixedPoint::try_from(x), Err(expected));
+        },
+        all {
+            (f64::NAN, ConvertError::new("not finite"));
+            (f64::INFINITY, ConvertError::new("not finite"));
+            (f64::NEG_INFINITY, ConvertError::new("not finite"));
+            (f64::MAX, ConvertError::new("too big number"));
+            (f64::MIN, ConvertError::new("too big number"));
         },
     };
     Ok(())

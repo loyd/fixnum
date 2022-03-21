@@ -132,12 +132,12 @@ use typenum::Unsigned;
 
 #[cfg(feature = "i128")]
 use i256::I256;
-use no_std::{f64_significant_digits, Cursor};
 use ops::*;
 pub use typenum;
 
 mod const_fn;
 mod errors;
+mod float;
 #[cfg(feature = "i128")]
 mod i256;
 mod macros;
@@ -634,35 +634,6 @@ macro_rules! impl_fixed_point {
                 let integral = (value.inner / coef) as f64;
                 let fractional = ((value.inner % coef) as f64) / (coef as f64);
                 integral + fractional
-            }
-        }
-
-        impl<P: Precision> TryFrom<f64> for FixedPoint<$layout, P> {
-            type Error = ConvertError;
-
-            // TODO: it's a baseline implementation. See #18.
-            fn try_from(value: f64) -> Result<Self, Self::Error> {
-                use core::fmt::Write;
-
-                if !value.is_finite() {
-                    return Err(ConvertError::new("not finite"));
-                }
-
-                // f64 seems to have at least 15 significant decimal digits.
-                let significant_digits = f64_significant_digits(value);
-                let precision = 15usize.saturating_sub(significant_digits)
-                    .min(Self::PRECISION as usize);
-
-                let mut buffer = [0u8; 64];
-                let mut cursor = Cursor::new(&mut buffer);
-                write!(&mut cursor, "{:.*}", precision, value)
-                    .map_err(|_| ConvertError::new("too big number"))?;
-
-                let s = core::str::from_utf8(&buffer)
-                    .map_err(|_| ConvertError::new("not finite"))?
-                    .trim_end_matches('\0');
-
-                s.parse().map_err(|_| ConvertError::new("not finite"))
             }
         }
 

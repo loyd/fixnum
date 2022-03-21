@@ -69,15 +69,6 @@ macro_rules! define_bench {
                 })
             });
 
-            group.bench_function("FixedPoint::try_from(f64) multiples", |b| {
-                let mut value = 1.;
-
-                b.iter(move || {
-                    value *= 1.0000001;
-                    $fp::try_from(value)
-                })
-            });
-
             group.bench_function("FixedPoint::try_from(f64) deviation on MIN_POSITIVE", |b| {
                 let value = black_box(f64::MIN_POSITIVE);
                 b.iter(move || $fp::try_from(value))
