@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use serde::{Deserialize, Serialize};
 
-use fixnum::{ops::*, FixedPoint};
+use fixnum::{fixnum, ops::*, FixedPoint};
 
 #[cfg(feature = "i64")]
 type F64p9 = FixedPoint<i64, typenum::U9>;
@@ -9,7 +9,7 @@ type F64p9 = FixedPoint<i64, typenum::U9>;
 type F128p18 = FixedPoint<i128, typenum::U18>;
 
 macro_rules! define_bench {
-    ($fp:tt) => {
+    ($fp:tt, $coef:literal) => {
         #[allow(non_snake_case)]
         fn $fp(c: &mut Criterion) {
             #[derive(Serialize, Deserialize)]
@@ -28,9 +28,9 @@ macro_rules! define_bench {
 
             let mut group = c.benchmark_group(stringify!($fp));
 
-            group.bench_function("serialize: string, short", |b| {
+            group.bench_function("serialize 123.456 to string", |b| {
                 let fp = black_box(AsString {
-                    v: $fp::from_bits(123456),
+                    v: fixnum!(123.456, $coef),
                 });
                 let mut s = Vec::with_capacity(128);
                 b.iter(move || {
@@ -39,7 +39,7 @@ macro_rules! define_bench {
                 })
             });
 
-            group.bench_function("serialize: string, long", |b| {
+            group.bench_function("serialize MAX to string", |b| {
                 let fp = black_box(AsString { v: $fp::MAX });
                 let mut s = Vec::with_capacity(128);
                 b.iter(move || {
@@ -48,15 +48,15 @@ macro_rules! define_bench {
                 })
             });
 
-            group.bench_function("deserialize: string, short", |b| {
-                let s = black_box(format!("\"123456\""));
+            group.bench_function("deserialize 123.456 from string", |b| {
+                let s = black_box(format!("\"123.456\""));
                 b.iter(move || {
                     let fp: AsString = serde_json::from_slice(s.as_bytes()).unwrap();
                     fp
                 })
             });
 
-            group.bench_function("deserialize string, long", |b| {
+            group.bench_function("deserialize MAX from string", |b| {
                 let s = black_box(format!("\"{}\"", $fp::MAX));
                 b.iter(move || {
                     let fp: AsString = serde_json::from_slice(s.as_bytes()).unwrap();
@@ -64,9 +64,9 @@ macro_rules! define_bench {
                 })
             });
 
-            group.bench_function("serialize: f64, short", |b| {
+            group.bench_function("serialize 123.456 to f64", |b| {
                 let fp = black_box(AsF64 {
-                    v: $fp::from_bits(123456),
+                    v: fixnum!(123.456, $coef),
                 });
                 let mut s = Vec::with_capacity(128);
                 b.iter(move || {
@@ -75,7 +75,7 @@ macro_rules! define_bench {
                 })
             });
 
-            group.bench_function("serialize: f64, long", |b| {
+            group.bench_function("serialize MAX to f64", |b| {
                 let fp = black_box(AsF64 { v: $fp::MAX });
                 let mut s = Vec::with_capacity(128);
                 b.iter(move || {
@@ -84,15 +84,15 @@ macro_rules! define_bench {
                 })
             });
 
-            group.bench_function("deserialize: f64, short", |b| {
-                let s = black_box(format!("123456"));
+            group.bench_function("deserialize 123.456 from f64", |b| {
+                let s = black_box(format!("123.456"));
                 b.iter(move || {
                     let fp: AsF64 = serde_json::from_slice(s.as_bytes()).unwrap();
                     fp
                 })
             });
 
-            group.bench_function("deserialize f64, long", |b| {
+            group.bench_function("deserialize MAX from f64", |b| {
                 let s = black_box(format!("{}", f64::from($fp::MAX) * 0.9));
                 b.iter(move || {
                     let fp: AsF64 = serde_json::from_slice(s.as_bytes()).unwrap();
@@ -104,9 +104,9 @@ macro_rules! define_bench {
 }
 
 #[cfg(feature = "i128")]
-define_bench!(F128p18);
+define_bench!(F128p18, 18);
 #[cfg(feature = "i64")]
-define_bench!(F64p9);
+define_bench!(F64p9, 9);
 
 #[cfg(all(feature = "i128", feature = "i64"))]
 criterion_group!(benches, F128p18, F64p9);
