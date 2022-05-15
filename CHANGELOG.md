@@ -6,7 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Fixed
-- Rare "from `f64`" bugs ([@quasiyoke](https://github.com/quasiyoke)).
+- Rare "from `f64`" bugs ([#25]).
+
+### Changed
+- Update `parity-scale-codec` to `v3` ([#26]).
+- Optimize `From<f64>` instance ([#25]).
+
+[#25]: https://github.com/loyd/fixnum/pull/25
+[#26]: https://github.com/loyd/fixnum/issues/26
 
 ## [0.6.1] - 2021-12-30
 ### Changed
@@ -18,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `serde::as_string`, `serde::as_float`, `serde::as_repr`.
 - `i64`, `i32`, `i16` features.
 
-### Fixes
+### Fixed
 - To/from f64 conversion.
 
 ### Changed
@@ -40,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.0] - 2021-03-05
 ### Changed
-- `parity-scale-codec v2` ([@KalitaAlexey](https://github.com/KalitaAlexey)).
+- Update `parity-scale-codec` to `v2` ([@KalitaAlexey](https://github.com/KalitaAlexey)).
 
 ## [0.3.1] - 2021-02-16
 ### Added
