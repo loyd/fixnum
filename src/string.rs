@@ -2,6 +2,7 @@ use core::str::{self, FromStr};
 
 use crate::{ConvertError, FixedPoint, Precision};
 
+#[allow(unreachable_pub)]
 pub trait Stringify {
     fn stringify(&self, buf: &mut StrBuf);
 }
@@ -101,6 +102,7 @@ const MAX_LEN: usize = if cfg!(feature = "i128") { 41 } else { 21 };
 
 // TODO: try `staticvec` after stabilization.
 // Now it works faster than `arrayvec`.
+#[allow(unreachable_pub)]
 pub struct StrBuf {
     buffer: [u8; MAX_LEN],
     len: usize,

@@ -1,7 +1,7 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 #[cfg(not(feature = "std"))]
-use alloc::{format, string::String};
+use alloc::format;
 
 use core::f64;
 use core::i64;
