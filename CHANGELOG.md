@@ -5,9 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- Rare "from `f64`" bugs ([#25]).
+
 ### Changed
 - Update `parity-scale-codec` to `v3` ([#26]).
+- Optimize `From<f64>` instance ([#25]).
 
+[#25]: https://github.com/loyd/fixnum/pull/25
 [#26]: https://github.com/loyd/fixnum/issues/26
 
 ## [0.6.1] - 2021-12-30
@@ -20,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `serde::as_string`, `serde::as_float`, `serde::as_repr`.
 - `i64`, `i32`, `i16` features.
 
-### Fixes
+### Fixed
 - To/from f64 conversion.
 
 ### Changed

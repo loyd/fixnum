@@ -1,4 +1,4 @@
-use std::convert::TryInto;
+use std::convert::{TryFrom, TryInto};
 use std::time::Instant;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
@@ -67,6 +67,31 @@ macro_rules! define_bench {
                     value += 1;
                     $fp::from_bits(value).next_power_of_ten()
                 })
+            });
+
+            group.bench_function("FixedPoint::try_from(f64) deviation on MIN_POSITIVE", |b| {
+                let value = black_box(f64::MIN_POSITIVE);
+                b.iter(move || $fp::try_from(value))
+            });
+
+            group.bench_function("FixedPoint::try_from(f64) deviation on MAX", |b| {
+                let value = black_box(f64::MAX);
+                b.iter(move || $fp::try_from(value))
+            });
+
+            group.bench_function("FixedPoint::try_from(f64) ~10^-12", |b| {
+                let value = black_box(3.141592653589793e-12);
+                b.iter(move || $fp::try_from(value))
+            });
+
+            group.bench_function("FixedPoint::try_from(f64) ~0.1", |b| {
+                let value = black_box(0.3141592653589793);
+                b.iter(move || $fp::try_from(value))
+            });
+
+            group.bench_function("FixedPoint::try_from(f64) ~1e6", |b| {
+                let value = black_box(3.141592653589793e6);
+                b.iter(move || $fp::try_from(value))
             });
 
             group.finish();
