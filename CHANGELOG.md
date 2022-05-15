@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+
+## [0.7.0] - 2022-05-15
 ### Fixed
 - Rare "from `f64`" bugs ([#25]).
 
@@ -109,7 +111,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/loyd/fixnum/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/loyd/fixnum/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/loyd/fixnum/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/loyd/fixnum/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/loyd/fixnum/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/loyd/fixnum/compare/v0.5.0...v0.5.1
