@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - To/from f64 conversion.
 
 ### Changed
-- No implementation is provded by default, use `i64` or `i128` features.
+- No implementation is provided by default, use `i64` or `i128` features.
 - (De)serialize `FixedPoint` as a string in case of human readable formats.
 - `ConvertError` and `FromDecimalError` are merged into one opaque `ConvertError` type.
 

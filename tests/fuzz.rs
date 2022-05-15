@@ -22,6 +22,17 @@ proptest! {
         let expected = expected.unwrap();
 
         let actual: FixedPoint = x.try_into().expect("cannot convert");
-        assert_eq!(actual, expected);
+        prop_assert_eq!(actual, expected);
+    }
+}
+
+proptest! {
+    #[test]
+    fn string_roundtrip(x in any::<i128>()) {
+        let expected = FixedPoint::from_bits(x);
+        let string = expected.to_string();
+        let actual: FixedPoint = string.parse().unwrap();
+
+        prop_assert_eq!(actual, expected);
     }
 }
