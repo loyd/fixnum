@@ -1,7 +1,7 @@
 #[cfg(not(feature = "std"))]
 extern crate alloc;
 #[cfg(not(feature = "std"))]
-use alloc::{format, string::String};
+use alloc::format;
 
 use core::f64;
 use core::i64;
@@ -34,13 +34,14 @@ fn from_decimal() -> Result<()> {
 fn display() -> Result<()> {
     test_fixed_point! {
         case (x | FixedPoint, expected | &str) => {
-            assert_eq!(format!("{}", x), String::from(expected));
+            assert_eq!(format!("{}", x), expected);
 
             #[cfg(feature = "serde")]
             assert_eq!(serde_json::to_string(&x).unwrap(), format!("\"{}\"", expected));
         },
         all {
             (fp!(0), "0.0");
+            (fp!(42), "42.0");
             (fp!(10.042), "10.042");
             (fp!(-10.042), "-10.042");
             (fp!(0.000000001), "0.000000001");

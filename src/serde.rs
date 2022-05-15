@@ -5,24 +5,19 @@
 //! By default `FixedPoint` is serialized using `as_string` for human readable formats
 //! and `as_repr` for other ones.
 
-use core::{
-    convert::TryFrom,
-    fmt::{self, Display, Write as _},
-    marker::PhantomData,
-    str::{self, FromStr},
-};
+use core::{convert::TryFrom, fmt, marker::PhantomData, str::FromStr};
 
 use serde::{
     de::{self, Error as _},
     Deserialize, Deserializer, Serialize, Serializer,
 };
 
-use crate::{errors::ConvertError, no_std::Cursor, FixedPoint};
+use crate::{errors::ConvertError, string::Stringify, FixedPoint};
 
 impl<I, P> Serialize for FixedPoint<I, P>
 where
     I: Serialize,
-    Self: Display,
+    Self: Stringify,
 {
     #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -85,22 +80,11 @@ pub mod as_string {
     pub fn serialize<I, P, S>(fp: &FixedPoint<I, P>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
-        FixedPoint<I, P>: Display,
+        FixedPoint<I, P>: Stringify,
     {
-        // Serialize as a string in case of human readable formats.
-        // The maximum length can be calculated as `len(str(-2**bits)) + 1`,
-        // where `1` is reserved for `.` after integral part.
-        const MAX_LEN: usize = if cfg!(feature = "i128") { 41 } else { 21 };
-
-        let mut buf = [0; MAX_LEN];
-        let mut cursor = Cursor::new(&mut buf[..]);
-        let _ = write!(cursor, "{}", fp);
-        let p = cursor.position();
-
-        // The Display instance for numbers produces valid utf-8.
-        let s = unsafe { str::from_utf8_unchecked(&buf[..p]) };
-
-        serializer.serialize_str(s)
+        let mut buf = Default::default();
+        fp.stringify(&mut buf);
+        serializer.serialize_str(buf.as_str())
     }
 
     pub fn deserialize<'de, I, P, D>(deserializer: D) -> Result<FixedPoint<I, P>, D::Error>

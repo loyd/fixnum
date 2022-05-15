@@ -186,14 +186,12 @@ macro_rules! impl_try_from_f64 {
     };
 }
 
+// TODO: pass attrs to doc.
 #[cfg(feature = "i16")]
 impl_try_from_f64!(i16);
-
 #[cfg(feature = "i32")]
 impl_try_from_f64!(i32);
-
 #[cfg(feature = "i64")]
 impl_try_from_f64!(i64);
-
 #[cfg(feature = "i128")]
 impl_try_from_f64!(i128);

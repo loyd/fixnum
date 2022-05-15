@@ -35,6 +35,7 @@ typenum = "1.12.0"
 derive_more = { version = "0.99.9", default-features = false }
 parity-scale-codec = { version = "3", default-features = false, features = ["derive"], optional = true }
 static_assertions = "1.1.0"
+itoa = "1.0.1"
 
 [dev-dependencies]
 anyhow = { version = "1.0.38", default-features = false }

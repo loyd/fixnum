@@ -11,9 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Update `parity-scale-codec` to `v3` ([#26]).
 - Optimize `From<f64>` instance ([#25]).
+- Optimize serialization to string and `Display` instance ([#29]).
 
 [#25]: https://github.com/loyd/fixnum/pull/25
 [#26]: https://github.com/loyd/fixnum/issues/26
+[#29]: https://github.com/loyd/fixnum/pull/29
 
 ## [0.6.1] - 2021-12-30
 ### Changed

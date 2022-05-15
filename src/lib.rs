@@ -125,10 +125,11 @@
 
 use core::cmp::Ord;
 use core::convert::{TryFrom, TryInto};
-use core::str::FromStr;
 use core::{fmt, i64, marker::PhantomData};
 
 use typenum::Unsigned;
+
+use crate::string::Stringify;
 
 #[cfg(feature = "i128")]
 use i256::I256;
@@ -141,10 +142,10 @@ mod float;
 #[cfg(feature = "i128")]
 mod i256;
 mod macros;
-mod no_std;
 #[cfg(feature = "parity")]
 mod parity;
 mod power_table;
+mod string;
 #[cfg(test)]
 mod tests;
 
@@ -576,35 +577,18 @@ macro_rules! impl_fixed_point {
         $(#[$attr])?
         impl<P: Precision> fmt::Debug for FixedPoint<$layout, P> {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                write!(f, "{}", self)
+                let mut buf = Default::default();
+                self.stringify(&mut buf);
+                f.write_str(buf.as_str())
             }
         }
 
         $(#[$attr])?
         impl<P: Precision> fmt::Display for FixedPoint<$layout, P> {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                let sign = self.inner.signum();
-                let integral = (self.inner / Self::COEF).abs();
-                let mut fractional = (self.inner % Self::COEF).abs();
-                let mut frac_width = if fractional > 0 {
-                    Self::PRECISION as usize
-                } else {
-                    0
-                };
-
-                while fractional > 0 && fractional % 10 == 0 {
-                    fractional /= 10;
-                    frac_width -= 1;
-                }
-
-                write!(
-                    f,
-                    "{}{}.{:0width$}",
-                    if sign < 0 { "-" } else { "" },
-                    integral,
-                    fractional,
-                    width = frac_width
-                )
+                let mut buf = Default::default();
+                self.stringify(&mut buf);
+                f.write_str(buf.as_str())
             }
         }
 
@@ -651,62 +635,6 @@ macro_rules! impl_fixed_point {
                 }
             }
         )*
-
-        $(#[$attr])?
-        impl<P: Precision> FromStr for FixedPoint<$layout, P> {
-            type Err = ConvertError;
-
-            fn from_str(str: &str) -> Result<Self, Self::Err> {
-                let str = str.trim();
-                let coef = Self::COEF;
-
-                let index = match str.find('.') {
-                    Some(index) => index,
-                    None => {
-                        let integral: $layout = str.parse().map_err(|_| {
-                            ConvertError::new("can't parse integral part of the str")
-                        })?;
-                        return integral
-                            .checked_mul(coef)
-                            .ok_or(ConvertError::new("too big integral part"))
-                            .map(Self::from_bits);
-                    }
-                };
-
-                let integral: $layout = str[0..index]
-                    .parse()
-                    .map_err(|_| ConvertError::new("can't parse integral part"))?;
-                let fractional_str = &str[index + 1..];
-
-                if !fractional_str.chars().all(|c| c.is_digit(10)) {
-                    return Err(ConvertError::new("can't parse fractional part: must contain digits only"));
-                }
-
-                if fractional_str.len() > Self::PRECISION.abs() as usize {
-                    return Err(ConvertError::new("requested precision is too high"));
-                }
-
-                let ten: $layout = 10;
-                let exp = ten.pow(fractional_str.len() as u32);
-
-                if exp > coef {
-                    return Err(ConvertError::new("requested precision is too high"));
-                }
-
-                let fractional: $layout = fractional_str.parse().map_err(|_| {
-                    ConvertError::new("can't parse fractional part")
-                })?;
-
-                let final_integral = integral.checked_mul(coef).ok_or(ConvertError::new("too big integral"))?;
-                let signum = if str.as_bytes()[0] == b'-' { -1 } else { 1 };
-                let final_fractional = signum * coef / exp * fractional;
-
-                final_integral
-                    .checked_add(final_fractional)
-                    .map(Self::from_bits)
-                    .ok_or(ConvertError::new("too big number"))
-            }
-        }
     };
 }
 
