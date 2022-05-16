@@ -8,11 +8,11 @@ use fixnum::typenum;
 
 type FixedPoint = fixnum::FixedPoint<i128, typenum::U18>;
 
+const MAX_F64: f64 = 1.7014118346046924e20;
+
 proptest! {
     #[test]
-    fn try_from_f64(x in any::<f64>()) {
-        prop_assume!(x.is_finite() && x.abs() <= 1.7014118346046924e20);
-
+    fn try_from_f64(x in -MAX_F64..MAX_F64) {
         let decimal: Result<rust_decimal::Decimal, _> = x.try_into();
         prop_assume!(decimal.is_ok());
         let decimal = decimal.unwrap();
