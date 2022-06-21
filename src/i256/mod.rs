@@ -185,6 +185,7 @@ impl RoundingSqrt for I256 {
         let lo = self.inner.sqrt()?;
         let inner = match mode {
             RoundMode::Floor => lo,
+            RoundMode::Nearest => todo!(),
             RoundMode::Ceil => {
                 if lo * lo == self.inner {
                     lo

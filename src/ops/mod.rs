@@ -213,6 +213,7 @@ pub trait CheckedMul<Rhs = Self> {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum RoundMode {
     Ceil = 1,
+    Nearest = 0,
     Floor = -1,
 }
 
@@ -447,6 +448,7 @@ macro_rules! impl_for_ints {
                 let lo = self.sqrt()?;
                 Ok(match mode {
                     RoundMode::Floor => lo,
+                    RoundMode::Nearest => todo!(),
                     RoundMode::Ceil => if lo * lo == self { lo } else {
                         lo + <$int>::ONE
                     },

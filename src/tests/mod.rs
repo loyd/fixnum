@@ -199,6 +199,8 @@ fn rmul_exact() -> Result<()> {
             // Check the commutative property
             assert_eq!(b.rmul(a, Floor)?, expected);
             // Check that round mode doesn't matter
+            assert_eq!(a.rmul(b, Nearest)?, expected);
+            assert_eq!(b.rmul(a, Nearest)?, expected);
             assert_eq!(a.rmul(b, Ceil)?, expected);
             assert_eq!(b.rmul(a, Ceil)?, expected);
         },
@@ -239,29 +241,45 @@ fn rmul_round() -> Result<()> {
             a | FixedPoint,
             b | FixedPoint,
             expected_floor | FixedPoint,
+            expected_nearest | FixedPoint,
             expected_ceil | FixedPoint,
         ) => {
             // Check the result
             assert_eq!(a.rmul(b, Floor)?, expected_floor);
+            assert_eq!(a.rmul(b, Nearest)?, expected_nearest);
             assert_eq!(a.rmul(b, Ceil)?, expected_ceil);
             // Check the commutative property
             assert_eq!(b.rmul(a, Floor)?, expected_floor);
+            assert_eq!(b.rmul(a, Nearest)?, expected_nearest);
             assert_eq!(b.rmul(a, Ceil)?, expected_ceil);
             // Arguments' negation doesn't change the result
             assert_eq!(b.cneg()?.rmul(a.cneg()?, Floor)?, expected_floor);
+            assert_eq!(b.cneg()?.rmul(a.cneg()?, Nearest)?, expected_nearest);
             assert_eq!(b.cneg()?.rmul(a.cneg()?, Ceil)?, expected_ceil);
         },
         fp64 {
-            (fp!(0.1), fp!(0.000000001), fp!(0), fp!(0.000000001));
-            (fp!(-0.1), fp!(0.000000001), fp!(-0.000000001), fp!(0));
-            (fp!(0.000000001), fp!(0.000000001), fp!(0), fp!(0.000000001));
-            (fp!(-0.000000001), fp!(0.000000001), fp!(-0.000000001), fp!(0));
+            (fp!(0.1), fp!(0.000000001), fp!(0), fp!(0), fp!(0.000000001));
+            (fp!(0.5), fp!(0.000000001), fp!(0), fp!(0.000000001), fp!(0.000000001));
+            (fp!(0.9), fp!(0.000000001), fp!(0), fp!(0.000000001), fp!(0.000000001));
+            (fp!(-0.1), fp!(0.000000001), fp!(-0.000000001), fp!(0), fp!(0));
+            (fp!(-0.5), fp!(0.000000001), fp!(-0.000000001), fp!(-0.000000001), fp!(0));
+            (fp!(-0.9), fp!(0.000000001), fp!(-0.000000001), fp!(-0.000000001), fp!(0));
+            (fp!(0.000000001), fp!(0.000000001), fp!(0), fp!(0), fp!(0.000000001));
+            (fp!(0.000000009), fp!(0.000000001), fp!(0), fp!(0), fp!(0.000000001));
+            (fp!(-0.000000001), fp!(0.000000001), fp!(-0.000000001), fp!(0), fp!(0));
+            (fp!(-0.000000009), fp!(0.000000001), fp!(-0.000000001), fp!(0), fp!(0));
         },
         fp128 {
-            (fp!(0.1), fp!(0.000000000000000001), FixedPoint::ZERO, fp!(0.000000000000000001));
-            (fp!(-0.1), fp!(0.000000000000000001), fp!(-0.000000000000000001), FixedPoint::ZERO);
-            (fp!(0.000000000000000001), fp!(0.000000000000000001), FixedPoint::ZERO, fp!(0.000000000000000001));
-            (fp!(-0.000000000000000001), fp!(0.000000000000000001), fp!(-0.000000000000000001), FixedPoint::ZERO);
+            (fp!(0.1), fp!(0.000000000000000001), fp!(0), fp!(0), fp!(0.000000000000000001));
+            (fp!(0.5), fp!(0.000000000000000001), fp!(0), fp!(0.000000000000000001), fp!(0.000000000000000001));
+            (fp!(0.9), fp!(0.000000000000000001), fp!(0), fp!(0.000000000000000001), fp!(0.000000000000000001));
+            (fp!(-0.1), fp!(0.000000000000000001), fp!(-0.000000000000000001), fp!(0), fp!(0));
+            (fp!(-0.5), fp!(0.000000000000000001), fp!(-0.000000000000000001), fp!(-0.000000000000000001), fp!(0));
+            (fp!(-0.9), fp!(0.000000000000000001), fp!(-0.000000000000000001), fp!(-0.000000000000000001), fp!(0));
+            (fp!(0.000000000000000001), fp!(0.000000000000000001), fp!(0), fp!(0), fp!(0.000000000000000001));
+            (fp!(0.000000000000000009), fp!(0.000000000000000001), fp!(0), fp!(0), fp!(0.000000000000000001));
+            (fp!(-0.000000000000000001), fp!(0.000000000000000001), fp!(-0.000000000000000001), fp!(0), fp!(0));
+            (fp!(-0.000000000000000009), fp!(0.000000000000000001), fp!(-0.000000000000000001), fp!(0), fp!(0));
         },
     };
     Ok(())

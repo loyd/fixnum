@@ -230,6 +230,8 @@ macro_rules! impl_fixed_point {
 
             const COEF: $layout = const_fn::pow10(Self::PRECISION) as _;
             const COEF_PROMOTED: $promotion = $convert(Self::COEF) as _;
+            const HALF_COEF_PROMOTED: $promotion = $convert(Self::COEF >> 1) as _;
+            const NEG_HALF_COEF_PROMOTED: $promotion = $convert(-(Self::COEF >> 1)) as _;
         }
 
         $(#[$attr])?
@@ -255,8 +257,8 @@ macro_rules! impl_fixed_point {
 
             #[inline]
             fn rmul(self, rhs: Self, mode: RoundMode) -> Result<Self> {
-                // TODO(loyd): avoid 128bit arithmetic when possible,
-                //      because LLVM doesn't replace 128bit division by const with multiplication.
+                // TODO: avoid 128bit arithmetic when possible,
+                //       because LLVM doesn't replace 128bit division by const with multiplication.
 
                 let value = $promotion::from(self.inner) * $promotion::from(rhs.inner);
                 // TODO: replace with multiplication by constant
@@ -267,7 +269,14 @@ macro_rules! impl_fixed_point {
                 let mut result =
                     $layout::try_from(result).map_err(|_| ArithmeticError::Overflow)?;
 
-                if loss != $convert(0) && mode as i32 == sign as i32 {
+                let add_signed_one = if mode == RoundMode::Nearest {
+                    sign as i32 >= 0 && loss >= Self::HALF_COEF_PROMOTED
+                                     || loss <= Self::NEG_HALF_COEF_PROMOTED
+                } else {
+                    loss != $convert(0) && mode as i32 == sign as i32
+                };
+
+                if add_signed_one {
                     result = result.checked_add(sign).ok_or(ArithmeticError::Overflow)?;
                 }
 
@@ -282,8 +291,8 @@ macro_rules! impl_fixed_point {
 
             #[inline]
             fn rdiv(self, rhs: Self, mode: RoundMode) -> Result<Self> {
-                // TODO(loyd): avoid 128bit arithmetic when possible,
-                //      because LLVM doesn't replace 128bit division by const with multiplication.
+                // TODO: avoid 128bit arithmetic when possible,
+                //       because LLVM doesn't replace 128bit division by const with multiplication.
 
                 if rhs.inner == 0 {
                     return Err(ArithmeticError::DivisionByZero);
