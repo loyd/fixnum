@@ -230,8 +230,7 @@ macro_rules! impl_fixed_point {
 
             const COEF: $layout = const_fn::pow10(Self::PRECISION) as _;
             const COEF_PROMOTED: $promotion = $convert(Self::COEF) as _;
-            const HALF_COEF_PROMOTED: $promotion = $convert(Self::COEF >> 1) as _;
-            const NEG_HALF_COEF_PROMOTED: $promotion = $convert(-(Self::COEF >> 1)) as _;
+            const NEG_COEF_PROMOTED: $promotion = $convert(-Self::COEF) as _;
         }
 
         $(#[$attr])?
@@ -270,8 +269,9 @@ macro_rules! impl_fixed_point {
                     $layout::try_from(result).map_err(|_| ArithmeticError::Overflow)?;
 
                 let add_signed_one = if mode == RoundMode::Nearest {
-                    sign as i32 >= 0 && loss >= Self::HALF_COEF_PROMOTED
-                                     || loss <= Self::NEG_HALF_COEF_PROMOTED
+                    // TODO: can we use COEF/2 here to avoid extra addition in I256?
+                    sign as i32 >= 0 && loss + loss >= Self::COEF_PROMOTED
+                                     || loss + loss <= Self::NEG_COEF_PROMOTED
                 } else {
                     loss != $convert(0) && mode as i32 == sign as i32
                 };
@@ -332,31 +332,7 @@ macro_rules! impl_fixed_point {
 
             #[inline]
             fn rdiv(self, rhs: $layout, mode: RoundMode) -> Result<FixedPoint<$layout, P>> {
-                if rhs == 0 {
-                    return Err(ArithmeticError::DivisionByZero);
-                }
-
-                let numerator = self.inner;
-                let denominator = rhs;
-                let mut result = numerator / denominator;
-                let loss = numerator - result * denominator;
-
-                if loss != 0 {
-                    let sign = numerator.signum() * denominator.signum();
-
-                    let add_signed_one = if mode == RoundMode::Nearest {
-                        let loss_abs = loss.abs();
-                        loss_abs + loss_abs >= denominator.abs()
-                    } else {
-                        mode as i32 == sign as i32
-                    };
-
-                    if add_signed_one {
-                        result = result.checked_add(sign).ok_or(ArithmeticError::Overflow)?;
-                    }
-                }
-
-                Ok(Self::from_bits(result))
+                self.inner.rdiv(rhs, mode).map(Self::from_bits)
             }
         }
 
@@ -519,14 +495,22 @@ macro_rules! impl_fixed_point {
             /// [RoundMode]: ./ops/enum.RoundMode.html
             #[inline]
             pub fn integral(self, mode: RoundMode) -> $layout {
-                let sign = self.inner.signum();
-                let (int, frac) = (self.inner / Self::COEF, self.inner.abs() % Self::COEF);
+                // TODO: rename to `round()`
 
-                if mode as i32 == sign as i32 && frac > 0 {
-                    int + sign
+                let sign = self.inner.signum();
+                let (mut int, frac) = (self.inner / Self::COEF, self.inner.abs() % Self::COEF);
+
+                let add_signed_one = if mode == RoundMode::Nearest {
+                    frac + frac >= Self::COEF
                 } else {
-                    int
+                    mode as i32 == sign as i32 && frac > 0
+                };
+
+                if add_signed_one {
+                    int += sign;
                 }
+
+                int
             }
 
             #[inline]

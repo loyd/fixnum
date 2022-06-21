@@ -431,7 +431,14 @@ macro_rules! impl_for_ints {
                 if loss != 0 {
                     let sign = self.signum() * rhs.signum();
 
-                    if mode as i32 == sign as i32 {
+                    let add_signed_one = if mode == RoundMode::Nearest {
+                        let loss_abs = loss.abs();
+                        loss_abs + loss_abs >= rhs.abs()
+                    } else {
+                        mode as i32 == sign as i32
+                    };
+
+                    if add_signed_one {
                         result = result.checked_add(sign).ok_or(ArithmeticError::Overflow)?;
                     }
                 }
@@ -448,7 +455,7 @@ macro_rules! impl_for_ints {
                 let lo = self.sqrt()?;
                 Ok(match mode {
                     RoundMode::Floor => lo,
-                    RoundMode::Nearest => todo!(),
+                    RoundMode::Nearest => lo, // TODO: Nearest
                     RoundMode::Ceil => if lo * lo == self { lo } else {
                         lo + <$int>::ONE
                     },

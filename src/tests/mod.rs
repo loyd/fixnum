@@ -623,16 +623,25 @@ fn half_sum_rounded() -> Result<()> {
 #[test]
 fn integral() -> Result<()> {
     test_fixed_point! {
-        case (a | FixedPoint, expected_floor | Layout, expected_ceil | Layout) => {
-            assert_eq!(a.integral(Floor), expected_floor);
-            assert_eq!(a.integral(Ceil), expected_ceil);
+        case (a | FixedPoint, expected_floor | Layout, expected_ceil | Layout, expected_nearest | Layout) => {
+            assert_eq!(a.integral(Floor), expected_floor, "Floor");
+            assert_eq!(a.integral(Nearest), expected_nearest, "Nearest");
+            assert_eq!(a.integral(Ceil), expected_ceil, "Ceil");
         },
         all {
-            (FixedPoint::ZERO, 0, 0);
-            (fp!(0.0001), 0, 1);
-            (fp!(-0.0001), -1, 0);
-            (fp!(2.0001), 2, 3);
-            (fp!(-2.0001), -3, -2);
+            (fp!(0), 0, 0, 0);
+            (fp!(0.0001), 0, 1, 0);
+            (fp!(0.5), 0, 1, 1);
+            (fp!(0.9), 0, 1, 1);
+            (fp!(-0.0001), -1, 0, 0);
+            (fp!(-0.5), -1, 0, -1);
+            (fp!(-0.9), -1, 0, -1);
+            (fp!(2.0001), 2, 3, 2);
+            (fp!(2.5), 2, 3, 3);
+            (fp!(2.9), 2, 3, 3);
+            (fp!(-2.0001), -3, -2, -2);
+            (fp!(-2.5), -3, -2, -3);
+            (fp!(-2.9), -3, -2, -3);
         },
     };
     Ok(())
@@ -1091,8 +1100,9 @@ fn sqrt_exact() -> Result<()> {
         case (expected | FixedPoint) => {
             let square = expected.rmul(expected, Floor)?;
             assert_eq!(expected.rmul(expected, Ceil)?, square);
-            assert_eq!(square.rsqrt(Floor)?, expected);
-            assert_eq!(square.rsqrt(Ceil)?, expected);
+            assert_eq!(square.rsqrt(Floor)?, expected, "Floor");
+            assert_eq!(square.rsqrt(Nearest)?, expected, "Nearest");
+            assert_eq!(square.rsqrt(Ceil)?, expected, "Ceil");
         },
         all {
             (fp!(0));
@@ -1114,19 +1124,20 @@ fn sqrt_exact() -> Result<()> {
 #[test]
 fn sqrt_approx() -> Result<()> {
     test_fixed_point! {
-        case (x | FixedPoint, expected_floor | FixedPoint) => {
-            assert_eq!(x.rsqrt(Floor)?, expected_floor);
-            assert_eq!(x.rsqrt(Ceil)?.inner, expected_floor.inner + 1);
+        case (x | FixedPoint, expected_floor | FixedPoint, expected_nearest | FixedPoint) => {
+            assert_eq!(x.rsqrt(Floor)?, expected_floor, "Floor");
+            assert_eq!(x.rsqrt(Nearest)?, expected_nearest, "Nearest");
+            assert_eq!(x.rsqrt(Ceil)?.inner, expected_floor.inner + 1, "Ceil");
         },
         fp64 {
-            (fp!(2), fp!(1.414213562));
-            (FixedPoint::MAX, fp!(96038.388349944));
+            (fp!(2), fp!(1.414213562), fp!(1.414213562));
+            (FixedPoint::MAX, fp!(96038.388349944), fp!(96038.388349944));
         },
         fp128 {
-            (fp!(2), fp!(1.414213562373095048));
-            (fp!(3.14159265358979323), fp!(1.772453850905516024));
-            (fp!(5), fp!(2.236067977499789696));
-            (FixedPoint::MAX, fp!(13043817825.332782212349571806));
+            (fp!(2), fp!(1.414213562373095048), fp!(1.414213562373095048));
+            (fp!(3.14159265358979323), fp!(1.772453850905516024), fp!(1.772453850905516024));
+            (fp!(5), fp!(2.236067977499789696), fp!(2.236067977499789696));
+            (FixedPoint::MAX, fp!(13043817825.332782212349571806), fp!(13043817825.332782212349571806));
         },
     };
     Ok(())
@@ -1138,6 +1149,7 @@ fn sqrt_negative() -> Result<()> {
         case (x | FixedPoint) => {
             let expected = Err(ArithmeticError::DomainViolation);
             assert_eq!(x.rsqrt(Floor), expected);
+            assert_eq!(x.rsqrt(Nearest), expected);
             assert_eq!(x.rsqrt(Ceil), expected);
         },
         all {
