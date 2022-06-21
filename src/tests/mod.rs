@@ -195,14 +195,14 @@ fn rmul_exact() -> Result<()> {
     test_fixed_point! {
         case (a | FixedPoint, b | FixedPoint, expected | FixedPoint) => {
             // Check the result
-            assert_eq!(a.rmul(b, Floor)?, expected);
+            assert_eq!(a.rmul(b, Floor)?, expected, "Floor");
+            assert_eq!(a.rmul(b, Nearest)?, expected, "Nearest");
+            assert_eq!(a.rmul(b, Ceil)?, expected, "Ceil");
+
             // Check the commutative property
-            assert_eq!(b.rmul(a, Floor)?, expected);
-            // Check that round mode doesn't matter
-            assert_eq!(a.rmul(b, Nearest)?, expected);
-            assert_eq!(b.rmul(a, Nearest)?, expected);
-            assert_eq!(a.rmul(b, Ceil)?, expected);
-            assert_eq!(b.rmul(a, Ceil)?, expected);
+            assert_eq!(b.rmul(a, Floor)?, expected, "Floor, commutative");
+            assert_eq!(b.rmul(a, Nearest)?, expected, "Nearest, commutative");
+            assert_eq!(b.rmul(a, Ceil)?, expected, "Ceil, commutative");
         },
         all {
             (fp!(525), fp!(10), fp!(5250));
@@ -245,17 +245,19 @@ fn rmul_round() -> Result<()> {
             expected_ceil | FixedPoint,
         ) => {
             // Check the result
-            assert_eq!(a.rmul(b, Floor)?, expected_floor);
-            assert_eq!(a.rmul(b, Nearest)?, expected_nearest);
-            assert_eq!(a.rmul(b, Ceil)?, expected_ceil);
+            assert_eq!(a.rmul(b, Floor)?, expected_floor, "Floor");
+            assert_eq!(a.rmul(b, Nearest)?, expected_nearest, "Nearest");
+            assert_eq!(a.rmul(b, Ceil)?, expected_ceil, "Ceil");
+
             // Check the commutative property
-            assert_eq!(b.rmul(a, Floor)?, expected_floor);
-            assert_eq!(b.rmul(a, Nearest)?, expected_nearest);
-            assert_eq!(b.rmul(a, Ceil)?, expected_ceil);
+            assert_eq!(b.rmul(a, Floor)?, expected_floor, "Floor, commutative");
+            assert_eq!(b.rmul(a, Nearest)?, expected_nearest, "Nearest, commutative");
+            assert_eq!(b.rmul(a, Ceil)?, expected_ceil, "Ceil, commutative");
+
             // Arguments' negation doesn't change the result
-            assert_eq!(b.cneg()?.rmul(a.cneg()?, Floor)?, expected_floor);
-            assert_eq!(b.cneg()?.rmul(a.cneg()?, Nearest)?, expected_nearest);
-            assert_eq!(b.cneg()?.rmul(a.cneg()?, Ceil)?, expected_ceil);
+            assert_eq!(b.cneg()?.rmul(a.cneg()?, Floor)?, expected_floor, "Floor, negation");
+            assert_eq!(b.cneg()?.rmul(a.cneg()?, Nearest)?, expected_nearest, "Nearest, negation");
+            assert_eq!(b.cneg()?.rmul(a.cneg()?, Ceil)?, expected_ceil, "Ceil, negation");
         },
         fp64 {
             (fp!(0.1), fp!(0.000000001), fp!(0), fp!(0), fp!(0.000000001));
@@ -311,8 +313,9 @@ fn rmul_overflow() -> Result<()> {
 fn rdiv_exact() -> Result<()> {
     test_fixed_point! {
         case (numerator | FixedPoint, denominator | FixedPoint, expected | FixedPoint) => {
-            assert_eq!(numerator.rdiv(denominator, Ceil)?, expected);
-            assert_eq!(numerator.rdiv(denominator, Floor)?, expected);
+            assert_eq!(numerator.rdiv(denominator, Ceil)?, expected, "Ceil");
+            assert_eq!(numerator.rdiv(denominator, Nearest)?, expected, "Nearest");
+            assert_eq!(numerator.rdiv(denominator, Floor)?, expected, "Floor");
         },
         all {
             (FixedPoint::MAX, FixedPoint::MAX, FixedPoint::ONE);
@@ -339,32 +342,52 @@ fn rdiv_by_layout() -> Result<()> {
             a | FixedPoint,
             b | Layout,
             expected_floor | FixedPoint,
+            expected_nearest | FixedPoint,
             expected_ceil | FixedPoint,
         ) => {
-            assert_eq!(a.rdiv(b, Floor)?, expected_floor);
-            assert_eq!(a.rdiv(b, Ceil)?, expected_ceil);
+            assert_eq!(a.rdiv(b, Floor)?, expected_floor, "Floor");
+            assert_eq!(a.rdiv(b, Nearest)?, expected_nearest, "Nearest");
+            assert_eq!(a.rdiv(b, Ceil)?, expected_ceil, "Ceil");
         },
         all {
-            (fp!(2.4), 2, fp!(1.2), fp!(1.2));
-            (fp!(0), 5, FixedPoint::ZERO, FixedPoint::ZERO);
+            (fp!(2.4), 2, fp!(1.2), fp!(1.2), fp!(1.2));
+            (fp!(0), 5, fp!(0), fp!(0), fp!(0));
         },
         fp64 {
-            (fp!(7), 3, fp!(2.333333333), fp!(2.333333334));
-            (fp!(-7), 3, fp!(-2.333333334), fp!(-2.333333333));
-            (fp!(-7), -3, fp!(2.333333333), fp!(2.333333334));
-            (fp!(7), -3, fp!(-2.333333334), fp!(-2.333333333));
-            (fp!(0.000000003), 2, fp!(0.000000001), fp!(0.000000002));
-            (fp!(0.000000003), 7, fp!(0), fp!(0.000000001));
-            (fp!(0.000000001), 7, fp!(0), fp!(0.000000001));
+            (fp!(7), 3, fp!(2.333333333), fp!(2.333333333), fp!(2.333333334));
+            (fp!(-7), 3, fp!(-2.333333334), fp!(-2.333333333), fp!(-2.333333333));
+            (fp!(-7), -3, fp!(2.333333333), fp!(2.333333333), fp!(2.333333334));
+            (fp!(7), -3, fp!(-2.333333334), fp!(-2.333333333), fp!(-2.333333333));
+            (fp!(0.000000003), 7, fp!(0), fp!(0), fp!(0.000000001));
+            (fp!(0.000000001), 7, fp!(0), fp!(0), fp!(0.000000001));
+
+            (fp!(14), 3, fp!(4.666666666), fp!(4.666666667), fp!(4.666666667));
+            (fp!(-14), 3, fp!(-4.666666667), fp!(-4.666666667), fp!(-4.666666666));
+            (fp!(-14), -3, fp!(4.666666666), fp!(4.666666667), fp!(4.666666667));
+            (fp!(14), -3, fp!(-4.666666667), fp!(-4.666666667), fp!(-4.666666666));
+
+            (fp!(0.000000003), 2, fp!(0.000000001), fp!(0.000000002), fp!(0.000000002));
+            (fp!(-0.000000003), -2, fp!(0.000000001), fp!(0.000000002), fp!(0.000000002));
+            (fp!(-0.000000003), 2, fp!(-0.000000002), fp!(-0.000000002), fp!(-0.000000001));
+            (fp!(0.000000003), -2, fp!(-0.000000002), fp!(-0.000000002), fp!(-0.000000001));
         },
         fp128 {
-            (fp!(7), 3, fp!(2.333333333333333333), fp!(2.333333333333333334));
-            (fp!(-7), 3, fp!(-2.333333333333333334), fp!(-2.333333333333333333));
-            (fp!(-7), -3, fp!(2.333333333333333333), fp!(2.333333333333333334));
-            (fp!(7), -3, fp!(-2.333333333333333334), fp!(-2.333333333333333333));
-            (fp!(0.000000000000000003), 2, fp!(0.000000000000000001), fp!(0.000000000000000002));
-            (fp!(0.000000000000000003), 7, fp!(0), fp!(0.000000000000000001));
-            (fp!(0.000000000000000001), 7, fp!(0), fp!(0.000000000000000001));
+            (fp!(7), 3, fp!(2.333333333333333333), fp!(2.333333333333333333), fp!(2.333333333333333334));
+            (fp!(-7), 3, fp!(-2.333333333333333334), fp!(-2.333333333333333333), fp!(-2.333333333333333333));
+            (fp!(-7), -3, fp!(2.333333333333333333), fp!(2.333333333333333333), fp!(2.333333333333333334));
+            (fp!(7), -3, fp!(-2.333333333333333334), fp!(-2.333333333333333333), fp!(-2.333333333333333333));
+            (fp!(0.000000000000000003), 7, fp!(0), fp!(0), fp!(0.000000000000000001));
+            (fp!(0.000000000000000001), 7, fp!(0), fp!(0), fp!(0.000000000000000001));
+
+            (fp!(14), 3, fp!(4.666666666666666666), fp!(4.666666666666666667), fp!(4.666666666666666667));
+            (fp!(-14), 3, fp!(-4.666666666666666667), fp!(-4.666666666666666667), fp!(-4.666666666666666666));
+            (fp!(-14), -3, fp!(4.666666666666666666), fp!(4.666666666666666667), fp!(4.666666666666666667));
+            (fp!(14), -3, fp!(-4.666666666666666667), fp!(-4.666666666666666667), fp!(-4.666666666666666666));
+
+            (fp!(0.000000000000000003), 2, fp!(0.000000000000000001), fp!(0.000000000000000002), fp!(0.000000000000000002));
+            (fp!(-0.000000000000000003), -2, fp!(0.000000000000000001), fp!(0.000000000000000002), fp!(0.000000000000000002));
+            (fp!(-0.000000000000000003), 2, fp!(-0.000000000000000002), fp!(-0.000000000000000002), fp!(-0.000000000000000001));
+            (fp!(0.000000000000000003), -2, fp!(-0.000000000000000002), fp!(-0.000000000000000002), fp!(-0.000000000000000001));
         },
     };
     Ok(())
@@ -377,22 +400,47 @@ fn rdiv_round() -> Result<()> {
             numerator | FixedPoint,
             denominator | FixedPoint,
             expected_ceil | FixedPoint,
+            expected_nearest | FixedPoint,
             expected_floor | FixedPoint,
         ) => {
-            assert_eq!(numerator.rdiv(denominator, Ceil)?, expected_ceil);
-            assert_eq!(numerator.rdiv(denominator, Floor)?, expected_floor);
+            assert_eq!(numerator.rdiv(denominator, Ceil)?, expected_ceil, "Ceil");
+            assert_eq!(numerator.rdiv(denominator, Nearest)?, expected_nearest, "Nearest");
+            assert_eq!(numerator.rdiv(denominator, Floor)?, expected_floor, "Floor");
+        },
+        all {
+            (fp!(0), fp!(42), fp!(0), fp!(0), fp!(0));
         },
         fp64 {
-            (fp!(100), fp!(3), fp!(33.333333334), fp!(33.333333333));
-            (fp!(-100), fp!(-3), fp!(33.333333334), fp!(33.333333333));
-            (fp!(-100), fp!(3), fp!(-33.333333333), fp!(-33.333333334));
-            (fp!(100), fp!(-3), fp!(-33.333333333), fp!(-33.333333334));
+            (fp!(100), fp!(3), fp!(33.333333334), fp!(33.333333333), fp!(33.333333333));
+            (fp!(-100), fp!(-3), fp!(33.333333334), fp!(33.333333333), fp!(33.333333333));
+            (fp!(-100), fp!(3), fp!(-33.333333333), fp!(-33.333333333), fp!(-33.333333334));
+            (fp!(100), fp!(-3), fp!(-33.333333333), fp!(-33.333333333), fp!(-33.333333334));
+
+            (fp!(200), fp!(3), fp!(66.666666667), fp!(66.666666667), fp!(66.666666666));
+            (fp!(-200), fp!(-3), fp!(66.666666667), fp!(66.666666667), fp!(66.666666666));
+            (fp!(-200), fp!(3), fp!(-66.666666666), fp!(-66.666666667), fp!(-66.666666667));
+            (fp!(200), fp!(-3), fp!(-66.666666666), fp!(-66.666666667), fp!(-66.666666667));
+
+            (fp!(0.000000003), fp!(2), fp!(0.000000002), fp!(0.000000002), fp!(0.000000001));
+            (fp!(-0.000000003), fp!(-2), fp!(0.000000002), fp!(0.000000002), fp!(0.000000001));
+            (fp!(-0.000000003), fp!(2), fp!(-0.000000001), fp!(-0.000000002), fp!(-0.000000002));
+            (fp!(0.000000003), fp!(-2), fp!(-0.000000001), fp!(-0.000000002), fp!(-0.000000002));
         },
         fp128 {
-            (fp!(100), fp!(3), fp!(33.333333333333333334), fp!(33.333333333333333333));
-            (fp!(-100), fp!(-3), fp!(33.333333333333333334), fp!(33.333333333333333333));
-            (fp!(-100), fp!(3), fp!(-33.333333333333333333), fp!(-33.333333333333333334));
-            (fp!(100), fp!(-3), fp!(-33.333333333333333333), fp!(-33.333333333333333334));
+            (fp!(100), fp!(3), fp!(33.333333333333333334), fp!(33.333333333333333333), fp!(33.333333333333333333));
+            (fp!(-100), fp!(-3), fp!(33.333333333333333334), fp!(33.333333333333333333), fp!(33.333333333333333333));
+            (fp!(-100), fp!(3), fp!(-33.333333333333333333), fp!(-33.333333333333333333), fp!(-33.333333333333333334));
+            (fp!(100), fp!(-3), fp!(-33.333333333333333333), fp!(-33.333333333333333333), fp!(-33.333333333333333334));
+
+            (fp!(200), fp!(3), fp!(66.666666666666666667), fp!(66.666666666666666667), fp!(66.666666666666666666));
+            (fp!(-200), fp!(-3), fp!(66.666666666666666667), fp!(66.666666666666666667), fp!(66.666666666666666666));
+            (fp!(-200), fp!(3), fp!(-66.666666666666666666), fp!(-66.666666666666666667), fp!(-66.666666666666666667));
+            (fp!(200), fp!(-3), fp!(-66.666666666666666666), fp!(-66.666666666666666667), fp!(-66.666666666666666667));
+
+            (fp!(0.000000000000000003), fp!(2), fp!(0.000000000000000002), fp!(0.000000000000000002), fp!(0.000000000000000001));
+            (fp!(-0.000000000000000003), fp!(-2), fp!(0.000000000000000002), fp!(0.000000000000000002), fp!(0.000000000000000001));
+            (fp!(-0.000000000000000003), fp!(2), fp!(-0.000000000000000001), fp!(-0.000000000000000002), fp!(-0.000000000000000002));
+            (fp!(0.000000000000000003), fp!(-2), fp!(-0.000000000000000001), fp!(-0.000000000000000002), fp!(-0.000000000000000002));
         },
     };
     Ok(())

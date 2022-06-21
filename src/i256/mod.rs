@@ -1,6 +1,6 @@
 use core::cmp::{Ordering, PartialOrd};
 use core::convert::TryFrom;
-use core::ops::{Div, Mul, Neg, Sub};
+use core::ops::{Add, Div, Mul, Neg, Sub};
 
 use crate::ops::sqrt::Sqrt;
 use crate::ops::{One, RoundMode, RoundingSqrt, Zero};
@@ -45,6 +45,14 @@ impl I256 {
     const fn chunks(&self) -> &[u64; UINT_CHUNKS_COUNT] {
         &self.inner.0
     }
+
+    pub fn abs(self) -> Self {
+        if self.is_negative() {
+            -self
+        } else {
+            self
+        }
+    }
 }
 
 impl Mul for I256 {
@@ -85,6 +93,16 @@ impl Div for I256 {
         } else {
             -result
         }
+    }
+}
+
+impl Add for I256 {
+    type Output = Self;
+
+    #[inline]
+    fn add(self, rhs: Self) -> Self::Output {
+        let (x, _) = self.inner.overflowing_add(rhs.inner);
+        Self::new(x)
     }
 }
 
@@ -282,6 +300,22 @@ mod tests {
     #[should_panic]
     fn it_doesnt_negate_i256_min() {
         let _x = -I256::MIN;
+    }
+
+    #[test]
+    fn it_adds() {
+        fn t(a: i128, b: i128, expected: i128) {
+            let a = I256::from(a);
+            let b = I256::from(b);
+            assert_eq!(i128::try_from(a + b).unwrap(), expected);
+            assert_eq!(i128::try_from(b + a).unwrap(), expected);
+            assert_eq!(i128::try_from((-a) + (-b)).unwrap(), -expected);
+            assert_eq!(i128::try_from((-b) + (-a)).unwrap(), -expected);
+        }
+        t(0, 0, 0);
+        t(1111, 3210, 4321);
+        t(-1111, 5432, 4321);
+        t(-4321, 5432, 1111);
     }
 
     #[test]

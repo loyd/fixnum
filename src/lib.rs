@@ -309,7 +309,14 @@ macro_rules! impl_fixed_point {
                 if loss != $convert(0) {
                     let sign = self.inner.signum() * rhs.inner.signum();
 
-                    if mode as i32 == sign as i32 {
+                    let add_signed_one = if mode == RoundMode::Nearest {
+                        let loss_abs = loss.abs();
+                        loss_abs + loss_abs >= denominator.abs()
+                    } else {
+                        mode as i32 == sign as i32
+                    };
+
+                    if add_signed_one {
                         result = result.checked_add(sign).ok_or(ArithmeticError::Overflow)?;
                     }
                 }
@@ -337,7 +344,14 @@ macro_rules! impl_fixed_point {
                 if loss != 0 {
                     let sign = numerator.signum() * denominator.signum();
 
-                    if mode as i32 == sign as i32 {
+                    let add_signed_one = if mode == RoundMode::Nearest {
+                        let loss_abs = loss.abs();
+                        loss_abs + loss_abs >= denominator.abs()
+                    } else {
+                        mode as i32 == sign as i32
+                    };
+
+                    if add_signed_one {
                         result = result.checked_add(sign).ok_or(ArithmeticError::Overflow)?;
                     }
                 }
