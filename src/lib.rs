@@ -133,7 +133,7 @@ use crate::string::Stringify;
 
 #[cfg(feature = "i128")]
 use i256::I256;
-use ops::*;
+use ops::{sqrt::Sqrt, *};
 pub use typenum;
 
 mod const_fn;
@@ -421,12 +421,33 @@ macro_rules! impl_fixed_point {
                 if self.inner.is_negative() {
                     return Err(ArithmeticError::DomainViolation);
                 }
+
                 // At first we have `S_inner = S * COEF`.
                 // We'd like to gain `sqrt(S) * COEF`:
                 // `sqrt(S) * COEF = sqrt(S * COEF^2) = sqrt(S_inner * COEF)`
-                let inner_squared = $promotion::from(self.inner) * Self::COEF_PROMOTED;
-                let inner = inner_squared.rsqrt(mode)?;
-                let inner = inner.try_into().unwrap(); // `sqrt` can't take more bits than `self` already does
+                let squared = $promotion::from(self.inner) * Self::COEF_PROMOTED;
+                let lo = squared.sqrt()?;
+
+                let add_one = match mode {
+                    RoundMode::Floor => false,
+                    RoundMode::Nearest => {
+                        let lo2 = lo * lo;
+                        let hi = lo + $promotion::ONE;
+                        let hi2 = hi * hi;
+                        squared - lo2 >= hi2 - squared
+                    },
+                    RoundMode::Ceil if lo * lo == squared => false,
+                    RoundMode::Ceil => true,
+                };
+
+                // `sqrt` can't take more bits than `self` already does, thus `unwrap()` is ok.
+                let lo = $layout::try_from(lo).unwrap();
+                let inner = if add_one {
+                    lo + $layout::ONE
+                } else {
+                    lo
+                };
+
                 Ok(Self::from_bits(inner))
             }
         }

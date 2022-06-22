@@ -2,8 +2,6 @@ use crate::ArithmeticError;
 
 pub(crate) mod sqrt;
 
-use sqrt::Sqrt;
-
 pub trait Zero {
     const ZERO: Self;
 }
@@ -329,6 +327,13 @@ pub trait RoundingSqrt: Sized {
     /// Checked [rounding][RoundMode] square root.
     /// Returns `Err` for negative argument.
     ///
+    /// Square root of a non-negative F is a non-negative S such that:
+    /// * `Floor`: `S ≤ sqrt(F)`
+    /// * `Ceil`: `S ≥ sqrt(F)`
+    /// * `Nearest`: `Floor` or `Ceil`, which one is closer to `sqrt(F)`
+    ///
+    /// The fastest mode is `Floor`.
+    ///
     /// ```ignore
     /// use fixnum::{ArithmeticError, FixedPoint, typenum::U9};
     /// use fixnum::ops::{Zero, RoundingSqrt, RoundMode::*};
@@ -444,22 +449,6 @@ macro_rules! impl_for_ints {
                 }
 
                 Ok(result)
-            }
-        }
-
-        impl RoundingSqrt for $int {
-            type Error = ArithmeticError;
-
-            #[inline]
-            fn rsqrt(self, mode: RoundMode) -> Result<Self, Self::Error> {
-                let lo = self.sqrt()?;
-                Ok(match mode {
-                    RoundMode::Floor => lo,
-                    RoundMode::Nearest => lo, // TODO: Nearest
-                    RoundMode::Ceil => if lo * lo == self { lo } else {
-                        lo + <$int>::ONE
-                    },
-                })
             }
         }
     };

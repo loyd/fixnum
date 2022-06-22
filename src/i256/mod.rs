@@ -3,7 +3,7 @@ use core::convert::TryFrom;
 use core::ops::{Add, Div, Mul, Neg, Sub};
 
 use crate::ops::sqrt::Sqrt;
-use crate::ops::{One, RoundMode, RoundingSqrt, Zero};
+use crate::ops::{One, Zero};
 use crate::{ArithmeticError, ConvertError};
 
 const TOTAL_BITS_COUNT: usize = 256;
@@ -189,32 +189,13 @@ impl Zero for I256 {
     const ZERO: Self = Self::from_i128(0);
 }
 
-impl RoundingSqrt for I256 {
+impl Sqrt for I256 {
     type Error = ArithmeticError;
 
-    /// Integer square root of a non-negative integer S is a non-negative integer Q such that:
-    /// Floor: `Q ≤ sqrt(S)`
-    /// Ceil: `Q ≥ sqrt(S)`
     #[inline]
-    fn rsqrt(self, mode: RoundMode) -> Result<Self, Self::Error> {
-        if self.is_negative() {
-            return Err(ArithmeticError::DomainViolation);
-        }
-        let lo = self.inner.sqrt()?;
-        let inner = match mode {
-            RoundMode::Floor => lo,
-            RoundMode::Nearest => lo, // TODO: Nearest
-            RoundMode::Ceil => {
-                if lo * lo == self.inner {
-                    lo
-                } else {
-                    // `sqrt` will always be closer to zero than `self` so overflow will never happen
-                    let (hi, _) = lo.overflowing_add(Self::ONE.inner);
-                    hi
-                }
-            }
-        };
-        Ok(Self::new(inner))
+    fn sqrt(self) -> Result<Self, Self::Error> {
+        debug_assert!(self >= Self::ZERO);
+        self.inner.sqrt().map(Self::new)
     }
 }
 
