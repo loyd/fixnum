@@ -355,10 +355,7 @@ macro_rules! impl_fixed_point {
 
             #[inline]
             fn cadd(self, rhs: FixedPoint<$layout, P>) -> Result<FixedPoint<$layout, P>> {
-                self.inner
-                    .checked_add(rhs.inner)
-                    .map(Self::from_bits)
-                    .ok_or(ArithmeticError::Overflow)
+                self.inner.cadd(rhs.inner).map(Self::from_bits)
             }
 
             #[inline]
@@ -374,10 +371,7 @@ macro_rules! impl_fixed_point {
 
             #[inline]
             fn csub(self, rhs: FixedPoint<$layout, P>) -> Result<FixedPoint<$layout, P>> {
-                self.inner
-                    .checked_sub(rhs.inner)
-                    .map(Self::from_bits)
-                    .ok_or(ArithmeticError::Overflow)
+                self.inner.csub(rhs.inner).map(Self::from_bits)
             }
 
             #[inline]
@@ -393,10 +387,7 @@ macro_rules! impl_fixed_point {
 
             #[inline]
             fn cmul(self, rhs: $layout) -> Result<FixedPoint<$layout, P>> {
-                self.inner
-                    .checked_mul(rhs)
-                    .map(Self::from_bits)
-                    .ok_or(ArithmeticError::Overflow)
+                self.inner.cmul(rhs).map(Self::from_bits)
             }
 
             #[inline]
@@ -545,8 +536,7 @@ macro_rules! impl_fixed_point {
                     return Err(ArithmeticError::Overflow);
                 }
 
-                // TODO
-                Ok(Self::from_bits(value as $layout))
+                Ok(Self::from_bits(value))
             }
 
             #[cfg(feature = "std")]
