@@ -14,4 +14,4 @@ Fixed-point numbers with explicit rounding.
 [mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [mit-url]: https://github.com/loyd/fixnum/blob/master/LICENSE
 [actions-badge]: https://github.com/loyd/fixnum/workflows/CI/badge.svg
-[actions-url]: https://github.com/loyd/fixnum/actions?query=workflow%3ACI+branch%3Amaster
+[actions-url]: https://github.com/loyd/fixnum/actions/workflows/ci.yml
