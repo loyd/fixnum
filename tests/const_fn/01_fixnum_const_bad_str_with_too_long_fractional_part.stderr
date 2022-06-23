@@ -8,7 +8,7 @@ error: any use of this value will cause an error
     |     inside `fixnum::_priv::parse_fixed` at $DIR/src/const_fn.rs:9:13
     |     inside `VALUE_INNER` at $DIR/src/macros.rs:181:34
     |
-   ::: src/tests/const_fn/01_fixnum_const_bad_str_with_too_long_fractional_part.rs:6:36
+   ::: tests/const_fn/01_fixnum_const_bad_str_with_too_long_fractional_part.rs:6:36
     |
 6   | const VALUE: FixedPoint<i64, U9> = fixnum_const!(0.1234567891, 9);
     |                                    ------------------------------
@@ -19,7 +19,7 @@ error: any use of this value will cause an error
     = note: this error originates in the macro `const_assert` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 error: any use of this value will cause an error
- --> src/tests/const_fn/01_fixnum_const_bad_str_with_too_long_fractional_part.rs:6:36
+ --> tests/const_fn/01_fixnum_const_bad_str_with_too_long_fractional_part.rs:6:36
   |
 6 | const VALUE: FixedPoint<i64, U9> = fixnum_const!(0.1234567891, 9);
   | -----------------------------------^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^-

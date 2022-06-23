@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 /// Testing helper macro. Allows to use generalized `FixedPoint` and `Layout` types in the test cases.
 #[macro_export]
 macro_rules! test_fixed_point {
@@ -9,7 +11,7 @@ macro_rules! test_fixed_point {
     ) => {{
         macro_rules! impl_test_case {
             () => {
-                fn test_case($( $case_pattern: $case_type ),*) -> anyhow::Result<()> {
+                fn test_case($( $case_pattern: $case_type ),*) -> $crate::macros::TestCaseResult {
                     $case
                     Ok(())
                 }
@@ -18,10 +20,7 @@ macro_rules! test_fixed_point {
 
         #[allow(unused)]
         macro_rules! fp {
-            ($val:literal) => {{
-                let value: FixedPoint = stringify!($val).parse()?;
-                value
-            }};
+            ($val:literal) => {{ stringify!($val).parse::<FixedPoint>()? }};
         }
 
         $(
@@ -75,43 +74,63 @@ macro_rules! test_fixed_point {
     (@suite_impl fp64) => {
         type Layout = i64;
         #[allow(unused)]
-        type FixedPoint = crate::FixedPoint<Layout, typenum::U9>;
+        type FixedPoint = fixnum::FixedPoint<Layout, typenum::U9>;
         impl_test_case!();
     };
     (@suite_impl fp128) => {
         type Layout = i128;
         #[allow(unused)]
-        type FixedPoint = crate::FixedPoint<Layout, typenum::U18>;
+        type FixedPoint = fixnum::FixedPoint<Layout, typenum::U18>;
         impl_test_case!();
     };
     (@suite_passes {$( ($( $args:expr )*) )*}) => {
         $(
-            $crate::tests::macros::r#impl::catch_and_augment(stringify!($( $args ),*), || {
+            $crate::macros::r#impl::catch_and_augment(stringify!($( $args ),*), || {
                 test_case($( $args ),*)
             })?;
         )*
     };
     (@suite_fails {$( ($( $args:expr )*) )*}) => {
         $(
-            $crate::tests::macros::r#impl::catch_and_augment(stringify!($( $args ),*), || {
-                $crate::tests::macros::r#impl::assert_fails(|| test_case($( $args ),*));
+            $crate::macros::r#impl::catch_and_augment(stringify!($( $args ),*), || {
+                $crate::macros::r#impl::assert_fails(|| test_case($( $args ),*));
                 Ok(())
             })?;
         )*
     };
 }
 
+use std::fmt::Display;
+
+// Use a special error based on `Display` in order to support `nostd`.
+pub(crate) type TestCaseResult = Result<(), TestCaseError>;
+pub(crate) struct TestCaseError(Box<dyn Display>);
+
+impl<E: Display + 'static> From<E> for TestCaseError {
+    fn from(error: E) -> Self {
+        Self(Box::new(error))
+    }
+}
+
+impl From<TestCaseError> for anyhow::Error {
+    fn from(error: TestCaseError) -> Self {
+        anyhow::anyhow!(error)
+    }
+}
+
 #[cfg(not(feature = "std"))]
 pub(crate) mod r#impl {
     use anyhow::Result;
 
-    pub(crate) fn assert_fails(_case: impl FnOnce() -> Result<()>) {}
+    use super::TestCaseResult;
+
+    pub(crate) fn assert_fails(_case: impl FnOnce() -> TestCaseResult) {}
 
     pub(crate) fn catch_and_augment(
         _name: &'static str,
-        case: impl FnOnce() -> Result<()>,
+        case: impl FnOnce() -> TestCaseResult,
     ) -> Result<()> {
-        case()
+        case().map_err(Into::into)
     }
 }
 
@@ -122,18 +141,20 @@ pub(crate) mod r#impl {
     use anyhow::{anyhow, Context, Result};
     use colored::Colorize;
 
-    pub(crate) fn assert_fails(_case: impl FnOnce() -> Result<()>) {
+    use super::TestCaseResult;
+
+    pub(crate) fn assert_fails(_case: impl FnOnce() -> TestCaseResult) {
         assert!(!matches!(catch_unwind(AssertUnwindSafe(_case)), Ok(Ok(()))));
     }
 
     pub(crate) fn catch_and_augment(
         name: &'static str,
-        case: impl FnOnce() -> Result<()>,
+        case: impl FnOnce() -> TestCaseResult,
     ) -> Result<()> {
         // TODO: the implementation isn't ideal and prints the panic twice.
         // A better solution requires a custom panic hook and manual backtrace handling.
         let result = match catch_unwind(AssertUnwindSafe(case)) {
-            Ok(res) => res,
+            Ok(res) => res.map_err(Into::into),
             Err(panic) => Err(anyhow!(stringify_panic(panic))),
         };
 

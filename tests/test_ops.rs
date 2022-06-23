@@ -3,12 +3,16 @@ extern crate alloc;
 #[cfg(not(feature = "std"))]
 use alloc::format;
 
+use core::convert::{TryFrom, TryInto};
 use core::f64;
 use core::i64;
 
 use anyhow::Result;
 
-use crate::{RoundMode::*, *};
+use fixnum::{
+    ops::{RoundMode::*, *},
+    *,
+};
 
 mod macros;
 
@@ -158,19 +162,6 @@ fn serde_with() -> Result<()> {
             (-1.02, fp!(-1.02));
             (0.1234, fp!(0.1234));
             (-0.1234, fp!(-0.1234));
-        },
-    };
-    Ok(())
-}
-
-#[test]
-#[allow(clippy::assertions_on_constants)]
-fn exp_and_coef_should_agree() -> Result<()> {
-    test_fixed_point! {
-        case () => {
-            assert!(FixedPoint::PRECISION > 0);
-            const TEN: Layout = 10;
-            assert_eq!(FixedPoint::COEF, TEN.pow(FixedPoint::PRECISION as u32));
         },
     };
     Ok(())
@@ -888,15 +879,16 @@ fn from_f64_exact() -> Result<()> {
 #[test]
 fn from_f64_limits() -> Result<()> {
     test_fixed_point! {
-        case (x: f64, expected: ConvertError) => {
-            assert_eq!(FixedPoint::try_from(x), Err(expected));
+        case (x: f64, expected: &str) => {
+            let actual = FixedPoint::try_from(x).map_err(|err| err.to_string());
+            assert_eq!(actual, Err(expected.to_string()));
         },
         all {
-            (f64::NAN, ConvertError::new("not finite"));
-            (f64::INFINITY, ConvertError::new("not finite"));
-            (f64::NEG_INFINITY, ConvertError::new("not finite"));
-            (f64::MAX, ConvertError::new("too big number"));
-            (f64::MIN, ConvertError::new("too big number"));
+            (f64::NAN, "not finite");
+            (f64::INFINITY, "not finite");
+            (f64::NEG_INFINITY, "not finite");
+            (f64::MAX, "too big number");
+            (f64::MIN, "too big number");
         },
     };
     Ok(())
@@ -1127,7 +1119,7 @@ fn sqrt_approx() -> Result<()> {
         case (x: FixedPoint, expected_floor: FixedPoint, expected_nearest: FixedPoint) => {
             assert_eq!(x.rsqrt(Floor)?, expected_floor, "Floor");
             assert_eq!(x.rsqrt(Nearest)?, expected_nearest, "Nearest");
-            assert_eq!(x.rsqrt(Ceil)?.inner, expected_floor.inner + 1, "Ceil");
+            assert_eq!(x.rsqrt(Ceil)?, expected_floor.cadd(FixedPoint::from_bits(1))?, "Ceil");
         },
         fp64 {
             (fp!(2), fp!(1.414213562), fp!(1.414213562));
@@ -1166,7 +1158,6 @@ fn sqrt_negative() -> Result<()> {
 #[test]
 fn const_fn() {
     let test_cases = trybuild::TestCases::new();
-    test_cases.compile_fail(
-        "src/tests/const_fn/01_fixnum_const_bad_str_with_too_long_fractional_part.rs",
-    );
+    test_cases
+        .compile_fail("tests/const_fn/01_fixnum_const_bad_str_with_too_long_fractional_part.rs");
 }

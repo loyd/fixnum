@@ -3,23 +3,6 @@ use core::fmt::{Display, Formatter, Result};
 #[cfg(feature = "std")]
 use derive_more::Error;
 
-macro_rules! impl_error {
-    ($err:ident) => {
-        impl Display for $err {
-            fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-                f.write_str(self.as_str())
-            }
-        }
-
-        #[cfg(test)]
-        impl From<$err> for anyhow::Error {
-            fn from(err: $err) -> Self {
-                Self::msg(err.as_str())
-            }
-        }
-    };
-}
-
 #[cfg_attr(feature = "std", derive(Error))]
 #[derive(Clone, Debug, PartialEq)]
 #[non_exhaustive]
@@ -41,7 +24,11 @@ impl ArithmeticError {
     }
 }
 
-impl_error!(ArithmeticError);
+impl Display for ArithmeticError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        f.write_str(self.as_str())
+    }
+}
 
 #[cfg_attr(feature = "std", derive(Error))]
 #[derive(Clone, Debug, PartialEq)]
@@ -59,4 +46,8 @@ impl ConvertError {
     }
 }
 
-impl_error!(ConvertError);
+impl Display for ConvertError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        f.write_str(self.as_str())
+    }
+}

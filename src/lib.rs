@@ -124,17 +124,15 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 use core::cmp::Ord;
-use core::convert::{TryFrom, TryInto};
+use core::convert::TryFrom;
 use core::{fmt, i64, marker::PhantomData};
 
 use typenum::Unsigned;
 
-use crate::string::Stringify;
-
 #[cfg(feature = "i128")]
-use i256::I256;
-use ops::{sqrt::Sqrt, *};
-pub use typenum;
+use crate::i256::I256;
+use crate::ops::{sqrt::Sqrt, *};
+use crate::string::Stringify;
 
 mod const_fn;
 mod errors;
@@ -146,13 +144,12 @@ mod macros;
 mod parity;
 mod power_table;
 mod string;
-#[cfg(test)]
-mod tests;
 
 #[cfg(not(any(feature = "i16", feature = "i32", feature = "i64", feature = "i128")))]
 compile_error!("Some of the next features must be enabled: \"i128\", \"i64\", \"i32\", \"i16\"");
 
 pub use errors::*;
+pub use typenum;
 
 pub mod ops;
 #[cfg(feature = "serde")]
@@ -569,6 +566,7 @@ macro_rules! impl_fixed_point {
             #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
             #[deprecated(since = "0.6.0", note = "Use `TryFrom` instead")]
             pub fn rounding_from_f64(value: f64) -> Result<FixedPoint<$layout, P>> {
+                use core::convert::TryInto;
                 value.try_into().map_err(|_| ArithmeticError::Overflow)
             }
 
