@@ -566,19 +566,6 @@ macro_rules! impl_fixed_point {
                 Ok(Self::from_bits(value))
             }
 
-            #[cfg(feature = "std")]
-            #[cfg_attr(docsrs, doc(cfg(feature = "std")))]
-            #[deprecated(since = "0.6.0", note = "Use `TryFrom` instead")]
-            pub fn rounding_from_f64(value: f64) -> Result<FixedPoint<$layout, P>> {
-                use core::convert::TryInto;
-                value.try_into().map_err(|_| ArithmeticError::Overflow)
-            }
-
-            #[deprecated(since = "0.6.0", note = "Use `From` instead")]
-            pub fn to_f64(self) -> f64 {
-                self.into()
-            }
-
             // TODO: make this operation checked
             pub fn rounding_to_i64(self) -> i64 {
                 let x = if self.inner > 0 {
