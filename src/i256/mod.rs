@@ -45,14 +45,6 @@ impl I256 {
     const fn chunks(&self) -> &[u64; UINT_CHUNKS_COUNT] {
         &self.inner.0
     }
-
-    pub fn abs(self) -> Self {
-        if self.is_negative() {
-            -self
-        } else {
-            self
-        }
-    }
 }
 
 impl Mul for I256 {

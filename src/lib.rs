@@ -308,12 +308,15 @@ macro_rules! impl_fixed_point {
                 let mut result =
                     $layout::try_from(result).map_err(|_| ArithmeticError::Overflow)?;
 
-                if loss != $convert(0) {
+                // `|loss| < denominator`, thus it fits in the layout.
+                let loss = $layout::try_from(loss).unwrap();
+
+                if loss != 0 {
                     let sign = self.inner.signum() * rhs.inner.signum();
 
                     let add_signed_one = if mode == RoundMode::Nearest {
                         let loss_abs = loss.abs();
-                        loss_abs + loss_abs >= denominator.abs()
+                        loss_abs + loss_abs >= rhs.inner.abs()
                     } else {
                         mode as i32 == sign as i32
                     };
