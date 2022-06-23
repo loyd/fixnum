@@ -103,16 +103,16 @@ macro_rules! define_bench {
     };
 }
 
-#[cfg(feature = "i128")]
-define_bench!(F128p18, 18);
 #[cfg(feature = "i64")]
 define_bench!(F64p9, 9);
+#[cfg(feature = "i128")]
+define_bench!(F128p18, 18);
 
-#[cfg(all(feature = "i128", feature = "i64"))]
-criterion_group!(benches, F128p18, F64p9);
+#[cfg(all(feature = "i64", feature = "i128"))]
+criterion_group!(benches, F64p9, F128p18);
 #[cfg(not(feature = "i64"))]
-criterion_group!(benches, F128p18);
-#[cfg(not(feature = "i128"))]
 criterion_group!(benches, F64p9);
+#[cfg(not(feature = "i128"))]
+criterion_group!(benches, F128p18);
 
 criterion_main!(benches);
