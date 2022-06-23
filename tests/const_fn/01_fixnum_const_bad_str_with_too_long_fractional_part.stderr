@@ -5,8 +5,8 @@ error: any use of this value will cause an error
     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
     |     |
     |     exceeded interpreter step limit (see `#[const_eval_limit]`)
-    |     inside `fixnum::_priv::parse_fixed` at $DIR/src/const_fn.rs:9:13
-    |     inside `VALUE_INNER` at $DIR/src/macros.rs:181:34
+    |     inside `fixnum::_priv::parse_fixed` at $DIR/src/const_fn.rs:11:13
+    |     inside `VALUE_INNER` at $DIR/src/macros.rs:183:34
     |
    ::: tests/const_fn/01_fixnum_const_bad_str_with_too_long_fractional_part.rs:6:36
     |

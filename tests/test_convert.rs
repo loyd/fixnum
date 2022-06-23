@@ -19,24 +19,3 @@ fn from_decimal() -> Result<()> {
     };
     Ok(())
 }
-
-#[test]
-fn rounding_to_i64() -> Result<()> {
-    test_fixed_point! {
-        case (x: FixedPoint, expected: i64) => {
-            assert_eq!(x.rounding_to_i64(), expected);
-        },
-        all {
-            (fp!(0), 0);
-            (fp!(42), 42);
-            (fp!(1.4), 1);
-            (fp!(1.6), 2);
-            (fp!(-1.4), -1);
-            (fp!(-1.6), -2);
-            (fp!(0.4999), 0);
-            (fp!(0.5), 1);
-            (fp!(0.5001), 1);
-        },
-    };
-    Ok(())
-}

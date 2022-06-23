@@ -470,17 +470,17 @@ macro_rules! impl_fixed_point {
             /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
             /// let a: Amount = "8273.519".parse()?;
             /// assert_eq!(a.integral(Floor), 8273);
+            /// assert_eq!(a.integral(Nearest), 8274);
             /// assert_eq!(a.integral(Ceil), 8274);
             ///
             /// let a: Amount = "-8273.519".parse()?;
             /// assert_eq!(a.integral(Floor), -8274);
+            /// assert_eq!(a.integral(Nearest), -8274);
             /// assert_eq!(a.integral(Ceil), -8273);
             /// # Ok(()) }
             /// ```
             #[inline]
             pub fn integral(self, mode: RoundMode) -> $layout {
-                // TODO: rename to `round()`
-
                 let sign = self.inner.signum();
                 let (mut int, frac) = (self.inner / Self::COEF, self.inner.abs() % Self::COEF);
 
@@ -535,18 +535,6 @@ macro_rules! impl_fixed_point {
                 }
 
                 Ok(Self::from_bits(value))
-            }
-
-            /// Returns the nearest `i64`.
-            // TODO: make this operation checked
-            #[inline]
-            pub fn rounding_to_i64(self) -> i64 {
-                let x = if self.inner > 0 {
-                    self.inner + Self::COEF / 2
-                } else {
-                    self.inner - Self::COEF / 2
-                };
-                (x / Self::COEF) as i64
             }
 
             /// Returns the absolute value of a number.

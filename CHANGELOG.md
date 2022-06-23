@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - Deprecated methods `rounding_from_f64` and `to_f64`. Use `TryFrom<f64>` and `Into<f64>` instead.
+- Remove `rounding_to_i64`. Use the `integral` method instead.
 
 ## [0.7.0] - 2022-05-15
 ### Fixed
