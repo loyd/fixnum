@@ -1,22 +1,34 @@
+//! Contains traits for checked and rounding operations.
+
 use crate::ArithmeticError;
 
 pub(crate) mod sqrt;
 
+/// Represents `0`.
 pub trait Zero {
+    /// Represents `0`.
     const ZERO: Self;
 }
 
+/// Represents `1`.
 pub trait One {
+    /// Represents `1`.
     const ONE: Self;
 }
 
+/// Represents `MIN` and `MAX` values.
 pub trait Bounded {
+    /// Represents `MIN`.
     const MIN: Self;
+    /// Represents `MAX`.
     const MAX: Self;
 }
 
+/// Checked addition.
 pub trait CheckedAdd<Rhs = Self> {
+    /// Result of addition.
     type Output;
+    /// Usually [`ArithmeticError`].
     type Error;
 
     /// Checked addition. Returns `Err` on overflow.
@@ -78,8 +90,11 @@ pub trait CheckedAdd<Rhs = Self> {
     }
 }
 
+/// Checked subtraction.
 pub trait CheckedSub<Rhs = Self> {
+    /// Result of subtraction.
     type Output;
+    /// Usually [`ArithmeticError`].
     type Error;
 
     /// Checked subtraction. Returns `Err` on overflow.
@@ -141,8 +156,11 @@ pub trait CheckedSub<Rhs = Self> {
     }
 }
 
+/// Checked multiplication.
 pub trait CheckedMul<Rhs = Self> {
+    /// Result of multiplication.
     type Output;
+    /// Usually [`ArithmeticError`].
     type Error;
 
     /// Checked multiplication. Returns `Err` on overflow.
@@ -208,15 +226,23 @@ pub trait CheckedMul<Rhs = Self> {
     }
 }
 
+/// Mode of rounding.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum RoundMode {
+    /// Rounds up. The result is equal or greater than a mathematical result.
     Ceil = 1,
+    /// Rounds to nearest representable value.
+    /// The result is nearest to a mathematical result.
     Nearest = 0,
+    /// Rounds down. The result is equal or less than a mathematical result.
     Floor = -1,
 }
 
+/// Rounding multiplication.
 pub trait RoundingMul<Rhs = Self> {
+    /// Result of multiplication.
     type Output;
+    /// Usually [`ArithmeticError`].
     type Error;
 
     /// Checked rounded multiplication. Returns `Err` on overflow.
@@ -293,8 +319,11 @@ pub trait RoundingMul<Rhs = Self> {
     }
 }
 
+/// Rounding division.
 pub trait RoundingDiv<Rhs = Self> {
+    /// Result of division.
     type Output;
+    /// Usually [`ArithmeticError`].
     type Error;
 
     /// Checked rounded division. Returns `Err` on overflow or attempt to divide by zero.

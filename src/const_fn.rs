@@ -1,3 +1,5 @@
+#![allow(missing_docs)] // available only in `_priv` for macros.
+
 #[cfg(not(feature = "i128"))]
 pub type Int = i64;
 #[cfg(feature = "i128")]

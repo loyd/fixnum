@@ -122,7 +122,7 @@
 //! [saturating_rmul]: ./ops/trait.RoundingMul.html#tymethod.saturating_rmul
 //! [saturating_sub]: ./ops/trait.CheckedSub.html#tymethod.saturating_sub
 
-#![warn(rust_2018_idioms, unreachable_pub)]
+#![warn(rust_2018_idioms, unreachable_pub, missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
@@ -195,10 +195,12 @@ pub struct FixedPoint<I, P> {
     _marker: PhantomData<P>,
 }
 
+/// The number of digits in the fractional part.
 pub trait Precision: Unsigned {}
 impl<U: Unsigned> Precision for U {}
 
 impl<I, P> FixedPoint<I, P> {
+    /// Creates from the raw representation. `1` here is equal to `1**-P`
     pub const fn from_bits(raw: I) -> Self {
         FixedPoint {
             inner: raw,
@@ -206,10 +208,12 @@ impl<I, P> FixedPoint<I, P> {
         }
     }
 
+    /// Returns the raw representation.
     pub const fn as_bits(&self) -> &I {
         &self.inner
     }
 
+    /// Converts to the raw representation.
     #[inline]
     pub fn into_bits(self) -> I {
         self.inner
@@ -226,7 +230,9 @@ macro_rules! impl_fixed_point {
     ) => {
         $(#[$attr])?
         impl<P: Precision> FixedPoint<$layout, P> {
+            /// The number of digits in the fractional part.
             pub const PRECISION: i32 = P::I32;
+            /// The difference between `0.0` and the next larger representable number.
             pub const EPSILON: Self = Self::from_bits(1);
 
             const COEF: $layout = const_fn::pow10(Self::PRECISION) as _;
@@ -420,6 +426,7 @@ macro_rules! impl_fixed_point {
 
         $(#[$attr])?
         impl<P: Precision> FixedPoint<$layout, P> {
+            /// Returns `1/n`.
             #[inline]
             pub fn recip(self, mode: RoundMode) -> Result<FixedPoint<$layout, P>> {
                 Self::ONE.rdiv(self, mode)
@@ -436,6 +443,7 @@ macro_rules! impl_fixed_point {
                     .ok_or_else(|| ArithmeticError::Overflow)
             }
 
+            /// Calculates `(a + b) / 2`.
             #[inline]
             pub fn half_sum(
                 a: FixedPoint<$layout, P>,
@@ -489,6 +497,7 @@ macro_rules! impl_fixed_point {
                 int
             }
 
+            /// Rounds towards zero by the provided precision.
             #[inline]
             #[must_use]
             pub fn round_towards_zero_by(
@@ -501,6 +510,10 @@ macro_rules! impl_fixed_point {
                     .map_or(self, Self::from_bits)
             }
 
+            /// Returns the next power of ten:
+            /// * For positive: the smallest greater than or equal to a number.
+            /// * For negative: the largest less than or equal to a number.
+            #[inline]
             pub fn next_power_of_ten(self) -> Result<FixedPoint<$layout, P>> {
                 if self.inner < 0 {
                     return self.cneg()?.next_power_of_ten()?.cneg();
@@ -524,7 +537,9 @@ macro_rules! impl_fixed_point {
                 Ok(Self::from_bits(value))
             }
 
+            /// Returns the nearest `i64`.
             // TODO: make this operation checked
+            #[inline]
             pub fn rounding_to_i64(self) -> i64 {
                 let x = if self.inner > 0 {
                     self.inner + Self::COEF / 2
@@ -534,6 +549,7 @@ macro_rules! impl_fixed_point {
                 (x / Self::COEF) as i64
             }
 
+            /// Returns the absolute value of a number.
             #[inline]
             pub fn abs(self) -> Result<Self> {
                 if self.inner < 0 {
@@ -625,6 +641,7 @@ macro_rules! impl_fixed_point {
 
         $(#[$attr])?
         impl<P: Precision> FixedPoint<$layout, P> {
+            /// Creates a new number from separate mantissa and exponent.
             pub fn from_decimal(
                 mantissa: $layout,
                 exponent: i32,

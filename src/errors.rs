@@ -3,11 +3,14 @@ use core::fmt::{Display, Formatter, Result};
 #[cfg(feature = "std")]
 use derive_more::Error;
 
+/// Represents errors during arithmetic operations.
 #[cfg_attr(feature = "std", derive(Error))]
 #[derive(Clone, Debug, PartialEq)]
 #[non_exhaustive]
 pub enum ArithmeticError {
+    /// A result cannot be represented.
     Overflow,
+    /// Try to divide by zero.
     DivisionByZero,
     /// When someone tries to use operand out of the set of departure of the function.
     /// E.g.: when you try to compute the square root of a negative number.
@@ -15,6 +18,7 @@ pub enum ArithmeticError {
 }
 
 impl ArithmeticError {
+    /// Stringify an error.
     pub const fn as_str(&self) -> &'static str {
         match self {
             Self::Overflow => "overflow",
@@ -30,6 +34,7 @@ impl Display for ArithmeticError {
     }
 }
 
+/// Represents errors during conversions.
 #[cfg_attr(feature = "std", derive(Error))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct ConvertError {
@@ -41,6 +46,7 @@ impl ConvertError {
         Self { reason }
     }
 
+    /// Stringify an error.
     pub const fn as_str(&self) -> &'static str {
         self.reason
     }

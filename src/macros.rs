@@ -1,6 +1,7 @@
 use crate::FixedPoint;
 
 // TODO: make it Sealed
+#[doc(hidden)] // available only in `_priv` for macros.
 pub trait Operand<R> {
     type Promotion;
     fn promote(self) -> Self::Promotion;
@@ -47,6 +48,7 @@ impl_int_operand!(i32 => i32, i64, i128);
 impl_int_operand!(i64 => i64, i128);
 impl_int_operand!(i128 => i128);
 
+/// Defines an operation for some wrapper. See top-level documentation.
 #[macro_export]
 macro_rules! impl_op {
     ($lhs:ty [cadd] $rhs:ty = $res:tt) => {

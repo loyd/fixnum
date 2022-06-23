@@ -54,6 +54,7 @@ where
 pub mod as_repr {
     use super::*;
 
+    /// Serializes to inner representation.
     #[inline]
     pub fn serialize<I, P, S>(fp: &FixedPoint<I, P>, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -63,6 +64,7 @@ pub mod as_repr {
         fp.inner.serialize(serializer)
     }
 
+    /// Deserializes from inner representation.
     #[inline]
     pub fn deserialize<'de, I, P, D>(deserializer: D) -> Result<FixedPoint<I, P>, D::Error>
     where
@@ -77,6 +79,7 @@ pub mod as_repr {
 pub mod as_string {
     use super::*;
 
+    /// Serializes to a string.
     pub fn serialize<I, P, S>(fp: &FixedPoint<I, P>, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -87,6 +90,7 @@ pub mod as_string {
         serializer.serialize_str(buf.as_str())
     }
 
+    /// Deserializes from a string.
     pub fn deserialize<'de, I, P, D>(deserializer: D) -> Result<FixedPoint<I, P>, D::Error>
     where
         D: Deserializer<'de>,
@@ -124,6 +128,7 @@ pub mod as_string {
 pub mod as_f64 {
     use super::*;
 
+    /// Serializes to `f64`.
     #[inline]
     pub fn serialize<I, P, S>(fp: &FixedPoint<I, P>, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -134,6 +139,7 @@ pub mod as_f64 {
         serializer.serialize_f64(fp.clone().into())
     }
 
+    /// Deserializes from `f64`.
     #[inline]
     pub fn deserialize<'de, I, P, D>(deserializer: D) -> Result<FixedPoint<I, P>, D::Error>
     where
