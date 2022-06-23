@@ -2,7 +2,7 @@
 #[macro_export]
 macro_rules! test_fixed_point {
     (
-        case ($( $case_pattern:pat | $case_type:ty ),* $( , )?) => $case:block,
+        case ($( $case_pattern:ident: $case_type:ty ),* $( , )?) => $case:block,
         $(
             $section_name:ident {$( ($( $section_args:expr ),* $( , )?) );+ $( ; )?},
         )+

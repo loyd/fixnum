@@ -15,7 +15,7 @@ mod macros;
 #[test]
 fn from_decimal() -> Result<()> {
     test_fixed_point! {
-        case (numerator | Layout, denominator | i32, expected | FixedPoint) => {
+        case (numerator: Layout, denominator: i32, expected: FixedPoint) => {
             assert_eq!(FixedPoint::from_decimal(numerator, denominator)?, expected);
         },
         all {
@@ -33,7 +33,7 @@ fn from_decimal() -> Result<()> {
 #[test]
 fn display() -> Result<()> {
     test_fixed_point! {
-        case (x | FixedPoint, expected | &str) => {
+        case (x: FixedPoint, expected: &str) => {
             assert_eq!(format!("{}", x), expected);
 
             #[cfg(feature = "serde")]
@@ -63,7 +63,7 @@ fn display() -> Result<()> {
 #[allow(overflowing_literals)]
 fn from_good_str() -> Result<()> {
     test_fixed_point! {
-        case (input | &str, expected | Layout) => {
+        case (input: &str, expected: Layout) => {
             let expected = FixedPoint::from_bits(expected);
             let input: FixedPoint = input.parse()?;
             assert_eq!(input, expected);
@@ -109,7 +109,7 @@ fn from_good_str() -> Result<()> {
 #[test]
 fn from_bad_str() -> Result<()> {
     test_fixed_point! {
-        case (bad_str | &str) => {
+        case (bad_str: &str) => {
             let result: Result<FixedPoint, ConvertError> = bad_str.parse();
             assert!(result.is_err(), "must not parse '{}'", bad_str);
 
@@ -141,7 +141,7 @@ fn from_bad_str() -> Result<()> {
 #[cfg(feature = "serde")]
 fn serde_with() -> Result<()> {
     test_fixed_point! {
-        case (input | f64, expected | FixedPoint) => {
+        case (input: f64, expected: FixedPoint) => {
             #[derive(::serde::Serialize, ::serde::Deserialize)]
             struct Struct {
                 #[serde(with = "crate::serde::as_f64")]
@@ -193,7 +193,7 @@ fn cmul_overflow() -> Result<()> {
 #[test]
 fn rmul_exact() -> Result<()> {
     test_fixed_point! {
-        case (a | FixedPoint, b | FixedPoint, expected | FixedPoint) => {
+        case (a: FixedPoint, b: FixedPoint, expected: FixedPoint) => {
             // Check the result
             assert_eq!(a.rmul(b, Floor)?, expected, "Floor");
             assert_eq!(a.rmul(b, Nearest)?, expected, "Nearest");
@@ -238,11 +238,11 @@ fn rmul_exact() -> Result<()> {
 fn rmul_round() -> Result<()> {
     test_fixed_point! {
         case (
-            a | FixedPoint,
-            b | FixedPoint,
-            expected_floor | FixedPoint,
-            expected_nearest | FixedPoint,
-            expected_ceil | FixedPoint,
+            a: FixedPoint,
+            b: FixedPoint,
+            expected_floor: FixedPoint,
+            expected_nearest: FixedPoint,
+            expected_ceil: FixedPoint,
         ) => {
             // Check the result
             assert_eq!(a.rmul(b, Floor)?, expected_floor, "Floor");
@@ -290,7 +290,7 @@ fn rmul_round() -> Result<()> {
 #[test]
 fn rmul_overflow() -> Result<()> {
     test_fixed_point! {
-        case (a | FixedPoint, b | FixedPoint) => {
+        case (a: FixedPoint, b: FixedPoint) => {
             assert_eq!(a.rmul(b, Ceil), Err(ArithmeticError::Overflow));
         },
         all {
@@ -312,7 +312,7 @@ fn rmul_overflow() -> Result<()> {
 #[test]
 fn rdiv_exact() -> Result<()> {
     test_fixed_point! {
-        case (numerator | FixedPoint, denominator | FixedPoint, expected | FixedPoint) => {
+        case (numerator: FixedPoint, denominator: FixedPoint, expected: FixedPoint) => {
             assert_eq!(numerator.rdiv(denominator, Ceil)?, expected, "Ceil");
             assert_eq!(numerator.rdiv(denominator, Nearest)?, expected, "Nearest");
             assert_eq!(numerator.rdiv(denominator, Floor)?, expected, "Floor");
@@ -339,11 +339,11 @@ fn rdiv_exact() -> Result<()> {
 fn rdiv_by_layout() -> Result<()> {
     test_fixed_point! {
         case (
-            a | FixedPoint,
-            b | Layout,
-            expected_floor | FixedPoint,
-            expected_nearest | FixedPoint,
-            expected_ceil | FixedPoint,
+            a: FixedPoint,
+            b: Layout,
+            expected_floor: FixedPoint,
+            expected_nearest: FixedPoint,
+            expected_ceil: FixedPoint,
         ) => {
             assert_eq!(a.rdiv(b, Floor)?, expected_floor, "Floor");
             assert_eq!(a.rdiv(b, Nearest)?, expected_nearest, "Nearest");
@@ -397,11 +397,11 @@ fn rdiv_by_layout() -> Result<()> {
 fn rdiv_round() -> Result<()> {
     test_fixed_point! {
         case (
-            numerator | FixedPoint,
-            denominator | FixedPoint,
-            expected_ceil | FixedPoint,
-            expected_nearest | FixedPoint,
-            expected_floor | FixedPoint,
+            numerator: FixedPoint,
+            denominator: FixedPoint,
+            expected_ceil: FixedPoint,
+            expected_nearest: FixedPoint,
+            expected_floor: FixedPoint,
         ) => {
             assert_eq!(numerator.rdiv(denominator, Ceil)?, expected_ceil, "Ceil");
             assert_eq!(numerator.rdiv(denominator, Nearest)?, expected_nearest, "Nearest");
@@ -450,10 +450,10 @@ fn rdiv_round() -> Result<()> {
 fn rdiv_layout() -> Result<()> {
     test_fixed_point! {
         case (
-            a | Layout,
-            b | Layout,
-            expected_floor | Layout,
-            expected_ceil | Layout,
+            a: Layout,
+            b: Layout,
+            expected_floor: Layout,
+            expected_ceil: Layout,
         ) => {
             assert_eq!(a.rdiv(b, Floor)?, expected_floor);
             assert_eq!(a.rdiv(b, Ceil)?, expected_ceil);
@@ -475,7 +475,7 @@ fn rdiv_layout() -> Result<()> {
 #[test]
 fn rdiv_division_by_zero() -> Result<()> {
     test_fixed_point! {
-        case (x | FixedPoint) => {
+        case (x: FixedPoint) => {
             let expected = Err(ArithmeticError::DivisionByZero);
             assert_eq!(x.rdiv(FixedPoint::ZERO, Floor), expected);
             assert_eq!(x.rdiv(FixedPoint::ZERO, Ceil), expected);
@@ -494,7 +494,7 @@ fn rdiv_division_by_zero() -> Result<()> {
 #[test]
 fn rdiv_overflow() -> Result<()> {
     test_fixed_point! {
-        case (denominator | FixedPoint) => {
+        case (denominator: FixedPoint) => {
             assert_eq!(
                 FixedPoint::MAX.rdiv(denominator, Ceil),
                 Err(ArithmeticError::Overflow)
@@ -513,7 +513,7 @@ fn rdiv_overflow() -> Result<()> {
 #[test]
 fn float_mul() -> Result<()> {
     test_fixed_point! {
-        case (a | FixedPoint, b | FixedPoint, expected | FixedPoint) => {
+        case (a: FixedPoint, b: FixedPoint, expected: FixedPoint) => {
             assert_eq!(a.rmul(b, Ceil)?, expected);
         },
         all {
@@ -533,7 +533,7 @@ fn float_mul() -> Result<()> {
 #[test]
 fn float_mul_overflow() -> Result<()> {
     test_fixed_point! {
-        case (a | FixedPoint, b | FixedPoint) => {
+        case (a: FixedPoint, b: FixedPoint) => {
             assert!(a.rmul(b, Ceil).is_err());
         },
         fp64 {
@@ -551,7 +551,7 @@ fn float_mul_overflow() -> Result<()> {
 #[test]
 fn half_sum_exact() -> Result<()> {
     test_fixed_point! {
-        case (expected | FixedPoint) => {
+        case (expected: FixedPoint) => {
             assert_eq!(FixedPoint::half_sum(expected, expected, Floor), expected);
             assert_eq!(FixedPoint::half_sum(expected, expected, Ceil), expected);
         },
@@ -564,7 +564,7 @@ fn half_sum_exact() -> Result<()> {
         },
     };
     test_fixed_point! {
-        case (a | FixedPoint, b | FixedPoint, expected | FixedPoint) => {
+        case (a: FixedPoint, b: FixedPoint, expected: FixedPoint) => {
             assert_eq!(FixedPoint::half_sum(a, b, Floor), expected);
             assert_eq!(FixedPoint::half_sum(b, a, Floor), expected);
             assert_eq!(FixedPoint::half_sum(a, b, Ceil), expected);
@@ -594,7 +594,7 @@ fn half_sum_exact() -> Result<()> {
 #[test]
 fn half_sum_rounded() -> Result<()> {
     test_fixed_point! {
-        case (a | FixedPoint, b | FixedPoint, expected_floor | FixedPoint, expected_ceil | FixedPoint) => {
+        case (a: FixedPoint, b: FixedPoint, expected_floor: FixedPoint, expected_ceil: FixedPoint) => {
             assert_eq!(FixedPoint::half_sum(a, b, Floor), expected_floor);
             assert_eq!(FixedPoint::half_sum(b, a, Floor), expected_floor);
             assert_eq!(FixedPoint::half_sum(a, b, Ceil), expected_ceil);
@@ -623,7 +623,7 @@ fn half_sum_rounded() -> Result<()> {
 #[test]
 fn integral() -> Result<()> {
     test_fixed_point! {
-        case (a | FixedPoint, expected_floor | Layout, expected_ceil | Layout, expected_nearest | Layout) => {
+        case (a: FixedPoint, expected_floor: Layout, expected_ceil: Layout, expected_nearest: Layout) => {
             assert_eq!(a.integral(Floor), expected_floor, "Floor");
             assert_eq!(a.integral(Nearest), expected_nearest, "Nearest");
             assert_eq!(a.integral(Ceil), expected_ceil, "Ceil");
@@ -650,7 +650,7 @@ fn integral() -> Result<()> {
 #[test]
 fn round_towards_zero_by() -> Result<()> {
     test_fixed_point! {
-        case (x | FixedPoint, rounder | FixedPoint, expected | FixedPoint) => {
+        case (x: FixedPoint, rounder: FixedPoint, expected: FixedPoint) => {
             assert_eq!(x.round_towards_zero_by(rounder), expected);
             assert_eq!(x.cneg()?.round_towards_zero_by(rounder), expected.cneg()?);
         },
@@ -676,7 +676,7 @@ fn round_towards_zero_by() -> Result<()> {
 #[allow(clippy::cognitive_complexity)]
 fn next_power_of_ten() -> Result<()> {
     test_fixed_point! {
-        case (x | FixedPoint, expected | FixedPoint) => {
+        case (x: FixedPoint, expected: FixedPoint) => {
             assert_eq!(x.next_power_of_ten()?, expected);
             assert_eq!(x.cneg()?.next_power_of_ten()?, expected.cneg()?);
         },
@@ -719,7 +719,7 @@ fn next_power_of_ten() -> Result<()> {
         },
     };
     test_fixed_point! {
-        case (x | FixedPoint, expected | FixedPoint) => {
+        case (x: FixedPoint, expected: FixedPoint) => {
             assert_eq!(x.next_power_of_ten()?, expected);
         },
         fp64 {
@@ -730,7 +730,7 @@ fn next_power_of_ten() -> Result<()> {
         },
     };
     test_fixed_point! {
-        case (x | FixedPoint) => {
+        case (x: FixedPoint) => {
             assert_eq!(x.next_power_of_ten(), Err(ArithmeticError::Overflow));
         },
         all {
@@ -752,7 +752,7 @@ fn next_power_of_ten() -> Result<()> {
 #[test]
 fn rounding_to_i64() -> Result<()> {
     test_fixed_point! {
-        case (x | FixedPoint, expected | i64) => {
+        case (x: FixedPoint, expected: i64) => {
             assert_eq!(x.rounding_to_i64(), expected);
         },
         all {
@@ -774,7 +774,7 @@ fn rounding_to_i64() -> Result<()> {
 #[allow(clippy::float_cmp)]
 fn to_f64() -> Result<()> {
     test_fixed_point! {
-        case (x | FixedPoint, expected | f64) => {
+        case (x: FixedPoint, expected: f64) => {
             assert_eq!(f64::from(x), expected);
         },
         all {
@@ -811,7 +811,7 @@ fn to_f64() -> Result<()> {
 #[test]
 fn from_f64() -> Result<()> {
     test_fixed_point! {
-        case (expected | FixedPoint, x | f64) => {
+        case (expected: FixedPoint, x: f64) => {
             assert_eq!(FixedPoint::try_from(x)?, expected);
             assert_eq!(FixedPoint::try_from(-x)?, expected.cneg()?);
         },
@@ -856,7 +856,7 @@ fn from_f64() -> Result<()> {
 #[test]
 fn from_f64_exact() -> Result<()> {
     test_fixed_point! {
-        case (x | f64, expected | FixedPoint) => {
+        case (x: f64, expected: FixedPoint) => {
             assert_eq!(FixedPoint::try_from(x)?, expected);
             assert_eq!(FixedPoint::try_from(-x)?, expected.cneg()?);
         },
@@ -888,7 +888,7 @@ fn from_f64_exact() -> Result<()> {
 #[test]
 fn from_f64_limits() -> Result<()> {
     test_fixed_point! {
-        case (x | f64, expected | ConvertError) => {
+        case (x: f64, expected: ConvertError) => {
             assert_eq!(FixedPoint::try_from(x), Err(expected));
         },
         all {
@@ -905,7 +905,7 @@ fn from_f64_limits() -> Result<()> {
 #[test]
 fn saturating_add() -> Result<()> {
     test_fixed_point! {
-        case (a | FixedPoint, b | FixedPoint, expected | FixedPoint) => {
+        case (a: FixedPoint, b: FixedPoint, expected: FixedPoint) => {
             assert_eq!(a.saturating_add(b), expected);
             assert_eq!(b.saturating_add(a), expected);
             assert_eq!(a.cneg()?.saturating_add(b.cneg()?), expected.cneg()?);
@@ -927,7 +927,7 @@ fn saturating_add() -> Result<()> {
         },
     };
     test_fixed_point! {
-        case (a | FixedPoint, b | FixedPoint, expected | FixedPoint) => {
+        case (a: FixedPoint, b: FixedPoint, expected: FixedPoint) => {
             assert_eq!(a.saturating_add(b), expected);
         },
         fp64 {
@@ -949,7 +949,7 @@ fn saturating_add() -> Result<()> {
 #[test]
 fn saturating_mul() -> Result<()> {
     test_fixed_point! {
-        case (a | FixedPoint, b | Layout, expected | FixedPoint) => {
+        case (a: FixedPoint, b: Layout, expected: FixedPoint) => {
             assert_eq!(a.saturating_mul(b), expected);
             assert_eq!(CheckedMul::saturating_mul(b, a), expected);
             assert_eq!(a.cneg()?.saturating_mul(b), expected.cneg()?);
@@ -975,7 +975,7 @@ fn saturating_mul() -> Result<()> {
         },
     };
     test_fixed_point! {
-        case (a | FixedPoint, b | i128, expected | FixedPoint) => {
+        case (a: FixedPoint, b: i128, expected: FixedPoint) => {
             let b = b as Layout;
             assert_eq!(a.saturating_mul(b), expected);
         },
@@ -998,7 +998,7 @@ fn saturating_mul() -> Result<()> {
 #[test]
 fn saturating_rmul() -> Result<()> {
     test_fixed_point! {
-        case (a | FixedPoint, b | FixedPoint, expected | FixedPoint) => {
+        case (a: FixedPoint, b: FixedPoint, expected: FixedPoint) => {
             assert_eq!(a.saturating_rmul(b, Floor), expected);
             assert_eq!(b.saturating_rmul(a, Floor), expected);
             assert_eq!(a.cneg()?.saturating_rmul(b, Floor), expected.cneg()?);
@@ -1023,7 +1023,7 @@ fn saturating_rmul() -> Result<()> {
         },
     };
     test_fixed_point! {
-        case (a | FixedPoint, b | FixedPoint, mode | RoundMode, expected | FixedPoint) => {
+        case (a: FixedPoint, b: FixedPoint, mode: RoundMode, expected: FixedPoint) => {
             assert_eq!(a.saturating_rmul(b, mode), expected);
         },
         fp64 {
@@ -1053,7 +1053,7 @@ fn saturating_rmul() -> Result<()> {
 #[test]
 fn saturating_sub() -> Result<()> {
     test_fixed_point! {
-        case (a | FixedPoint, b | FixedPoint, expected | FixedPoint) => {
+        case (a: FixedPoint, b: FixedPoint, expected: FixedPoint) => {
             assert_eq!(a.saturating_sub(b), expected);
             assert_eq!(b.saturating_sub(a), expected.cneg()?);
             assert_eq!(a.cneg()?.saturating_sub(b.cneg()?), expected.cneg()?);
@@ -1075,7 +1075,7 @@ fn saturating_sub() -> Result<()> {
         },
     };
     test_fixed_point! {
-        case (a | FixedPoint, b | FixedPoint, expected | FixedPoint) => {
+        case (a: FixedPoint, b: FixedPoint, expected: FixedPoint) => {
             assert_eq!(a.saturating_sub(b), expected);
         },
         fp64 {
@@ -1097,7 +1097,7 @@ fn saturating_sub() -> Result<()> {
 #[test]
 fn sqrt_exact() -> Result<()> {
     test_fixed_point! {
-        case (expected | FixedPoint) => {
+        case (expected: FixedPoint) => {
             let square = expected.rmul(expected, Floor)?;
             assert_eq!(expected.rmul(expected, Ceil)?, square);
             assert_eq!(square.rsqrt(Floor)?, expected, "Floor");
@@ -1124,7 +1124,7 @@ fn sqrt_exact() -> Result<()> {
 #[test]
 fn sqrt_approx() -> Result<()> {
     test_fixed_point! {
-        case (x | FixedPoint, expected_floor | FixedPoint, expected_nearest | FixedPoint) => {
+        case (x: FixedPoint, expected_floor: FixedPoint, expected_nearest: FixedPoint) => {
             assert_eq!(x.rsqrt(Floor)?, expected_floor, "Floor");
             assert_eq!(x.rsqrt(Nearest)?, expected_nearest, "Nearest");
             assert_eq!(x.rsqrt(Ceil)?.inner, expected_floor.inner + 1, "Ceil");
@@ -1148,7 +1148,7 @@ fn sqrt_approx() -> Result<()> {
 #[test]
 fn sqrt_negative() -> Result<()> {
     test_fixed_point! {
-        case (x | FixedPoint) => {
+        case (x: FixedPoint) => {
             let expected = Err(ArithmeticError::DomainViolation);
             assert_eq!(x.rsqrt(Floor), expected);
             assert_eq!(x.rsqrt(Nearest), expected);
