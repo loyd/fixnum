@@ -2,19 +2,22 @@
 //!
 //! [Fixed-point][FixedPoint] numbers with explicit rounding.
 //!
-//! Uses various signed integer types to store the number. The following are available by default:
-//!
-//! - `i16` — promotes to `i32` for multiplication and division,
-//! - `i32` — promotes to `i64` (for mul, div),
-//! - `i64` — promotes to `i128` (for mul, div).
+//! Uses various signed integer types to store the number.
 //!
 //! ## Features
 //! Turn them on in `Cargo.toml`:
 //!
 //! - `i128` — `i128` layout support which will be promoted to internally implemented `I256` for
 //!   multiplication and division.
+//! - `i64` — `i64` layout support which will be promoted to `i128` for multiplication and division.
+//! - `i32` — `i32` layout support which will be promoted to `i64` for multiplication and division.
+//! - `i16` — `i16` layout support which will be promoted to `i32` for multiplication and division.
 //! - `parity` — [`parity-scale-codec`][parity_scale_codec] support (`Encode` and `Decode`
 //!   implementations).
+//! - `serde` — support for `serde`. Enabled by default.
+//! - `std` — Enabled by default.
+//!
+//! At least one of `i128`, `i64`, `i32`, `i16` must be enabled.
 //!
 //! ## Example
 //! ```ignore
@@ -122,6 +125,7 @@
 #![warn(rust_2018_idioms, unreachable_pub)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 use core::cmp::Ord;
 use core::convert::TryFrom;
