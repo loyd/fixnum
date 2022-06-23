@@ -432,8 +432,8 @@ macro_rules! impl_fixed_point {
                     RoundMode::Floor => false,
                     RoundMode::Nearest => {
                         let lo2 = lo * lo;
-                        let hi = lo + $promotion::ONE;
-                        let hi2 = hi * hi;
+                        // (lo+1)^2 = lo^2 +2lo + 1
+                        let hi2 = lo2 + lo + lo + $promotion::ONE;
                         squared - lo2 >= hi2 - squared
                     },
                     RoundMode::Ceil if lo * lo == squared => false,
