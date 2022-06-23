@@ -1,9 +1,9 @@
 use core::cmp::{Ordering, PartialOrd};
 use core::convert::TryFrom;
-use core::ops::{Div, Mul, Neg, Sub};
+use core::ops::{Add, Div, Mul, Neg, Sub};
 
 use crate::ops::sqrt::Sqrt;
-use crate::ops::{One, RoundMode, RoundingSqrt, Zero};
+use crate::ops::{One, Zero};
 use crate::{ArithmeticError, ConvertError};
 
 const TOTAL_BITS_COUNT: usize = 256;
@@ -85,6 +85,16 @@ impl Div for I256 {
         } else {
             -result
         }
+    }
+}
+
+impl Add for I256 {
+    type Output = Self;
+
+    #[inline]
+    fn add(self, rhs: Self) -> Self::Output {
+        let (x, _) = self.inner.overflowing_add(rhs.inner);
+        Self::new(x)
     }
 }
 
@@ -171,31 +181,13 @@ impl Zero for I256 {
     const ZERO: Self = Self::from_i128(0);
 }
 
-impl RoundingSqrt for I256 {
+impl Sqrt for I256 {
     type Error = ArithmeticError;
 
-    /// Integer square root of a non-negative integer S is a non-negative integer Q such that:
-    /// Floor: `Q ≤ sqrt(S)`
-    /// Ceil: `Q ≥ sqrt(S)`
     #[inline]
-    fn rsqrt(self, mode: RoundMode) -> Result<Self, Self::Error> {
-        if self.is_negative() {
-            return Err(ArithmeticError::DomainViolation);
-        }
-        let lo = self.inner.sqrt()?;
-        let inner = match mode {
-            RoundMode::Floor => lo,
-            RoundMode::Ceil => {
-                if lo * lo == self.inner {
-                    lo
-                } else {
-                    // `sqrt` will always be closer to zero than `self` so overflow will never happen
-                    let (hi, _) = lo.overflowing_add(Self::ONE.inner);
-                    hi
-                }
-            }
-        };
-        Ok(Self::new(inner))
+    fn sqrt(self) -> Result<Self, Self::Error> {
+        debug_assert!(self >= Self::ZERO);
+        self.inner.sqrt().map(Self::new)
     }
 }
 
@@ -281,6 +273,22 @@ mod tests {
     #[should_panic]
     fn it_doesnt_negate_i256_min() {
         let _x = -I256::MIN;
+    }
+
+    #[test]
+    fn it_adds() {
+        fn t(a: i128, b: i128, expected: i128) {
+            let a = I256::from(a);
+            let b = I256::from(b);
+            assert_eq!(i128::try_from(a + b).unwrap(), expected);
+            assert_eq!(i128::try_from(b + a).unwrap(), expected);
+            assert_eq!(i128::try_from((-a) + (-b)).unwrap(), -expected);
+            assert_eq!(i128::try_from((-b) + (-a)).unwrap(), -expected);
+        }
+        t(0, 0, 0);
+        t(1111, 3210, 4321);
+        t(-1111, 5432, 4321);
+        t(-4321, 5432, 1111);
     }
 
     #[test]

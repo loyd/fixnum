@@ -775,6 +775,12 @@ macro_rules! uint {
             }
         }
 
+        impl<T> core::ops::ShrAssign<T> for $name where T: Into<$name> {
+            fn shr_assign(&mut self, shift: T) {
+                *self = *self >> shift;
+            }
+        }
+
         impl core::cmp::Ord for $name {
             fn cmp(&self, other: &$name) -> core::cmp::Ordering {
                 self.as_ref().iter().rev().cmp(other.as_ref().iter().rev())

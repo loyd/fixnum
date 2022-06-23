@@ -2,8 +2,6 @@ use crate::ArithmeticError;
 
 pub(crate) mod sqrt;
 
-use sqrt::Sqrt;
-
 pub trait Zero {
     const ZERO: Self;
 }
@@ -213,6 +211,7 @@ pub trait CheckedMul<Rhs = Self> {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum RoundMode {
     Ceil = 1,
+    Nearest = 0,
     Floor = -1,
 }
 
@@ -328,6 +327,13 @@ pub trait RoundingSqrt: Sized {
     /// Checked [rounding][RoundMode] square root.
     /// Returns `Err` for negative argument.
     ///
+    /// Square root of a non-negative F is a non-negative S such that:
+    /// * `Floor`: `S ≤ sqrt(F)`
+    /// * `Ceil`: `S ≥ sqrt(F)`
+    /// * `Nearest`: `Floor` or `Ceil`, which one is closer to `sqrt(F)`
+    ///
+    /// The fastest mode is `Floor`.
+    ///
     /// ```ignore
     /// use fixnum::{ArithmeticError, FixedPoint, typenum::U9};
     /// use fixnum::ops::{Zero, RoundingSqrt, RoundMode::*};
@@ -430,27 +436,19 @@ macro_rules! impl_for_ints {
                 if loss != 0 {
                     let sign = self.signum() * rhs.signum();
 
-                    if mode as i32 == sign as i32 {
+                    let add_signed_one = if mode == RoundMode::Nearest {
+                        let loss_abs = loss.abs();
+                        loss_abs + loss_abs >= rhs.abs()
+                    } else {
+                        mode as i32 == sign as i32
+                    };
+
+                    if add_signed_one {
                         result = result.checked_add(sign).ok_or(ArithmeticError::Overflow)?;
                     }
                 }
 
                 Ok(result)
-            }
-        }
-
-        impl RoundingSqrt for $int {
-            type Error = ArithmeticError;
-
-            #[inline]
-            fn rsqrt(self, mode: RoundMode) -> Result<Self, Self::Error> {
-                let lo = self.sqrt()?;
-                Ok(match mode {
-                    RoundMode::Floor => lo,
-                    RoundMode::Ceil => if lo * lo == self { lo } else {
-                        lo + <$int>::ONE
-                    },
-                })
             }
         }
     };

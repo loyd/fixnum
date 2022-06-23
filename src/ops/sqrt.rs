@@ -65,9 +65,8 @@ macro_rules! impl_sqrt {
                 }
 
                 #[allow(unused_comparisons)]
-                if self < 0 {
-                    return Err(ArithmeticError::DomainViolation);
-                }
+                { debug_assert!(self >= 0); }
+
                 if bits::<$int>() > 64 {
                     // 128-bit division is slow, so do a recursive bitwise `sqrt` until it's small enough.
                     let result = match u64::try_from(self) {
