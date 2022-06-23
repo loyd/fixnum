@@ -258,7 +258,7 @@ macro_rules! impl_fixed_point {
 
         $(#[$attr])?
         impl<P: Precision> RoundingMul for FixedPoint<$layout, P> {
-            type Output = FixedPoint<$layout, P>;
+            type Output = Self;
             type Error = ArithmeticError;
 
             #[inline]
@@ -295,7 +295,7 @@ macro_rules! impl_fixed_point {
 
         $(#[$attr])?
         impl<P: Precision> RoundingDiv for FixedPoint<$layout, P> {
-            type Output = FixedPoint<$layout, P>;
+            type Output = Self;
             type Error = ArithmeticError;
 
             #[inline]
@@ -339,11 +339,11 @@ macro_rules! impl_fixed_point {
 
         $(#[$attr])?
         impl<P: Precision> RoundingDiv<$layout> for FixedPoint<$layout, P> {
-            type Output = FixedPoint<$layout, P>;
+            type Output = Self;
             type Error = ArithmeticError;
 
             #[inline]
-            fn rdiv(self, rhs: $layout, mode: RoundMode) -> Result<FixedPoint<$layout, P>> {
+            fn rdiv(self, rhs: $layout, mode: RoundMode) -> Result<Self> {
                 self.inner.rdiv(rhs, mode).map(Self::from_bits)
             }
         }
@@ -362,11 +362,11 @@ macro_rules! impl_fixed_point {
 
         $(#[$attr])?
         impl<P: Precision> CheckedAdd for FixedPoint<$layout, P> {
-            type Output = FixedPoint<$layout, P>;
+            type Output = Self;
             type Error = ArithmeticError;
 
             #[inline]
-            fn cadd(self, rhs: FixedPoint<$layout, P>) -> Result<FixedPoint<$layout, P>> {
+            fn cadd(self, rhs: Self) -> Result<Self> {
                 self.inner.cadd(rhs.inner).map(Self::from_bits)
             }
 
@@ -378,11 +378,11 @@ macro_rules! impl_fixed_point {
 
         $(#[$attr])?
         impl<P: Precision> CheckedSub for FixedPoint<$layout, P> {
-            type Output = FixedPoint<$layout, P>;
+            type Output = Self;
             type Error = ArithmeticError;
 
             #[inline]
-            fn csub(self, rhs: FixedPoint<$layout, P>) -> Result<FixedPoint<$layout, P>> {
+            fn csub(self, rhs: Self) -> Result<Self> {
                 self.inner.csub(rhs.inner).map(Self::from_bits)
             }
 
@@ -394,11 +394,11 @@ macro_rules! impl_fixed_point {
 
         $(#[$attr])?
         impl<P: Precision> CheckedMul<$layout> for FixedPoint<$layout, P> {
-            type Output = FixedPoint<$layout, P>;
+            type Output = Self;
             type Error = ArithmeticError;
 
             #[inline]
-            fn cmul(self, rhs: $layout) -> Result<FixedPoint<$layout, P>> {
+            fn cmul(self, rhs: $layout) -> Result<Self> {
                 self.inner.cmul(rhs).map(Self::from_bits)
             }
 
@@ -428,7 +428,7 @@ macro_rules! impl_fixed_point {
         impl<P: Precision> FixedPoint<$layout, P> {
             /// Returns `1/n`.
             #[inline]
-            pub fn recip(self, mode: RoundMode) -> Result<FixedPoint<$layout, P>> {
+            pub fn recip(self, mode: RoundMode) -> Result<Self> {
                 Self::ONE.rdiv(self, mode)
             }
 
@@ -436,7 +436,7 @@ macro_rules! impl_fixed_point {
             ///
             /// [MIN]: ./ops/trait.Bounded.html#associatedconstant.MIN
             #[inline]
-            pub fn cneg(self) -> Result<FixedPoint<$layout, P>> {
+            pub fn cneg(self) -> Result<Self> {
                 self.inner
                     .checked_neg()
                     .map(Self::from_bits)
@@ -445,11 +445,7 @@ macro_rules! impl_fixed_point {
 
             /// Calculates `(a + b) / 2`.
             #[inline]
-            pub fn half_sum(
-                a: FixedPoint<$layout, P>,
-                b: FixedPoint<$layout, P>,
-                mode: RoundMode,
-            ) -> FixedPoint<$layout, P> {
+            pub fn half_sum(a: Self, b: Self, mode: RoundMode) -> Self {
                 if a.inner.signum() != b.inner.signum() {
                     Self::from_bits(a.inner + b.inner).rdiv(2, mode).unwrap()
                 } else {
@@ -499,10 +495,7 @@ macro_rules! impl_fixed_point {
 
             /// Rounds towards zero by the provided precision.
             #[inline]
-            pub fn round_towards_zero_by(
-                self,
-                precision: FixedPoint<$layout, P>,
-            ) -> FixedPoint<$layout, P> {
+            pub fn round_towards_zero_by(self, precision: Self) -> Self {
                 self.inner
                     .checked_div(precision.inner)
                     .and_then(|v| v.checked_mul(precision.inner))
@@ -513,7 +506,7 @@ macro_rules! impl_fixed_point {
             /// * For positive: the smallest greater than or equal to a number.
             /// * For negative: the largest less than or equal to a number.
             #[inline]
-            pub fn next_power_of_ten(self) -> Result<FixedPoint<$layout, P>> {
+            pub fn next_power_of_ten(self) -> Result<Self> {
                 if self.inner < 0 {
                     return self.cneg()?.next_power_of_ten()?.cneg();
                 }
@@ -629,10 +622,7 @@ macro_rules! impl_fixed_point {
         $(#[$attr])?
         impl<P: Precision> FixedPoint<$layout, P> {
             /// Creates a new number from separate mantissa and exponent.
-            pub fn from_decimal(
-                mantissa: $layout,
-                exponent: i32,
-            ) -> Result<FixedPoint<$layout, P>, ConvertError> {
+            pub fn from_decimal(mantissa: $layout, exponent: i32) -> Result<Self, ConvertError> {
                 if exponent < -Self::PRECISION || exponent > 10 {
                     return Err(ConvertError::new("unsupported exponent"));
                 }
