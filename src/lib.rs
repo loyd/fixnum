@@ -115,7 +115,7 @@
 //! [parity_scale_codec]: https://docs.rs/parity-scale-codec
 //! [rdiv]: ./ops/trait.RoundingDiv.html#tymethod.rdiv
 //! [rmul]: ./ops/trait.RoundingMul.html#tymethod.rmul
-//! [rsqrt]: ./ops/trait.RoundingSqrt.html#tymethod.rsqrt
+//! [rsqrt]: ./struct.FixedPoint.html#method.rsqrt
 //! [RoundMode]: ./ops/enum.RoundMode.html
 //! [saturating_add]: ./ops/trait.CheckedAdd.html#tymethod.saturating_add
 //! [saturating_mul]: ./ops/trait.CheckedMul.html#tymethod.saturating_mul
@@ -419,46 +419,6 @@ macro_rules! impl_fixed_point {
         }
 
         $(#[$attr])?
-        impl<P: Precision> RoundingSqrt for FixedPoint<$layout, P> {
-            type Error = ArithmeticError;
-
-            #[inline]
-            fn rsqrt(self, mode: RoundMode) -> Result<Self, Self::Error> {
-                if self.inner.is_negative() {
-                    return Err(ArithmeticError::DomainViolation);
-                }
-
-                // At first we have `S_inner = S * COEF`.
-                // We'd like to gain `sqrt(S) * COEF`:
-                // `sqrt(S) * COEF = sqrt(S * COEF^2) = sqrt(S_inner * COEF)`
-                let squared = $promotion::from(self.inner) * Self::COEF_PROMOTED;
-                let lo = squared.sqrt()?;
-
-                let add_one = match mode {
-                    RoundMode::Floor => false,
-                    RoundMode::Nearest => {
-                        let lo2 = lo * lo;
-                        // (lo+1)^2 = lo^2 +2lo + 1
-                        let hi2 = lo2 + lo + lo + $promotion::ONE;
-                        squared - lo2 >= hi2 - squared
-                    },
-                    RoundMode::Ceil if lo * lo == squared => false,
-                    RoundMode::Ceil => true,
-                };
-
-                // `sqrt` can't take more bits than `self` already does, thus `unwrap()` is ok.
-                let lo = $layout::try_from(lo).unwrap();
-                let inner = if add_one {
-                    lo + $layout::ONE
-                } else {
-                    lo
-                };
-
-                Ok(Self::from_bits(inner))
-            }
-        }
-
-        $(#[$attr])?
         impl<P: Precision> FixedPoint<$layout, P> {
             #[inline]
             pub fn recip(self, mode: RoundMode) -> Result<FixedPoint<$layout, P>> {
@@ -509,8 +469,6 @@ macro_rules! impl_fixed_point {
             /// assert_eq!(a.integral(Ceil), -8273);
             /// # Ok(()) }
             /// ```
-            ///
-            /// [RoundMode]: ./ops/enum.RoundMode.html
             #[inline]
             pub fn integral(self, mode: RoundMode) -> $layout {
                 // TODO: rename to `round()`
@@ -583,6 +541,67 @@ macro_rules! impl_fixed_point {
                 } else {
                     Ok(self)
                 }
+            }
+
+            /// Checked [rounding][RoundMode] square root.
+            /// Returns `Err` for negative argument.
+            ///
+            /// Square root of a non-negative F is a non-negative S such that:
+            /// * `Floor`: `S ≤ sqrt(F)`
+            /// * `Ceil`: `S ≥ sqrt(F)`
+            /// * `Nearest`: `Floor` or `Ceil`, which one is closer to `sqrt(F)`
+            ///
+            /// The fastest mode is `Floor`.
+            ///
+            /// ```ignore
+            /// use fixnum::{ArithmeticError, FixedPoint, typenum::U9};
+            /// use fixnum::ops::{Zero, RoundingSqrt, RoundMode::*};
+            ///
+            /// type Amount = FixedPoint<i64, U9>;
+            ///
+            /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+            /// let a: Amount = "81".parse()?;
+            /// let b: Amount = "2".parse()?;
+            /// let c: Amount = "-100".parse()?;
+            /// assert_eq!(a.rsqrt(Floor)?, "9".parse()?);
+            /// assert_eq!(b.rsqrt(Floor)?, "1.414213562".parse()?);
+            /// assert_eq!(b.rsqrt(Ceil)?, "1.414213563".parse()?);
+            /// assert_eq!(c.rsqrt(Floor), Err(ArithmeticError::DomainViolation));
+            /// # Ok(()) }
+            /// ```
+            #[inline]
+            pub fn rsqrt(self, mode: RoundMode) -> Result<Self, ArithmeticError> {
+                if self.inner.is_negative() {
+                    return Err(ArithmeticError::DomainViolation);
+                }
+
+                // At first we have `S_inner = S * COEF`.
+                // We'd like to gain `sqrt(S) * COEF`:
+                // `sqrt(S) * COEF = sqrt(S * COEF^2) = sqrt(S_inner * COEF)`
+                let squared = $promotion::from(self.inner) * Self::COEF_PROMOTED;
+                let lo = squared.sqrt()?;
+
+                let add_one = match mode {
+                    RoundMode::Floor => false,
+                    RoundMode::Nearest => {
+                        let lo2 = lo * lo;
+                        // (lo+1)^2 = lo^2 +2lo + 1
+                        let hi2 = lo2 + lo + lo + $promotion::ONE;
+                        squared - lo2 >= hi2 - squared
+                    },
+                    RoundMode::Ceil if lo * lo == squared => false,
+                    RoundMode::Ceil => true,
+                };
+
+                // `sqrt` can't take more bits than `self` already does, thus `unwrap()` is ok.
+                let lo = $layout::try_from(lo).unwrap();
+                let inner = if add_one {
+                    lo + $layout::ONE
+                } else {
+                    lo
+                };
+
+                Ok(Self::from_bits(inner))
             }
         }
 

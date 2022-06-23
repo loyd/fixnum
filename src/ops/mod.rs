@@ -321,40 +321,6 @@ pub trait RoundingDiv<Rhs = Self> {
     fn rdiv(self, rhs: Rhs, mode: RoundMode) -> Result<Self::Output, Self::Error>;
 }
 
-pub trait RoundingSqrt: Sized {
-    type Error;
-
-    /// Checked [rounding][RoundMode] square root.
-    /// Returns `Err` for negative argument.
-    ///
-    /// Square root of a non-negative F is a non-negative S such that:
-    /// * `Floor`: `S ≤ sqrt(F)`
-    /// * `Ceil`: `S ≥ sqrt(F)`
-    /// * `Nearest`: `Floor` or `Ceil`, which one is closer to `sqrt(F)`
-    ///
-    /// The fastest mode is `Floor`.
-    ///
-    /// ```ignore
-    /// use fixnum::{ArithmeticError, FixedPoint, typenum::U9};
-    /// use fixnum::ops::{Zero, RoundingSqrt, RoundMode::*};
-    ///
-    /// type Amount = FixedPoint<i64, U9>;
-    ///
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-    /// let a: Amount = "81".parse()?;
-    /// let b: Amount = "2".parse()?;
-    /// let c: Amount = "-100".parse()?;
-    /// assert_eq!(a.rsqrt(Floor)?, "9".parse()?);
-    /// assert_eq!(b.rsqrt(Floor)?, "1.414213562".parse()?);
-    /// assert_eq!(b.rsqrt(Ceil)?, "1.414213563".parse()?);
-    /// assert_eq!(c.rsqrt(Floor), Err(ArithmeticError::DomainViolation));
-    /// # Ok(()) }
-    /// ```
-    ///
-    /// [RoundMode]: ./enum.RoundMode.html
-    fn rsqrt(self, mode: RoundMode) -> Result<Self, Self::Error>;
-}
-
 // Impls for primitives.
 
 macro_rules! impl_for_ints {

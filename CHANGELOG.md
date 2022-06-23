@@ -10,6 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - A new round mode: `RoundMode::Nearest`.
 
+### Changed
+- Replace the `RoundingSqrt` trait with the `rsqrt` method.
+
+### Removed
+- Deprecated methods `rounding_from_f64` and `to_f64`. Use `TryFrom<f64>` and `Into<f64>` instead.
+
 ## [0.7.0] - 2022-05-15
 ### Fixed
 - Rare "from `f64`" bugs ([#25]).
