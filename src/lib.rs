@@ -229,8 +229,8 @@ macro_rules! impl_fixed_point {
             pub const EPSILON: Self = Self::from_bits(1);
 
             const COEF: $layout = const_fn::pow10(Self::PRECISION) as _;
+            const NEG_COEF: $layout = -Self::COEF;
             const COEF_PROMOTED: $promotion = $convert(Self::COEF) as _;
-            const NEG_COEF_PROMOTED: $promotion = $convert(-Self::COEF) as _;
         }
 
         $(#[$attr])?
@@ -260,20 +260,22 @@ macro_rules! impl_fixed_point {
                 //       because LLVM doesn't replace 128bit division by const with multiplication.
 
                 let value = $promotion::from(self.inner) * $promotion::from(rhs.inner);
-                // TODO: replace with multiplication by constant
+                // TODO: replace with multiplication by a constant.
                 let result = value / Self::COEF_PROMOTED;
                 let loss = value - result * Self::COEF_PROMOTED;
-                let sign = self.inner.signum() * rhs.inner.signum();
 
                 let mut result =
                     $layout::try_from(result).map_err(|_| ArithmeticError::Overflow)?;
 
+                // `|loss| < COEF`, thus it fits in the layout.
+                let loss = $layout::try_from(loss).unwrap();
+                let sign = self.inner.signum() * rhs.inner.signum();
+
                 let add_signed_one = if mode == RoundMode::Nearest {
-                    // TODO: can we use COEF/2 here to avoid extra addition in I256?
-                    sign as i32 >= 0 && loss + loss >= Self::COEF_PROMOTED
-                                     || loss + loss <= Self::NEG_COEF_PROMOTED
+                    sign as i32 >= 0 && loss + loss >= Self::COEF
+                                     || loss + loss <= Self::NEG_COEF
                 } else {
-                    loss != $convert(0) && mode as i32 == sign as i32
+                    loss != 0 && mode as i32 == sign as i32
                 };
 
                 if add_signed_one {
