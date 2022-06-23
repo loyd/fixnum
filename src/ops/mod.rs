@@ -34,16 +34,19 @@ pub trait CheckedAdd<Rhs = Self> {
     /// Checked addition. Returns `Err` on overflow.
     ///
     /// ```
+    /// # #[cfg(feature = "i64")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use fixnum::{FixedPoint, typenum::U9, ops::CheckedAdd};
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let a: Amount = "0.1".parse()?;
     /// let b: Amount = "0.2".parse()?;
     /// let c: Amount = "0.3".parse()?;
     /// assert_eq!(a.cadd(b)?, c);
     /// # Ok(()) }
+    /// # #[cfg(not(feature = "i64"))]
+    /// # fn main() {}
     /// ```
     fn cadd(self, rhs: Rhs) -> Result<Self::Output, Self::Error>;
 
@@ -51,11 +54,12 @@ pub trait CheckedAdd<Rhs = Self> {
     /// ([`MIN`][MIN], [`MAX`][MAX]) instead of overflowing.
     ///
     /// ```
+    /// # #[cfg(feature = "i64")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use fixnum::{FixedPoint, typenum::U9, ops::{Bounded, RoundMode::*, CheckedAdd}};
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let a: Amount = "1000.00002".parse()?;
     /// let b: Amount = "9222000000".parse()?;
     /// let c: Amount = "9222001000.00002".parse()?;
@@ -69,6 +73,8 @@ pub trait CheckedAdd<Rhs = Self> {
     /// // -9222000000 + (-9222000000) = MIN
     /// assert_eq!(d.saturating_add(d), Amount::MIN);
     /// # Ok(()) }
+    /// # #[cfg(not(feature = "i64"))]
+    /// # fn main() {}
     /// ```
     ///
     /// [MAX]: ./trait.Bounded.html#associatedconstant.MAX
@@ -100,16 +106,19 @@ pub trait CheckedSub<Rhs = Self> {
     /// Checked subtraction. Returns `Err` on overflow.
     ///
     /// ```
+    /// # #[cfg(feature = "i64")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use fixnum::{FixedPoint, typenum::U9, ops::CheckedSub};
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let a: Amount = "0.3".parse()?;
     /// let b: Amount = "0.1".parse()?;
     /// let c: Amount = "0.2".parse()?;
     /// assert_eq!(a.csub(b)?, c);
     /// # Ok(()) }
+    /// # #[cfg(not(feature = "i64"))]
+    /// # fn main() {}
     /// ```
     fn csub(self, rhs: Rhs) -> Result<Self::Output, Self::Error>;
 
@@ -117,11 +126,12 @@ pub trait CheckedSub<Rhs = Self> {
     /// ([`MIN`][MIN], [`MAX`][MAX]) instead of overflowing.
     ///
     /// ```
+    /// # #[cfg(feature = "i64")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use fixnum::{FixedPoint, typenum::U9, ops::{Bounded, RoundMode::*, CheckedSub}};
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let a: Amount = "9222001000.00002".parse()?;
     /// let b: Amount = "9222000000".parse()?;
     /// let c: Amount = "1000.00002".parse()?;
@@ -135,6 +145,8 @@ pub trait CheckedSub<Rhs = Self> {
     /// // -9222000000 - 9222000000 = MIN
     /// assert_eq!(d.saturating_sub(b), Amount::MIN);
     /// # Ok(()) }
+    /// # #[cfg(not(feature = "i64"))]
+    /// # fn main() {}
     /// ```
     ///
     /// [MAX]: ./trait.Bounded.html#associatedconstant.MAX
@@ -167,16 +179,19 @@ pub trait CheckedMul<Rhs = Self> {
     /// This is multiplication without rounding, hence it's available only when at least one operand is integer.
     ///
     /// ```
+    /// # #[cfg(feature = "i64")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use fixnum::{FixedPoint, typenum::U9, ops::CheckedMul};
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let a: Amount = "0.000000001".parse()?;
     /// let b: Amount = "0.000000012".parse()?;
     /// assert_eq!(a.cmul(12)?, b);
     /// assert_eq!(12.cmul(a)?, b);
     /// # Ok(()) }
+    /// # #[cfg(not(feature = "i64"))]
+    /// # fn main() {}
     /// ```
     fn cmul(self, rhs: Rhs) -> Result<Self::Output, Self::Error>;
 
@@ -185,11 +200,12 @@ pub trait CheckedMul<Rhs = Self> {
     /// This is multiplication without rounding, hence it's available only when at least one operand is integer.
     ///
     /// ```
+    /// # #[cfg(feature = "i64")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use fixnum::{FixedPoint, typenum::U9, ops::{Zero, Bounded, RoundMode::*, CheckedMul}};
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let a: Amount = "0.000000001".parse()?;
     /// let b: Amount = "0.000000012".parse()?;
     /// assert_eq!(a.saturating_mul(12), b);
@@ -202,6 +218,8 @@ pub trait CheckedMul<Rhs = Self> {
     /// // -1.000000001 * (SaturatingCeil) MAX = MIN
     /// assert_eq!(c.saturating_mul(i64::MAX), Amount::MIN);
     /// # Ok(()) }
+    /// # #[cfg(not(feature = "i64"))]
+    /// # fn main() {}
     /// ```
     ///
     /// [FixedPoint]: ../struct.FixedPoint.html
@@ -250,11 +268,12 @@ pub trait RoundingMul<Rhs = Self> {
     /// values.
     ///
     /// ```
+    /// # #[cfg(feature = "i64")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use fixnum::{FixedPoint, typenum::U9, ops::{Zero, RoundingMul, RoundMode::*}};
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let a: Amount = "0.000000001".parse()?;
     /// let b: Amount = "0.000000002".parse()?;
     /// // 1e-9 * (Ceil) 2e-9 = 1e-9
@@ -264,6 +283,8 @@ pub trait RoundingMul<Rhs = Self> {
     /// assert_eq!(a.rmul(b, Floor)?, Amount::ZERO);
     /// assert_eq!(b.rmul(a, Floor)?, Amount::ZERO);
     /// # Ok(()) }
+    /// # #[cfg(not(feature = "i64"))]
+    /// # fn main() {}
     /// ```
     ///
     /// [FixedPoint]: ../struct.FixedPoint.html
@@ -276,11 +297,12 @@ pub trait RoundingMul<Rhs = Self> {
     /// values.
     ///
     /// ```
+    /// # #[cfg(feature = "i64")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use fixnum::{FixedPoint, typenum::U9, ops::{Zero, Bounded, RoundMode::*, RoundingMul}};
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let a: Amount = "0.000000001".parse()?;
     /// let b: Amount = "0.000000002".parse()?;
     /// // 1e-9 * (SaturatingCeil) 2e9 = 1e-9
@@ -295,6 +317,8 @@ pub trait RoundingMul<Rhs = Self> {
     /// // -1.000000001 * (SaturatingCeil) MAX = MIN
     /// assert_eq!(c.saturating_rmul(Amount::MAX, Ceil), Amount::MIN);
     /// # Ok(()) }
+    /// # #[cfg(not(feature = "i64"))]
+    /// # fn main() {}
     /// ```
     ///
     /// [FixedPoint]: ../struct.FixedPoint.html
@@ -331,11 +355,12 @@ pub trait RoundingDiv<Rhs = Self> {
     /// values.
     ///
     /// ```
+    /// # #[cfg(feature = "i64")]
+    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// use fixnum::{FixedPoint, typenum::U9, ops::{Zero, RoundingDiv, RoundMode::*}};
     ///
     /// type Amount = FixedPoint<i64, U9>;
     ///
-    /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let a: Amount = "0.000000001".parse()?;
     /// let b: Amount = "1000000000".parse()?;
     /// // 1e-9 / (Ceil) 1e9 = 1e-9
@@ -343,6 +368,8 @@ pub trait RoundingDiv<Rhs = Self> {
     /// // 1e-9 / (Floor) 1e9 = 0
     /// assert_eq!(a.rdiv(b, Floor)?, Amount::ZERO);
     /// # Ok(()) }
+    /// # #[cfg(not(feature = "i64"))]
+    /// # fn main() {}
     /// ```
     ///
     /// [FixedPoint]: ../struct.FixedPoint.html

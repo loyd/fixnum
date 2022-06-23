@@ -21,6 +21,8 @@
 //!
 //! ## Example
 //! ```
+//! # #[cfg(feature = "i64")]
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! use fixnum::{FixedPoint, typenum::U9, ops::{CheckedAdd, RoundingMul, RoundMode::*, Zero}};
 //!
 //! /// Signed fixed point amount over 64 bits, 9 decimal places.
@@ -33,7 +35,6 @@
 //! ///           = 5e-10
 //! type Amount = FixedPoint<i64, U9>;
 //!
-//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let a: Amount = "0.1".parse()?;
 //! let b: Amount = "0.2".parse()?;
 //! assert_eq!(a.cadd(b)?, "0.3".parse()?);
@@ -44,6 +45,8 @@
 //! // 1e-9 * (Ceil) 1e-9 = 1e-9
 //! assert_eq!(expences.rmul(expences, Ceil)?, expences);
 //! # Ok(()) }
+//! # #[cfg(not(feature = "i64"))]
+//! # fn main() {}
 //! ```
 //!
 //! ## Available operations
@@ -67,6 +70,8 @@
 //! It's possible to restrict the domain in order to reduce chance of mistakes.
 //! Note that convenient [`fixnum!` macro][fixnum] works with wrapper types too.
 //! ```
+//! # #[cfg(feature = "i64")]
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! use derive_more::From;
 //! use fixnum::{impl_op, typenum::U9, FixedPoint, fixnum};
 //!
@@ -95,13 +100,14 @@
 //! impl_op!(Amount [csub] Amount = Amount);
 //!
 //! // Use it.
-//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! use fixnum::ops::*;
 //! let size = Size(4);
 //! let price = fixnum!(4.25, 9); // compile-time
 //! let amount = size.cmul(price)?;
 //! assert_eq!(amount, fixnum!(17, 9));
 //! # Ok(()) }
+//! # #[cfg(not(feature = "i64"))]
+//! # fn main() {}
 //! ```
 //!
 //! [cadd]: ./ops/trait.CheckedAdd.html#tymethod.cadd
@@ -459,11 +465,12 @@ macro_rules! impl_fixed_point {
             /// Takes [rounded][RoundMode] integral part of the number.
             ///
             /// ```
+            /// # #[cfg(feature = "i64")]
+            /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
             /// use fixnum::{FixedPoint, typenum::U9, ops::RoundMode::*};
             ///
             /// type Amount = FixedPoint<i64, U9>;
             ///
-            /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
             /// let a: Amount = "8273.519".parse()?;
             /// assert_eq!(a.integral(Floor), 8273);
             /// assert_eq!(a.integral(Nearest), 8274);
@@ -474,6 +481,8 @@ macro_rules! impl_fixed_point {
             /// assert_eq!(a.integral(Nearest), -8274);
             /// assert_eq!(a.integral(Ceil), -8273);
             /// # Ok(()) }
+            /// # #[cfg(not(feature = "i64"))]
+            /// # fn main() {}
             /// ```
             #[inline]
             pub fn integral(self, mode: RoundMode) -> $layout {
@@ -550,12 +559,13 @@ macro_rules! impl_fixed_point {
             /// The fastest mode is `Floor`.
             ///
             /// ```
+            /// # #[cfg(feature = "i64")]
+            /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
             /// use fixnum::{ArithmeticError, FixedPoint, typenum::U9};
             /// use fixnum::ops::{Zero, RoundMode::*};
             ///
             /// type Amount = FixedPoint<i64, U9>;
             ///
-            /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
             /// let a: Amount = "81".parse()?;
             /// let b: Amount = "2".parse()?;
             /// let c: Amount = "-100".parse()?;
@@ -564,6 +574,8 @@ macro_rules! impl_fixed_point {
             /// assert_eq!(b.rsqrt(Ceil)?, "1.414213563".parse()?);
             /// assert_eq!(c.rsqrt(Floor), Err(ArithmeticError::DomainViolation));
             /// # Ok(()) }
+            /// # #[cfg(not(feature = "i64"))]
+            /// # fn main() {}
             /// ```
             #[inline]
             pub fn rsqrt(self, mode: RoundMode) -> Result<Self, ArithmeticError> {
