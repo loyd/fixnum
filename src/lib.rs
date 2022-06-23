@@ -432,6 +432,15 @@ macro_rules! impl_fixed_point {
 
         $(#[$attr])?
         impl<P: Precision> FixedPoint<$layout, P> {
+            /// Returns a number representing sign of self.
+            /// * `0` if the number is zero
+            /// * `1` if the number is positive
+            /// * `-1` if the number is negative
+            #[inline]
+            pub fn signum(self) -> $layout {
+                self.inner.signum()
+            }
+
             /// Returns `1/n`.
             #[inline]
             pub fn recip(self, mode: RoundMode) -> Result<Self> {
@@ -500,6 +509,24 @@ macro_rules! impl_fixed_point {
                 }
 
                 int
+            }
+
+            /// Returns the largest integer less than or equal to a number.
+            #[inline]
+            pub fn floor(self) -> Self {
+                Self::from_decimal(self.integral(RoundMode::Floor), 0).unwrap()
+            }
+
+            /// Returns the smallest integer greater than or equal to a number.
+            #[inline]
+            pub fn ceil(self) -> Self {
+                Self::from_decimal(self.integral(RoundMode::Ceil), 0).unwrap()
+            }
+
+            /// Returns the nearest integer to a number. Round half-way cases away from `0.0`.
+            #[inline]
+            pub fn round(self) -> Self {
+                Self::from_decimal(self.integral(RoundMode::Nearest), 0).unwrap()
             }
 
             /// Rounds towards zero by the provided precision.

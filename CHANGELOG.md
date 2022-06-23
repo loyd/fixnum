@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased] - ReleaseDate
 ### Added
 - A new round mode: `RoundMode::Nearest`.
+- New methods: `signum`, `floor`, `ceil` and `round`.
 
 ### Changed
 - Replace the `RoundingSqrt` trait with the `rsqrt` method.
