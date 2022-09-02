@@ -4,8 +4,6 @@
 //!
 //! Implementation courtesy of [`uint` crate](https://crates.io/crates/uint).
 
-use core::convert::TryFrom;
-
 use crate::errors::{ArithmeticError, ConvertError};
 use crate::ops::sqrt::Sqrt;
 use crate::ops::Zero;

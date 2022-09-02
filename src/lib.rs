@@ -134,7 +134,6 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 use core::cmp::Ord;
-use core::convert::TryFrom;
 use core::{fmt, i64, marker::PhantomData};
 
 use typenum::Unsigned;

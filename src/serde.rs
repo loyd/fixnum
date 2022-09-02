@@ -5,7 +5,7 @@
 //! By default `FixedPoint` is serialized using `as_string` for human readable formats
 //! and `as_repr` for other ones.
 
-use core::{convert::TryFrom, fmt, marker::PhantomData, str::FromStr};
+use core::{fmt, marker::PhantomData, str::FromStr};
 
 use serde::{
     de::{self, Error as _},

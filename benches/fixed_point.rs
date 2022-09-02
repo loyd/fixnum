@@ -1,4 +1,3 @@
-use std::convert::{TryFrom, TryInto};
 use std::time::Instant;
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};

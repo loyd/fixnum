@@ -7,7 +7,7 @@ authors = ["Paul Loyd <pavelko95@gmail.com>"]
 repository = "https://github.com/loyd/fixnum"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
-edition = "2018"
+edition = "2021"
 categories = ["no-std"]
 
 [package.metadata.docs.rs]

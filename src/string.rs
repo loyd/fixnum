@@ -14,25 +14,19 @@ macro_rules! impl_for {
 
             fn from_str(str: &str) -> Result<Self, Self::Err> {
                 let str = str.trim();
-                let coef = Self::COEF;
 
-                let index = match str.find('.') {
-                    Some(index) => index,
-                    None => {
-                        let integral: $layout = str.parse().map_err(|_| {
-                            ConvertError::new("can't parse integral part of the str")
-                        })?;
-                        return integral
-                            .checked_mul(coef)
-                            .ok_or(ConvertError::new("too big integral part"))
-                            .map(Self::from_bits);
-                    }
+                let (integral_str, fractional_str) = if let Some(parts) = str.split_once('.') {
+                    parts
+                } else {
+                    return str
+                        .parse::<$layout>()
+                        .map_err(|_| ConvertError::new("can't parse integral part of the str"))?
+                        .try_into();
                 };
 
-                let integral: $layout = str[0..index]
+                let integral: $layout = integral_str
                     .parse()
                     .map_err(|_| ConvertError::new("can't parse integral part"))?;
-                let fractional_str = &str[index + 1..];
 
                 if !fractional_str.chars().all(|c| c.is_digit(10)) {
                     return Err(ConvertError::new(
@@ -47,7 +41,7 @@ macro_rules! impl_for {
                 let ten: $layout = 10;
                 let exp = ten.pow(fractional_str.len() as u32);
 
-                if exp > coef {
+                if exp > Self::COEF {
                     return Err(ConvertError::new("requested precision is too high"));
                 }
 
@@ -56,10 +50,10 @@ macro_rules! impl_for {
                     .map_err(|_| ConvertError::new("can't parse fractional part"))?;
 
                 let final_integral = integral
-                    .checked_mul(coef)
+                    .checked_mul(Self::COEF)
                     .ok_or(ConvertError::new("too big integral"))?;
                 let signum = if str.as_bytes()[0] == b'-' { -1 } else { 1 };
-                let final_fractional = signum * coef / exp * fractional;
+                let final_fractional = signum * Self::COEF / exp * fractional;
 
                 final_integral
                     .checked_add(final_fractional)
