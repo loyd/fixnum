@@ -5,7 +5,7 @@ use derive_more::Error;
 
 /// Represents errors during arithmetic operations.
 #[cfg_attr(feature = "std", derive(Error))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ArithmeticError {
     /// A result cannot be represented.
@@ -36,7 +36,7 @@ impl Display for ArithmeticError {
 
 /// Represents errors during conversions.
 #[cfg_attr(feature = "std", derive(Error))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ConvertError {
     reason: &'static str,
 }

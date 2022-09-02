@@ -245,7 +245,7 @@ pub trait CheckedMul<Rhs = Self> {
 }
 
 /// Mode of rounding.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RoundMode {
     /// Rounds up. The result is equal or greater than a mathematical result.
     Ceil = 1,
