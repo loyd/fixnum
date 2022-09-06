@@ -12,15 +12,33 @@ macro_rules! impl_for {
         impl<P: Precision> FromStr for FixedPoint<$layout, P> {
             type Err = ConvertError;
 
+            /// Parses a string slice into a fixed point.
+            /// If the value cannot be represented, it will be rounded to the nearest value.
+            ///
+            /// Use `from_str_exact` to parse without rounding.
             fn from_str(str: &str) -> Result<Self, Self::Err> {
+                Self::parse_str::<false>(str)
+            }
+        }
+
+        impl<P: Precision> FixedPoint<$layout, P> {
+            /// Parses a string slice into a fixed point.
+            /// If the value cannot be represented then this will return an error.
+            ///
+            /// Use the `FromStr` instance to parse with rounding.
+            pub fn from_str_exact(str: &str) -> Result<Self, ConvertError> {
+                Self::parse_str::<true>(str)
+            }
+
+            fn parse_str<const EXACT: bool>(str: &str) -> Result<Self, ConvertError> {
                 let str = str.trim();
 
-                let (integral_str, fractional_str) = if let Some(parts) = str.split_once('.') {
+                let (integral_str, mut fractional_str) = if let Some(parts) = str.split_once('.') {
                     parts
                 } else {
                     return str
                         .parse::<$layout>()
-                        .map_err(|_| ConvertError::new("can't parse integral part of the str"))?
+                        .map_err(|_| ConvertError::new("can't parse integer"))?
                         .try_into();
                 };
 
@@ -34,16 +52,31 @@ macro_rules! impl_for {
                     ));
                 }
 
-                if fractional_str.len() > Self::PRECISION.abs() as usize {
-                    return Err(ConvertError::new("requested precision is too high"));
+                let signum = if str.as_bytes()[0] == b'-' { -1 } else { 1 };
+                let prec = Self::PRECISION as usize; // TODO: negative precision?
+
+                if EXACT {
+                    if fractional_str.len() > Self::PRECISION.abs() as usize {
+                        return Err(ConvertError::new("requested precision is too high"));
+                    }
                 }
+
+                let round = if !EXACT && fractional_str.len() > prec {
+                    let extra = fractional_str.as_bytes()[prec];
+                    fractional_str = &fractional_str[..prec];
+                    Some(signum).filter(|_| extra >= b'5')
+                } else {
+                    None
+                };
 
                 let ten: $layout = 10;
                 let exp = ten.pow(fractional_str.len() as u32);
 
-                if exp > Self::COEF {
+                if EXACT && exp > Self::COEF {
                     return Err(ConvertError::new("requested precision is too high"));
                 }
+
+                debug_assert!(exp <= Self::COEF);
 
                 let fractional: $layout = fractional_str
                     .parse()
@@ -52,13 +85,17 @@ macro_rules! impl_for {
                 let final_integral = integral
                     .checked_mul(Self::COEF)
                     .ok_or(ConvertError::new("too big integral"))?;
-                let signum = if str.as_bytes()[0] == b'-' { -1 } else { 1 };
-                let final_fractional = signum * Self::COEF / exp * fractional;
+
+                let mut final_fractional = signum * Self::COEF / exp * fractional;
+                if let Some(round) = round {
+                    debug_assert!(!EXACT);
+                    final_fractional += round;
+                }
 
                 final_integral
                     .checked_add(final_fractional)
                     .map(Self::from_bits)
-                    .ok_or(ConvertError::new("too big number"))
+                    .ok_or_else(|| ConvertError::new("too big number"))
             }
         }
 

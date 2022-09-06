@@ -7,22 +7,27 @@ use anyhow::Result;
 #[cfg(feature = "i128")]
 use proptest::prelude::*;
 
+use self::macros::TestCaseResult;
+
 mod macros;
 
 #[test]
 #[allow(overflowing_literals)]
-fn from_good_str() -> Result<()> {
+fn from_good_str_exact() -> Result<()> {
     test_fixed_point! {
         case (input: &str, expected: Layout) => {
             let expected = FixedPoint::from_bits(expected);
-            let input: FixedPoint = input.parse()?;
-            assert_eq!(input, expected);
+            let exact = FixedPoint::from_str_exact(input)?;
+            assert_eq!(exact, expected);
+
+            // A rounding version must return same result.
+            let inexact: FixedPoint = input.parse()?;
+            assert_eq!(inexact, exact);
 
             #[cfg(feature = "serde")]
-            assert_eq!(
-                serde_json::from_str::<FixedPoint>(&format!("\"{}\"", input)).unwrap(),
-                expected
-            );
+            assert_eq!(serde_json::from_str::<FixedPoint>(&format!("\"{}\"", input))?, expected);
+            #[cfg(feature = "serde")]
+            assert_eq!(serde_json::from_str::<FixedPoint>(&format!("\"{}\"", exact))?, expected);
         },
         fp64 {
             ("1", 1000000000);
@@ -57,11 +62,64 @@ fn from_good_str() -> Result<()> {
 }
 
 #[test]
+#[allow(overflowing_literals)]
+fn from_good_str_inexact() -> Result<()> {
+    test_fixed_point! {
+        case (input: &str, expected: Layout) => {
+            fn check(input: &str, expected: Layout) -> TestCaseResult {
+                let expected = FixedPoint::from_bits(expected);
+                let inexact: FixedPoint = input.parse()?;
+                assert_eq!(inexact, expected);
+
+                // An exact version must fail.
+                let exact = FixedPoint::from_str_exact(input);
+                assert!(exact.is_err(), "exact must not parse '{}'", input);
+
+                #[cfg(feature = "serde")]
+                assert_eq!(serde_json::from_str::<FixedPoint>(&format!("\"{}\"", input))?, expected);
+                #[cfg(feature = "serde")]
+                assert_eq!(serde_json::from_str::<FixedPoint>(&format!("\"{}\"", inexact))?, expected);
+                Ok(())
+            }
+
+            check(input, expected)?;
+            check(&format!("-{}", input), -expected)?;
+        },
+        fp64 {
+            ("13.0000000000000000001", 13000000000);
+            ("13.0000000000000000005", 13000000000);
+            ("13.0000000001", 13000000000);
+            ("13.0000000005", 13000000001);
+            ("13.0000000009", 13000000001);
+            ("13.1000000001", 13100000000);
+            ("13.1000000005", 13100000001);
+            ("13.1000000009", 13100000001);
+            ("13.9999999999999999999999999999999999999999999999999999999999999", 14000000000);
+            ("9223372036.8547758071", 9223372036854775807);
+            // Negative cases are also checked.
+        },
+        fp128 {
+            ("13.0000000000000000001", 13000000000000000000);
+            ("13.0000000000000000005", 13000000000000000001);
+            ("13.0000000000000000009", 13000000000000000001);
+            ("13.9999999999999999999999999999999999999999999999999999999999999",
+             14000000000000000000);
+            ("170141183460469231731.6873037158841057271",
+             170141183460469231731687303715884105727)
+            // Negative cases are also checked.
+        },
+    };
+    Ok(())
+}
+
+#[test]
 fn from_bad_str() -> Result<()> {
     test_fixed_point! {
         case (bad_str: &str) => {
-            let result: Result<FixedPoint, _> = bad_str.parse();
-            assert!(result.is_err(), "must not parse '{}'", bad_str);
+            let exact = FixedPoint::from_str_exact(bad_str);
+            let inexact: Result<FixedPoint, _> = bad_str.parse();
+            assert!(exact.is_err(), "exact must not parse '{}'", bad_str);
+            assert!(inexact.is_err(), "inexact must not parse '{}'", bad_str);
 
             #[cfg(feature = "serde")]
             assert!(serde_json::from_str::<FixedPoint>(&format!("\"{}\"", bad_str)).is_err());
@@ -71,17 +129,18 @@ fn from_bad_str() -> Result<()> {
             ("7.02e5");
             ("a.12");
             ("12.a");
-            ("13.9999999999999999999999999999999999999999999999999999999999999");
             ("100000000000000000000000");
             ("170141183460469231731687303715.884105728");
-            ("13.0000000000000000001");
-            ("13.1000000000000000001");
-            ("9223372036.8547758204856183567");
+            ("170141183460469231731.687303715884105728");
+            ("170141183460469231731.6873037158841057275");
+            ("-170141183460469231731.687303715884105729");
+            ("-170141183460469231731.6873037158841057285");
         },
         fp64 {
-            ("13.0000000001");
-            ("13.1000000001");
             ("9223372036.854775808");
+            ("9223372036.8547758075");
+            ("-9223372036.854775809");
+            ("-9223372036.8547758085");
         },
     };
     Ok(())
@@ -150,8 +209,11 @@ proptest! {
 
         let expected = FixedPoint128::from_bits(x);
         let string = expected.to_string();
-        let actual: FixedPoint128 = string.parse().unwrap();
 
-        prop_assert_eq!(actual, expected);
+        let exact = FixedPoint128::from_str_exact(&string).unwrap();
+        let inexact: FixedPoint128 = string.parse().unwrap();
+
+        prop_assert_eq!(inexact, expected);
+        prop_assert_eq!(exact, expected);
     }
 }

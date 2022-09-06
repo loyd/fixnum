@@ -20,7 +20,12 @@ macro_rules! test_fixed_point {
 
         #[allow(unused)]
         macro_rules! fp {
-            ($val:literal) => {{ stringify!($val).parse::<FixedPoint>()? }};
+            ($val:literal) => {{
+                // TODO: check that `fixnum!` returns the same value.
+
+                // We don't use `fixnum!` here to check `suite_fails` cases.
+                FixedPoint::from_str_exact(stringify!($val))?
+            }};
         }
 
         $(
@@ -114,7 +119,8 @@ impl<E: Display + 'static> From<E> for TestCaseError {
 
 impl From<TestCaseError> for anyhow::Error {
     fn from(error: TestCaseError) -> Self {
-        anyhow::anyhow!(error)
+        // Avoid calling `anyhow!(error)` here to support `TestCaseError(TestCaseError)`.
+        anyhow::anyhow!(error.0.to_string())
     }
 }
 
@@ -143,8 +149,11 @@ pub(crate) mod r#impl {
 
     use super::TestCaseResult;
 
-    pub(crate) fn assert_fails(_case: impl FnOnce() -> TestCaseResult) {
-        assert!(!matches!(catch_unwind(AssertUnwindSafe(_case)), Ok(Ok(()))));
+    pub(crate) fn assert_fails(case: impl FnOnce() -> TestCaseResult) {
+        assert!(
+            !matches!(catch_unwind(AssertUnwindSafe(case)), Ok(Ok(()))),
+            "must fail, but successed"
+        );
     }
 
     pub(crate) fn catch_and_augment(

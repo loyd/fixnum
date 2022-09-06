@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] - ReleaseDate
 
+### Added
+- A new parsing method: `from_str_exact`.
+
+### Changed
+- **BREAKING CHANGE** `FromStr` and `Deserialize` rounds to the nearest value.
+
 ## [0.8.0] - 2022-06-23
 ### Added
 - A new round mode: `RoundMode::Nearest`.
