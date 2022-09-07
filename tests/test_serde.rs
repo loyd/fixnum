@@ -206,3 +206,25 @@ fn serde_with_option() -> Result<()> {
     };
     Ok(())
 }
+
+#[cfg(feature = "quick-xml")]
+#[test]
+fn quickxml() -> Result<()> {
+    type FixedPoint = fixnum::FixedPoint<i64, fixnum::typenum::U9>;
+
+    #[derive(Deserialize)]
+    struct Sample {
+        inner: FixedPoint,
+    }
+
+    let sample: Sample = quick_xml::de::from_str(r#"<a inner="42"></a>"#).unwrap();
+    assert_eq!(sample.inner, fixnum::fixnum!(42, 9));
+
+    let sample: Sample = quick_xml::de::from_str(r#"<a><inner>42</inner></a>"#).unwrap();
+    assert_eq!(sample.inner, fixnum::fixnum!(42, 9));
+
+    let inner: FixedPoint = quick_xml::de::from_str(r#"<a>42</a>"#).unwrap();
+    assert_eq!(inner, fixnum::fixnum!(42, 9));
+
+    Ok(())
+}

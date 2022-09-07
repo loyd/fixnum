@@ -109,6 +109,32 @@ where
         })
     }
 
+    // Support for `quick-xml` tags: `<tag>42.42</tag>`
+    #[cfg(feature = "quick-xml")]
+    fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+    where
+        A: serde::de::MapAccess<'de>,
+    {
+        // We must use `String` here.
+        // Otherwise, `invalid type: string \"$value\", expected a borrowed string`.
+        let key = map
+            .next_key::<String>()
+            .map_err(|_| A::Error::invalid_type(de::Unexpected::Map, &self))?;
+
+        if key.as_deref() != Some("$value") {
+            return Err(A::Error::invalid_type(de::Unexpected::Map, &self));
+        }
+
+        // We use `String` here to support `quick-xml v0.22`. In an actual one it's already fixed.
+        let value = map
+            .next_value::<String>()
+            .map_err(|_| A::Error::invalid_type(de::Unexpected::Map, &self))?;
+
+        value
+            .parse()
+            .map_err(|_| A::Error::invalid_value(de::Unexpected::Str(&value), &self))
+    }
+
     // TODO: support serde_json/arbitrary_precision.
 }
 

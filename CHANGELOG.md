@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - A new parsing method: `from_str_exact`.
 - `serde::repr_option`, `serde::float_option` and `serde::str_option`.
+- A `quick-xml` feature to support tag parsing.
 
 ### Changed
 - **BREAKING CHANGE** `FromStr` and `Deserialize` rounds to the nearest value.
