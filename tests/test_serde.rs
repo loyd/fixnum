@@ -59,7 +59,7 @@ fn serde_with() -> Result<()> {
         case (input: f64, expected: FixedPoint) => {
             #[derive(::serde::Serialize, ::serde::Deserialize)]
             struct Struct {
-                #[serde(with = "fixnum::serde::as_f64")]
+                #[serde(with = "fixnum::serde::float")]
                 number: FixedPoint,
             }
 

@@ -2,11 +2,11 @@
 //! Also contains submodule that can be provided to `serde(with)` in order to
 //! change the implementation.
 //!
-//! By default, `FixedPoint` is serialized using `as_string` for human readable formats
-//! and `as_repr` for binary ones.
+//! By default, `FixedPoint` is serialized using `str` for human readable formats
+//! and `repr` for binary ones.
 //!
 //! By default, `FixedPoint` is deserialized from strings, floats and integers for human readable
-//! formats and `as_repr` for binary ones.
+//! formats and `repr` for binary ones.
 
 use core::{fmt, marker::PhantomData, str::FromStr};
 
@@ -28,9 +28,9 @@ where
         S: Serializer,
     {
         if serializer.is_human_readable() {
-            as_string::serialize(self, serializer)
+            str::serialize(self, serializer)
         } else {
-            as_repr::serialize(self, serializer)
+            repr::serialize(self, serializer)
         }
     }
 }
@@ -48,7 +48,7 @@ where
         if deserializer.is_human_readable() {
             deserializer.deserialize_any(FixedPointVisitor(PhantomData))
         } else {
-            as_repr::deserialize(deserializer)
+            repr::deserialize(deserializer)
         }
     }
 }
@@ -113,7 +113,7 @@ where
 }
 
 /// (De)serializes `FixedPoint` as inner representation.
-pub mod as_repr {
+pub mod repr {
     use super::*;
 
     /// Serializes to inner representation.
@@ -138,7 +138,7 @@ pub mod as_repr {
 }
 
 /// (De)serializes `FixedPoint` as a string.
-pub mod as_string {
+pub mod str {
     use super::*;
 
     /// Serializes to a string.
@@ -169,7 +169,7 @@ pub mod as_string {
 }
 
 /// (De)serializes `FixedPoint` as `f64`.
-pub mod as_f64 {
+pub mod float {
     use super::*;
 
     /// Serializes to `f64`.

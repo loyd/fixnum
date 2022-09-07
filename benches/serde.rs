@@ -15,14 +15,14 @@ macro_rules! define_bench {
             #[derive(Serialize, Deserialize)]
             #[serde(transparent)]
             struct AsString {
-                #[serde(with = "fixnum::serde::as_string")]
+                #[serde(with = "fixnum::serde::str")]
                 v: $fp,
             }
 
             #[derive(Serialize, Deserialize)]
             #[serde(transparent)]
-            struct AsF64 {
-                #[serde(with = "fixnum::serde::as_f64")]
+            struct AsFloat {
+                #[serde(with = "fixnum::serde::float")]
                 v: $fp,
             }
 
@@ -65,7 +65,7 @@ macro_rules! define_bench {
             });
 
             group.bench_function("serialize 123.456 to f64", |b| {
-                let fp = black_box(AsF64 {
+                let fp = black_box(AsFloat {
                     v: fixnum!(123.456, $coef),
                 });
                 let mut s = Vec::with_capacity(128);
@@ -76,7 +76,7 @@ macro_rules! define_bench {
             });
 
             group.bench_function("serialize MAX to f64", |b| {
-                let fp = black_box(AsF64 { v: $fp::MAX });
+                let fp = black_box(AsFloat { v: $fp::MAX });
                 let mut s = Vec::with_capacity(128);
                 b.iter(move || {
                     serde_json::to_writer(&mut s, &fp).unwrap();
@@ -87,7 +87,7 @@ macro_rules! define_bench {
             group.bench_function("deserialize 123.456 from f64", |b| {
                 let s = black_box(format!("123.456"));
                 b.iter(move || {
-                    let fp: AsF64 = serde_json::from_slice(s.as_bytes()).unwrap();
+                    let fp: AsFloat = serde_json::from_slice(s.as_bytes()).unwrap();
                     fp
                 })
             });
@@ -95,7 +95,7 @@ macro_rules! define_bench {
             group.bench_function("deserialize MAX from f64", |b| {
                 let s = black_box(format!("{}", f64::from($fp::MAX) * 0.9));
                 b.iter(move || {
-                    let fp: AsF64 = serde_json::from_slice(s.as_bytes()).unwrap();
+                    let fp: AsFloat = serde_json::from_slice(s.as_bytes()).unwrap();
                     fp
                 })
             });
