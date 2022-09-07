@@ -1,6 +1,7 @@
 #![cfg(feature = "serde")]
 
 use anyhow::Result;
+use derive_more::{From, Into};
 use serde::{Deserialize, Serialize};
 
 mod macros;
@@ -69,6 +70,19 @@ fn serde_with() -> Result<()> {
                 float: FixedPoint,
             }
 
+            #[derive(Debug, Clone, PartialEq, Eq, Into, From)]
+            struct Amount(FixedPoint);
+
+            #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+            struct WrappedSample {
+                #[serde(with = "fixnum::serde::repr")]
+                repr: Amount,
+                #[serde(with = "fixnum::serde::str")]
+                str: Amount,
+                #[serde(with = "fixnum::serde::float")]
+                float: Amount,
+            }
+
             #[derive(Debug, PartialEq, Deserialize)]
             struct Raw {
                 repr: Layout,
@@ -81,9 +95,16 @@ fn serde_with() -> Result<()> {
                 str: value,
                 float: value,
             };
+            let wrapped_sample = WrappedSample {
+                repr: value.into(),
+                str: value.into(),
+                float: value.into(),
+            };
 
             // Check raw representation.
             let json = serde_json::to_string(&sample).unwrap();
+            assert_eq!(serde_json::to_string(&wrapped_sample).unwrap(), json);
+
             let raw: Raw = serde_json::from_str(&json).unwrap();
             assert_eq!(raw, Raw {
                 repr: value.into_bits(),
@@ -94,6 +115,8 @@ fn serde_with() -> Result<()> {
             // Check round-trip.
             let actual: Sample = serde_json::from_str(&json).unwrap();
             assert_eq!(actual, sample);
+            let actual: WrappedSample = serde_json::from_str(&json).unwrap();
+            assert_eq!(actual, wrapped_sample);
         },
         all {
             (fp!(0));

@@ -20,7 +20,7 @@ use crate::{string::Stringify, FixedPoint};
 impl<I, P> Serialize for FixedPoint<I, P>
 where
     I: Serialize,
-    Self: Stringify,
+    Self: Stringify + Clone,
 {
     #[inline]
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -118,22 +118,26 @@ pub mod repr {
 
     /// Serializes to inner representation.
     #[inline]
-    pub fn serialize<I, P, S>(fp: &FixedPoint<I, P>, serializer: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<F, I, P, S>(fp: &F, serializer: S) -> Result<S::Ok, S::Error>
     where
+        F: Into<FixedPoint<I, P>> + Clone,
         I: Serialize,
         S: Serializer,
     {
-        fp.inner.serialize(serializer)
+        fp.clone().into().inner.serialize(serializer)
     }
 
     /// Deserializes from inner representation.
     #[inline]
-    pub fn deserialize<'de, I, P, D>(deserializer: D) -> Result<FixedPoint<I, P>, D::Error>
+    pub fn deserialize<'de, F, I, P, D>(deserializer: D) -> Result<F, D::Error>
     where
+        F: From<FixedPoint<I, P>>,
         I: Deserialize<'de>,
         D: Deserializer<'de>,
     {
-        I::deserialize(deserializer).map(FixedPoint::from_bits)
+        I::deserialize(deserializer)
+            .map(FixedPoint::from_bits)
+            .map(F::from)
     }
 }
 
@@ -142,24 +146,26 @@ pub mod str {
     use super::*;
 
     /// Serializes to a string.
-    pub fn serialize<I, P, S>(fp: &FixedPoint<I, P>, serializer: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<F, I, P, S>(fp: &F, serializer: S) -> Result<S::Ok, S::Error>
     where
+        F: Into<FixedPoint<I, P>> + Clone,
         S: Serializer,
         FixedPoint<I, P>: Stringify,
     {
         let mut buf = Default::default();
-        fp.stringify(&mut buf);
+        fp.clone().into().stringify(&mut buf);
         serializer.serialize_str(buf.as_str())
     }
 
     /// Deserializes from a string.
-    pub fn deserialize<'de, I, P, D>(deserializer: D) -> Result<FixedPoint<I, P>, D::Error>
+    pub fn deserialize<'de, F, I, P, D>(deserializer: D) -> Result<F, D::Error>
     where
+        F: From<FixedPoint<I, P>>,
         D: Deserializer<'de>,
         FixedPoint<I, P>: FromStr,
     {
         let s = <&str>::deserialize(deserializer)?;
-        s.parse().map_err(|_| {
+        s.parse().map(F::from).map_err(|_| {
             D::Error::invalid_value(
                 de::Unexpected::Str(s),
                 &"string containing a fixed-point number",
@@ -174,25 +180,27 @@ pub mod float {
 
     /// Serializes to `f64`.
     #[inline]
-    pub fn serialize<I, P, S>(fp: &FixedPoint<I, P>, serializer: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<F, I, P, S>(fp: &F, serializer: S) -> Result<S::Ok, S::Error>
     where
+        F: Into<FixedPoint<I, P>> + Clone,
         I: Serialize,
-        FixedPoint<I, P>: Into<f64> + Clone,
+        FixedPoint<I, P>: Into<f64>,
         S: Serializer,
     {
-        serializer.serialize_f64(fp.clone().into())
+        serializer.serialize_f64(fp.clone().into().into())
     }
 
     /// Deserializes from `f64`.
     #[inline]
-    pub fn deserialize<'de, I, P, D>(deserializer: D) -> Result<FixedPoint<I, P>, D::Error>
+    pub fn deserialize<'de, F, I, P, D>(deserializer: D) -> Result<F, D::Error>
     where
+        F: From<FixedPoint<I, P>>,
         I: Deserialize<'de>,
         FixedPoint<I, P>: TryFrom<f64>,
         D: Deserializer<'de>,
     {
         let f = f64::deserialize(deserializer)?;
-        FixedPoint::<I, P>::try_from(f).map_err(|_| {
+        FixedPoint::<I, P>::try_from(f).map(F::from).map_err(|_| {
             D::Error::invalid_value(
                 de::Unexpected::Float(f),
                 &"float containing a fixed-point number",

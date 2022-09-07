@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING CHANGE** `FromStr` and `Deserialize` rounds to the nearest value.
 - **BREAKING CHANGE** `serde::as_f64` is renamed to `serde::float`, `serde::as_string` to `serde::str` and `serde::as_repr` to `serde::repr`.
 - Deserialize from strings, floats and integers for human readable formats.
+- Now `serde::*` work for wrappers around `FixedPoint` too.
 
 ## [0.8.0] - 2022-06-23
 ### Added
