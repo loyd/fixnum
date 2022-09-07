@@ -2,8 +2,11 @@
 //! Also contains submodule that can be provided to `serde(with)` in order to
 //! change the implementation.
 //!
-//! By default `FixedPoint` is serialized using `as_string` for human readable formats
-//! and `as_repr` for other ones.
+//! By default, `FixedPoint` is serialized using `as_string` for human readable formats
+//! and `as_repr` for binary ones.
+//!
+//! By default, `FixedPoint` is deserialized from strings, floats and integers for human readable
+//! formats and `as_repr` for binary ones.
 
 use core::{fmt, marker::PhantomData, str::FromStr};
 
@@ -12,7 +15,7 @@ use serde::{
     Deserialize, Deserializer, Serialize, Serializer,
 };
 
-use crate::{errors::ConvertError, string::Stringify, FixedPoint};
+use crate::{string::Stringify, FixedPoint};
 
 impl<I, P> Serialize for FixedPoint<I, P>
 where
@@ -35,7 +38,7 @@ where
 impl<'de, I, P> Deserialize<'de> for FixedPoint<I, P>
 where
     I: Deserialize<'de>,
-    Self: FromStr,
+    Self: FromStr + TryFrom<f64> + TryFrom<u64> + TryFrom<i64> + TryFrom<i128> + TryFrom<u128>,
 {
     #[inline]
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -43,11 +46,70 @@ where
         D: Deserializer<'de>,
     {
         if deserializer.is_human_readable() {
-            as_string::deserialize(deserializer)
+            deserializer.deserialize_any(FixedPointVisitor(PhantomData))
         } else {
             as_repr::deserialize(deserializer)
         }
     }
+}
+
+struct FixedPointVisitor<I, P>(PhantomData<(I, P)>);
+
+impl<'de, I, P> de::Visitor<'de> for FixedPointVisitor<I, P>
+where
+    FixedPoint<I, P>:
+        FromStr + TryFrom<f64> + TryFrom<u64> + TryFrom<i64> + TryFrom<i128> + TryFrom<u128>,
+{
+    type Value = FixedPoint<I, P>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("number or string containing a fixed-point number")
+    }
+
+    fn visit_str<E: de::Error>(self, s: &str) -> Result<Self::Value, E> {
+        s.parse()
+            .map_err(|_| E::invalid_value(de::Unexpected::Str(s), &self))
+    }
+
+    fn visit_f64<E: de::Error>(self, f: f64) -> Result<Self::Value, E> {
+        Self::Value::try_from(f).map_err(|_| E::invalid_value(de::Unexpected::Float(f), &self))
+    }
+
+    fn visit_i64<E: de::Error>(self, i: i64) -> Result<Self::Value, E> {
+        Self::Value::try_from(i).map_err(|_| E::invalid_value(de::Unexpected::Signed(i), &self))
+    }
+
+    fn visit_u64<E: de::Error>(self, u: u64) -> Result<Self::Value, E> {
+        Self::Value::try_from(u).map_err(|_| E::invalid_value(de::Unexpected::Unsigned(u), &self))
+    }
+
+    fn visit_i128<E: de::Error>(self, i: i128) -> Result<Self::Value, E> {
+        Self::Value::try_from(i).map_err(|_| {
+            E::invalid_value(
+                if i as i64 as i128 == i {
+                    de::Unexpected::Signed(i as i64)
+                } else {
+                    de::Unexpected::Other("big i128")
+                },
+                &self,
+            )
+        })
+    }
+
+    fn visit_u128<E: de::Error>(self, u: u128) -> Result<Self::Value, E> {
+        Self::Value::try_from(u).map_err(|_| {
+            E::invalid_value(
+                if u as u64 as u128 == u {
+                    de::Unexpected::Unsigned(u as u64)
+                } else {
+                    de::Unexpected::Other("big u128")
+                },
+                &self,
+            )
+        })
+    }
+
+    // TODO: support serde_json/arbitrary_precision.
 }
 
 /// (De)serializes `FixedPoint` as inner representation.
@@ -96,31 +158,13 @@ pub mod as_string {
         D: Deserializer<'de>,
         FixedPoint<I, P>: FromStr,
     {
-        // Deserialize as a string in case of human readable formats.
-        deserializer.deserialize_str(FixedPointVisitor::<I, P>(PhantomData))
-    }
-
-    struct FixedPointVisitor<I, P>(PhantomData<(I, P)>);
-
-    impl<'de, I, P> de::Visitor<'de> for FixedPointVisitor<I, P>
-    where
-        FixedPoint<I, P>: FromStr,
-    {
-        type Value = FixedPoint<I, P>;
-
-        fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-            formatter.write_str("a FixedPoint type representing a fixed-point number")
-        }
-
-        fn visit_str<E: de::Error>(self, value: &str) -> Result<Self::Value, E> {
-            // TODO: parse scientific form.
-            // TODO: parse big ones with loss instead of an error.
-            value
-                .parse()
-                .map_err(|_| E::invalid_value(de::Unexpected::Str(value), &self))
-        }
-
-        // TODO: visit_f64
+        let s = <&str>::deserialize(deserializer)?;
+        s.parse().map_err(|_| {
+            D::Error::invalid_value(
+                de::Unexpected::Str(s),
+                &"string containing a fixed-point number",
+            )
+        })
     }
 }
 
@@ -144,12 +188,15 @@ pub mod as_f64 {
     pub fn deserialize<'de, I, P, D>(deserializer: D) -> Result<FixedPoint<I, P>, D::Error>
     where
         I: Deserialize<'de>,
-        FixedPoint<I, P>: TryFrom<f64, Error = ConvertError>,
+        FixedPoint<I, P>: TryFrom<f64>,
         D: Deserializer<'de>,
     {
         let f = f64::deserialize(deserializer)?;
-
-        FixedPoint::<I, P>::try_from(f)
-            .map_err(|err| D::Error::invalid_value(de::Unexpected::Float(f), &err.as_str()))
+        FixedPoint::<I, P>::try_from(f).map_err(|_| {
+            D::Error::invalid_value(
+                de::Unexpected::Float(f),
+                &"float containing a fixed-point number",
+            )
+        })
     }
 }

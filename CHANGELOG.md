@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **BREAKING CHANGE** `FromStr` and `Deserialize` rounds to the nearest value.
+- Deserialize from strings, floats and integers for human readable formats.
 
 ## [0.8.0] - 2022-06-23
 ### Added
