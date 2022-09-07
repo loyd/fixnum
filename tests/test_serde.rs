@@ -130,3 +130,79 @@ fn serde_with() -> Result<()> {
     };
     Ok(())
 }
+
+#[test]
+fn serde_with_option() -> Result<()> {
+    test_fixed_point! {
+        case (value: Option<FixedPoint>) => {
+            #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+            struct Sample {
+                #[serde(with = "fixnum::serde::repr_option")]
+                repr: Option<FixedPoint>,
+                #[serde(with = "fixnum::serde::str_option")]
+                str: Option<FixedPoint>,
+                #[serde(with = "fixnum::serde::float_option")]
+                float: Option<FixedPoint>,
+            }
+
+            #[derive(Debug, Clone, PartialEq, Eq, Into, From)]
+            struct Amount(FixedPoint);
+
+            #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+            struct WrappedSample {
+                #[serde(with = "fixnum::serde::repr_option")]
+                repr: Option<Amount>,
+                #[serde(with = "fixnum::serde::str_option")]
+                str: Option<Amount>,
+                #[serde(with = "fixnum::serde::float_option")]
+                float: Option<Amount>,
+            }
+
+            #[derive(Debug, PartialEq, Deserialize)]
+            struct Raw {
+                repr: Option<Layout>,
+                str: Option<String>,
+                float: Option<f64>,
+            }
+
+            let sample = Sample {
+                repr: value,
+                str: value,
+                float: value,
+            };
+            let wrapped_sample = WrappedSample {
+                repr: value.map(Into::into),
+                str: value.map(Into::into),
+                float: value.map(Into::into),
+            };
+
+            // Check raw representation.
+            let json = serde_json::to_string(&sample).unwrap();
+            assert_eq!(serde_json::to_string(&wrapped_sample).unwrap(), json);
+
+            let raw: Raw = serde_json::from_str(&json).unwrap();
+            assert_eq!(raw, Raw {
+                repr: value.map(|v| v.into_bits()),
+                str: value.map(|v| v.to_string()),
+                float: value.map(|v| v.into()),
+            });
+
+            // Check round-trip.
+            let actual: Sample = serde_json::from_str(&json).unwrap();
+            assert_eq!(actual, sample);
+            let actual: WrappedSample = serde_json::from_str(&json).unwrap();
+            assert_eq!(actual, wrapped_sample);
+        },
+        all {
+            (None);
+            (Some(fp!(0)));
+            (Some(fp!(1)));
+            (Some(fp!(1.1)));
+            (Some(fp!(1.02)));
+            (Some(fp!(-1.02)));
+            (Some(fp!(0.1234)));
+            (Some(fp!(-0.1234)));
+        },
+    };
+    Ok(())
+}

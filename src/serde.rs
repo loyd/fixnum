@@ -124,7 +124,7 @@ pub mod repr {
         I: Serialize,
         S: Serializer,
     {
-        fp.clone().into().inner.serialize(serializer)
+        fp.clone().into().into_bits().serialize(serializer)
     }
 
     /// Deserializes from inner representation.
@@ -138,6 +138,37 @@ pub mod repr {
         I::deserialize(deserializer)
             .map(FixedPoint::from_bits)
             .map(F::from)
+    }
+}
+
+/// (De)serializes `Option<FixedPoint>` as inner representation.
+pub mod repr_option {
+    use super::*;
+
+    /// Serializes to inner representation.
+    #[inline]
+    pub fn serialize<F, I, P, S>(fp: &Option<F>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        F: Into<FixedPoint<I, P>> + Clone,
+        I: Serialize,
+        S: Serializer,
+    {
+        fp.clone()
+            .map(Into::into)
+            .map(FixedPoint::into_bits)
+            .serialize(serializer)
+    }
+
+    /// Deserializes from inner representation.
+    #[inline]
+    pub fn deserialize<'de, F, I, P, D>(deserializer: D) -> Result<Option<F>, D::Error>
+    where
+        F: From<FixedPoint<I, P>>,
+        I: Deserialize<'de>,
+        D: Deserializer<'de>,
+    {
+        Option::<I>::deserialize(deserializer)
+            .map(|inner| inner.map(FixedPoint::from_bits).map(F::from))
     }
 }
 
@@ -174,6 +205,46 @@ pub mod str {
     }
 }
 
+/// (De)serializes `Option<FixedPoint>` as an optional string.
+pub mod str_option {
+    use super::*;
+
+    /// Serializes to an optional string.
+    pub fn serialize<F, I, P, S>(fp: &Option<F>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        F: Into<FixedPoint<I, P>> + Clone,
+        S: Serializer,
+        FixedPoint<I, P>: Stringify,
+    {
+        if let Some(fp) = fp {
+            let mut buf = Default::default();
+            fp.clone().into().stringify(&mut buf);
+            serializer.serialize_some(buf.as_str())
+        } else {
+            serializer.serialize_none()
+        }
+    }
+
+    /// Deserializes from an optional string.
+    pub fn deserialize<'de, F, I, P, D>(deserializer: D) -> Result<Option<F>, D::Error>
+    where
+        F: From<FixedPoint<I, P>>,
+        D: Deserializer<'de>,
+        FixedPoint<I, P>: FromStr,
+    {
+        let s = Option::<&str>::deserialize(deserializer)?;
+        s.map(|s| {
+            s.parse().map(F::from).map_err(|_| {
+                D::Error::invalid_value(
+                    de::Unexpected::Str(s),
+                    &"string containing a fixed-point number",
+                )
+            })
+        })
+        .transpose()
+    }
+}
+
 /// (De)serializes `FixedPoint` as `f64`.
 pub mod float {
     use super::*;
@@ -206,5 +277,47 @@ pub mod float {
                 &"float containing a fixed-point number",
             )
         })
+    }
+}
+
+/// (De)serializes `Option<FixedPoint>` as `Option<f64>`.
+pub mod float_option {
+    use super::*;
+
+    /// Serializes to `Option<f64>`.
+    #[inline]
+    pub fn serialize<F, I, P, S>(fp: &Option<F>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        F: Into<FixedPoint<I, P>> + Clone,
+        I: Serialize,
+        FixedPoint<I, P>: Into<f64>,
+        S: Serializer,
+    {
+        if let Some(fp) = fp {
+            serializer.serialize_some(&fp.clone().into().into())
+        } else {
+            serializer.serialize_none()
+        }
+    }
+
+    /// Deserializes from `Option<f64>`.
+    #[inline]
+    pub fn deserialize<'de, F, I, P, D>(deserializer: D) -> Result<Option<F>, D::Error>
+    where
+        F: From<FixedPoint<I, P>>,
+        I: Deserialize<'de>,
+        FixedPoint<I, P>: TryFrom<f64>,
+        D: Deserializer<'de>,
+    {
+        let f = Option::<f64>::deserialize(deserializer)?;
+        f.map(|f| {
+            FixedPoint::<I, P>::try_from(f).map(F::from).map_err(|_| {
+                D::Error::invalid_value(
+                    de::Unexpected::Float(f),
+                    &"float containing a fixed-point number",
+                )
+            })
+        })
+        .transpose()
     }
 }

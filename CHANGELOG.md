@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - A new parsing method: `from_str_exact`.
+- `serde::repr_option`, `serde::float_option` and `serde::str_option`.
 
 ### Changed
 - **BREAKING CHANGE** `FromStr` and `Deserialize` rounds to the nearest value.
@@ -56,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `i64`, `i32`, `i16` features.
 
 ### Fixed
-- To/from f64 conversion ([#25]).
+- To/from `f64` conversion ([#25]).
 
 ### Changed
 - No implementation is provided by default, use `i64` or `i128` features.
