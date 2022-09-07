@@ -1,5 +1,7 @@
 #![cfg(feature = "serde")]
+
 use anyhow::Result;
+use serde::{Deserialize, Serialize};
 
 mod macros;
 
@@ -56,23 +58,51 @@ fn deserialize() -> Result<()> {
 #[test]
 fn serde_with() -> Result<()> {
     test_fixed_point! {
-        case (input: f64, expected: FixedPoint) => {
-            #[derive(::serde::Serialize, ::serde::Deserialize)]
-            struct Struct {
+        case (value: FixedPoint) => {
+            #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+            struct Sample {
+                #[serde(with = "fixnum::serde::repr")]
+                repr: FixedPoint,
+                #[serde(with = "fixnum::serde::str")]
+                str: FixedPoint,
                 #[serde(with = "fixnum::serde::float")]
-                number: FixedPoint,
+                float: FixedPoint,
             }
 
-            let actual = serde_json::from_str::<Struct>(&format!(r#"{{"number":{}}}"#, input)).unwrap().number;
-            assert_eq!(expected, actual);
+            #[derive(Debug, PartialEq, Deserialize)]
+            struct Raw {
+                repr: Layout,
+                str: String,
+                float: f64,
+            }
+
+            let sample = Sample {
+                repr: value,
+                str: value,
+                float: value,
+            };
+
+            // Check raw representation.
+            let json = serde_json::to_string(&sample).unwrap();
+            let raw: Raw = serde_json::from_str(&json).unwrap();
+            assert_eq!(raw, Raw {
+                repr: value.into_bits(),
+                str: value.to_string(),
+                float: value.into(),
+            });
+
+            // Check round-trip.
+            let actual: Sample = serde_json::from_str(&json).unwrap();
+            assert_eq!(actual, sample);
         },
         all {
-            (1., fp!(1.0));
-            (1.1, fp!(1.1));
-            (1.02, fp!(1.02));
-            (-1.02, fp!(-1.02));
-            (0.1234, fp!(0.1234));
-            (-0.1234, fp!(-0.1234));
+            (fp!(0));
+            (fp!(1));
+            (fp!(1.1));
+            (fp!(1.02));
+            (fp!(-1.02));
+            (fp!(0.1234));
+            (fp!(-0.1234));
         },
     };
     Ok(())
