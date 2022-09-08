@@ -8,8 +8,15 @@
 //! By default, `FixedPoint` is deserialized from strings, floats and integers for human readable
 //! formats and `repr` for binary ones.
 
+#[cfg(feature = "quick-xml")]
+extern crate alloc;
+
+#[cfg(feature = "quick-xml")]
+use alloc::string::String;
 use core::{fmt, marker::PhantomData, str::FromStr};
 
+#[cfg(feature = "quick-xml")]
+use serde::de::MapAccess;
 use serde::{
     de::{self, Error as _},
     Deserialize, Deserializer, Serialize, Serializer,
@@ -113,7 +120,7 @@ where
     #[cfg(feature = "quick-xml")]
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
     where
-        A: serde::de::MapAccess<'de>,
+        A: MapAccess<'de>,
     {
         // We must use `String` here.
         // Otherwise, `invalid type: string \"$value\", expected a borrowed string`.

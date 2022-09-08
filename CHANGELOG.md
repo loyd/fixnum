@@ -11,11 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - A new parsing method: `from_str_exact`.
 - `serde::repr_option`, `serde::float_option` and `serde::str_option`.
-- A `quick-xml` feature to support tag parsing.
+- The `quick-xml` feature to support tag parsing.
 
 ### Changed
-- **BREAKING CHANGE** `FromStr` and `Deserialize` rounds to the nearest value.
-- **BREAKING CHANGE** `serde::as_f64` is renamed to `serde::float`, `serde::as_string` to `serde::str` and `serde::as_repr` to `serde::repr`.
+- **BREAKING CHANGE**: `FromStr` and `Deserialize` rounds to the nearest value.
+- **BREAKING CHANGE**: `serde::as_f64` is renamed to `serde::float`, `serde::as_string` to `serde::str` and `serde::as_repr` to `serde::repr`.
+- **BREAKING CHANGE**: the `serde` feature is not enabled by default anymore.
+- **BREAKING CHANGE**: the `parity` feature doesn't enable `parity-scale-codec/derive` anymore.
 - Deserialize from strings, floats and integers for human readable formats.
 - Now `serde::*` work for wrappers around `FixedPoint` too.
 
