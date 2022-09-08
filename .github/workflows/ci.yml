@@ -33,6 +33,7 @@ jobs:
     - uses: actions/checkout@v2
     - run: rustup component add clippy
     - run: cargo clippy --version
+    - run: cargo clippy --features i64
     - run: cargo clippy --all-targets --features i64
     - run: cargo clippy --all-targets --all-features
 
