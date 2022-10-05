@@ -195,6 +195,7 @@ type Result<T, E = ArithmeticError> = core::result::Result<T, E>;
     docsrs,
     doc(cfg(any(feature = "i128", feature = "i64", feature = "i32", feature = "i16")))
 )]
+#[repr(transparent)]
 pub struct FixedPoint<I, P> {
     inner: I,
     _marker: PhantomData<P>,
