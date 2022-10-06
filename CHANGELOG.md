@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+### Added
+- Add `repr(transparent)` ([#31]).
+
+[#31]: https://github.com/loyd/fixnum/pull/31
 
 ## [0.9.0] - 2022-09-08
 ### Added
