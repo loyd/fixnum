@@ -12,6 +12,7 @@
 //! - `i64` — `i64` layout support which will be promoted to `i128` for multiplication and division.
 //! - `i32` — `i32` layout support which will be promoted to `i64` for multiplication and division.
 //! - `i16` — `i16` layout support which will be promoted to `i32` for multiplication and division.
+//! - `borsh` — [`borsh`][borsh] support (`BorshSerialize` and `BorshDeserialize` implementations).
 //! - `parity` — [`parity-scale-codec`][parity_scale_codec] support (`Encode` and `Decode`
 //!   implementations).
 //! - `serde` — support for `serde`. Enabled by default.
@@ -110,6 +111,7 @@
 //! # fn main() {}
 //! ```
 //!
+//! [borsh]: https://docs.rs/borsh
 //! [cadd]: ./ops/trait.CheckedAdd.html#tymethod.cadd
 //! [cneg]: ./struct.FixedPoint.html#method.cneg
 //! [csub]: ./ops/trait.CheckedSub.html#tymethod.csub
@@ -143,6 +145,8 @@ use crate::i256::I256;
 use crate::ops::{sqrt::Sqrt, *};
 use crate::string::Stringify;
 
+#[cfg(feature = "borsh")]
+mod borsh;
 mod const_fn;
 mod errors;
 mod float;

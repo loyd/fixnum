@@ -48,8 +48,8 @@ jobs:
     - run: cargo test --no-default-features --lib --features i128
     - run: cargo test --no-default-features --lib --features std,i64
     - run: cargo test --no-default-features --lib --features serde,i64
-    - run: cargo test --no-default-features --lib --features i64,parity
-    - run: cargo test --no-default-features --lib --features i128,parity
+    - run: cargo test --no-default-features --lib --features i64,borsh,parity
+    - run: cargo test --no-default-features --lib --features i128,borsh,parity
     - run: cargo test --all-features
 
   run-example:
