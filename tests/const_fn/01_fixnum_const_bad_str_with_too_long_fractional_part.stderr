@@ -1,29 +1,23 @@
-error: any use of this value will cause an error
-   --> src/const_fn.rs
-    |
-    |     const_assert!(exp <= coef);
-    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |     |
-    |     exceeded interpreter step limit (see `#[const_eval_limit]`)
-    |     inside `fixnum::_priv::parse_fixed` at $DIR/src/const_fn.rs:11:13
-    |     inside `VALUE_INNER` at $DIR/src/macros.rs:183:34
-    |
-   ::: tests/const_fn/01_fixnum_const_bad_str_with_too_long_fractional_part.rs:6:36
-    |
-6   | const VALUE: FixedPoint<i64, U9> = fixnum_const!(0.1234567891, 9);
-    |                                    ------------------------------
-    |
-    = note: `#[deny(const_err)]` on by default
-    = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
-    = note: for more information, see issue #71800 <https://github.com/rust-lang/rust/issues/71800>
-    = note: this error originates in the macro `const_assert` (in Nightly builds, run with -Z macro-backtrace for more info)
+error[E0080]: evaluation of constant value failed
+ --> src/const_fn.rs
+  |
+  |     const_assert!(exp <= coef);
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |     |
+  |     exceeded interpreter step limit (see `#[const_eval_limit]`)
+  |     inside `fixnum::_priv::parse_fixed` at $DIR/src/const_fn.rs:11:13
+  |
+ ::: tests/const_fn/01_fixnum_const_bad_str_with_too_long_fractional_part.rs:6:36
+  |
+6 | const VALUE: FixedPoint<i64, U9> = fixnum_const!(0.1234567891, 9);
+  |                                    ------------------------------ inside `VALUE_INNER` at $DIR/src/macros.rs:183:34
+  |
+  = note: this error originates in the macro `const_assert` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error: any use of this value will cause an error
+error[E0080]: evaluation of constant value failed
  --> tests/const_fn/01_fixnum_const_bad_str_with_too_long_fractional_part.rs:6:36
   |
 6 | const VALUE: FixedPoint<i64, U9> = fixnum_const!(0.1234567891, 9);
-  | --------------------------------   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ referenced constant has errors
+  |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ referenced constant has errors
   |
-  = warning: this was previously accepted by the compiler but is being phased out; it will become a hard error in a future release!
-  = note: for more information, see issue #71800 <https://github.com/rust-lang/rust/issues/71800>
   = note: this error originates in the macro `fixnum_const` (in Nightly builds, run with -Z macro-backtrace for more info)

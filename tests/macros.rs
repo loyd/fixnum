@@ -172,9 +172,9 @@ pub(crate) mod r#impl {
 
     fn stringify_panic(payload: Box<dyn std::any::Any>) -> String {
         if let Some(message) = payload.downcast_ref::<&str>() {
-            format!("panic: {}", message)
+            format!("panic: {message}")
         } else if let Some(message) = payload.downcast_ref::<String>() {
-            format!("panic: {}", message)
+            format!("panic: {message}")
         } else {
             "panic: <unsupported payload>".into()
         }

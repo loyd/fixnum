@@ -31,11 +31,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - run: rustup component add clippy
-    - run: cargo clippy --version
-    - run: cargo clippy --features i64
-    - run: cargo clippy --all-targets --features i64
-    - run: cargo clippy --all-targets --all-features
+    - run: rustup toolchain install nightly-2023-01-23 --component clippy
+    - run: cargo +nightly-2023-01-23 clippy --version
+    - run: cargo +nightly-2023-01-23 clippy --features i64
+    - run: cargo +nightly-2023-01-23 clippy --all-targets --features i64
+    - run: cargo +nightly-2023-01-23 clippy --all-targets --all-features
 
   test:
     runs-on: ubuntu-latest
