@@ -38,11 +38,13 @@ i32 = []
 i64 = []
 i128 = []
 serde = ["dep:serde"]
+schemars = ["dep:schemars"]
 parity = ["parity-scale-codec"]
 quick-xml = ["serde?/derive", "serde?/alloc"] # FIXME: quick-xml#473
 
 [dependencies]
 serde = { version = "1.0", default-features = false, optional = true }
+schemars = { version = "0.8", default-features = false, optional = true }
 typenum = "1.12.0"
 derive_more = { version = "0.99.9", default-features = false }
 parity-scale-codec = { version = "3", default-features = false, optional = true }

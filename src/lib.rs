@@ -15,6 +15,7 @@
 //! - `parity` — [`parity-scale-codec`][parity_scale_codec] support (`Encode` and `Decode`
 //!   implementations).
 //! - `serde` — support for `serde`. Enabled by default.
+//! - `schemars` — support for `schemars`. Enabled by default.
 //! - `std` — Enabled by default.
 //!
 //! At least one of `i128`, `i64`, `i32`, `i16` must be enabled.
@@ -164,6 +165,10 @@ pub mod ops;
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 pub mod serde;
+
+#[cfg(feature = "schemars")]
+#[cfg_attr(docsrs, doc(cfg(feature = "schemars")))]
+pub mod schemars;
 
 #[doc(hidden)]
 pub mod _priv {
