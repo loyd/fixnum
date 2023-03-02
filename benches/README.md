@@ -2,130 +2,91 @@
 
 Benchmarks were performed on an [AMD Ryzen 7 4800HS CPU](https://en.wikichip.org/wiki/amd/ryzen_9/3900).
 
+```sh
+$ cargo bench --bench <name> --features <int>
+$ critcmp new | tail +3 | sort | sed 's#        ? ?/sec##'
+```
+
 ## ops
+64-bit FP with precision = 9:
 ```
-F64p9/cadd (~1e4)       time:   [1.8804 ns 1.8807 ns 1.8810 ns]
-F64p9/rmul (~1e4, Floor)
-                        time:   [1.8798 ns 1.8801 ns 1.8806 ns]
-F64p9/rmul (~1e4, Ceil) time:   [1.9028 ns 1.9029 ns 1.9031 ns]
-F64p9/rmul (~1e4, Nearest)
-                        time:   [1.8928 ns 1.8937 ns 1.8951 ns]
-F64p9/rdiv (~1e5/~1e4, Floor)
-                        time:   [1.8809 ns 1.8815 ns 1.8824 ns]
-F64p9/rdiv (~1e5/~1e4, Ceil)
-                        time:   [1.8807 ns 1.8811 ns 1.8816 ns]
-F64p9/rdiv (~1e5/~1e4, Nearest)
-                        time:   [1.8945 ns 1.8957 ns 1.8973 ns]
-F64p9/rsqrt (~1e4, Floor)
-                        time:   [40.705 ns 40.774 ns 40.851 ns]
-F64p9/rsqrt (~1e4, Ceil)
-                        time:   [42.445 ns 42.489 ns 42.533 ns]
-F64p9/rsqrt (~1e4, Nearest)
-                        time:   [45.066 ns 45.111 ns 45.159 ns]
-F64p9/rsqrt (MAX, Floor)
-                        time:   [97.336 ns 97.454 ns 97.578 ns]
-F64p9/rsqrt (MAX, Ceil) time:   [99.472 ns 99.563 ns 99.657 ns]
-F64p9/rsqrt (MAX, Nearest)
-                        time:   [98.629 ns 98.695 ns 98.765 ns]
-F64p9/rsqrt (adaptive, Floor)
-                        time:   [93.701 ns 93.768 ns 93.840 ns]
-F64p9/rsqrt (adaptive, Ceil)
-                        time:   [94.705 ns 94.819 ns 94.935 ns]
-F64p9/rsqrt (adaptive, Nearest)
-                        time:   [95.152 ns 95.240 ns 95.339 ns]
-F64p9/next_power_of_ten time:   [3.4362 ns 3.4395 ns 3.4428 ns]
-F64p9/FixedPoint::try_from(f64) (MIN_POSITIVE)
-                        time:   [2.1977 us 2.1995 us 2.2014 us]
-F64p9/FixedPoint::try_from(f64) (MAX)
-                        time:   [5.9365 us 5.9373 us 5.9383 us]
-F64p9/FixedPoint::try_from(f64) (~1e-12)
-                        time:   [137.93 ns 137.99 ns 138.05 ns]
-F64p9/FixedPoint::try_from(f64) (~0.1)
-                        time:   [68.213 ns 68.275 ns 68.346 ns]
-F64p9/FixedPoint::try_from(f64) (~1e6)
-                        time:   [26.982 ns 27.010 ns 27.037 ns]
-
-
-F128p18/cadd (~1e4)     time:   [2.8347 ns 2.8352 ns 2.8357 ns]
-F128p18/rmul (~1e4, Floor)
-                        time:   [132.96 ns 133.15 ns 133.39 ns]
-F128p18/rmul (~1e4, Ceil)
-                        time:   [131.75 ns 131.83 ns 131.91 ns]
-F128p18/rmul (~1e4, Nearest)
-                        time:   [132.28 ns 132.46 ns 132.65 ns]
-F128p18/rdiv (~1e5/~1e4, Floor)
-                        time:   [144.75 ns 144.89 ns 145.00 ns]
-F128p18/rdiv (~1e5/~1e4, Ceil)
-                        time:   [144.74 ns 144.84 ns 144.95 ns]
-F128p18/rdiv (~1e5/~1e4, Nearest)
-                        time:   [148.38 ns 148.55 ns 148.71 ns]
-F128p18/rsqrt (~1e4, Floor)
-                        time:   [406.28 ns 407.04 ns 407.88 ns]
-F128p18/rsqrt (~1e4, Ceil)
-                        time:   [446.02 ns 446.63 ns 447.23 ns]
-F128p18/rsqrt (~1e4, Nearest)
-                        time:   [482.21 ns 483.13 ns 484.15 ns]
-F128p18/rsqrt (MAX, Floor)
-                        time:   [1.3452 us 1.3465 us 1.3479 us]
-F128p18/rsqrt (MAX, Ceil)
-                        time:   [1.3900 us 1.3955 us 1.4019 us]
-F128p18/rsqrt (MAX, Nearest)
-                        time:   [1.4489 us 1.4511 us 1.4534 us]
-F128p18/rsqrt (adaptive, Floor)
-                        time:   [1.4559 us 1.4565 us 1.4570 us]
-F128p18/rsqrt (adaptive, Ceil)
-                        time:   [1.4985 us 1.4998 us 1.5011 us]
-F128p18/rsqrt (adaptive, Nearest)
-                        time:   [1.5441 us 1.5448 us 1.5455 us]
-F128p18/next_power_of_ten
-                        time:   [6.1744 ns 6.1857 ns 6.1956 ns]
-F128p18/FixedPoint::try_from(f64) (MIN_POSITIVE)
-                        time:   [2.1859 us 2.1884 us 2.1911 us]
-F128p18/FixedPoint::try_from(f64) (MAX)
-                        time:   [5.9384 us 5.9398 us 5.9416 us]
-F128p18/FixedPoint::try_from(f64) (~1e-12)
-                        time:   [139.05 ns 139.09 ns 139.14 ns]
-F128p18/FixedPoint::try_from(f64) (~0.1)
-                        time:   [61.729 ns 61.777 ns 61.826 ns]
-F128p18/FixedPoint::try_from(f64) (~1e6)
-                        time:   [29.475 ns 29.504 ns 29.532 ns]
+F64p9/cadd (~1e4)                        1.00      1.9±0.01ns
+F64p9/from_decimal(12345, -3)            1.00      1.6±0.00ns
+F64p9/next_power_of_ten                  1.00      3.6±0.01ns
+F64p9/rdiv (~1e5/~1e4, Ceil)             1.00      1.9±0.01ns
+F64p9/rdiv (~1e5/~1e4, Floor)            1.00      1.9±0.01ns
+F64p9/rdiv (~1e5/~1e4, Nearest)          1.00      1.9±0.00ns
+F64p9/rmul (~1e4, Ceil)                  1.00      1.9±0.01ns
+F64p9/rmul (~1e4, Floor)                 1.00      1.9±0.03ns
+F64p9/rmul (~1e4, Nearest)               1.00      1.9±0.00ns
+F64p9/rsqrt (~1e4, Ceil)                 1.00     43.7±0.29ns
+F64p9/rsqrt (~1e4, Floor)                1.00     42.5±0.17ns
+F64p9/rsqrt (~1e4, Nearest)              1.00     47.0±0.19ns
+F64p9/rsqrt (adaptive, Ceil)             1.00     98.0±0.33ns
+F64p9/rsqrt (adaptive, Floor)            1.00     94.4±1.45ns
+F64p9/rsqrt (adaptive, Nearest)          1.00     99.6±0.67ns
+F64p9/rsqrt (MAX, Ceil)                  1.00    102.3±0.50ns
+F64p9/rsqrt (MAX, Floor)                 1.00    100.2±0.50ns
+F64p9/rsqrt (MAX, Nearest)               1.00    102.7±0.80ns
+F64p9/to_decimal(0) (12.345)             1.00      9.1±0.02ns
+F64p9/to_decimal(i32::MAX) (12.345)      1.00      9.1±0.01ns
+F64p9/try_from(f64) (~0.1)               1.00     64.8±0.33ns
+F64p9/try_from(f64) (~1e-12)             1.00    132.5±0.46ns
+F64p9/try_from(f64) (~1e6)               1.00     24.9±0.14ns
+F64p9/try_from(f64) (MAX)                1.00      5.9±0.01µs
+F64p9/try_from(f64) (MIN_POSITIVE)       1.00   1872.9±4.12ns
 ```
 
+128-bit FP with precision = 18:
+```
+F128p18/cadd (~1e4)                      1.00      2.8±0.00ns
+F128p18/from_decimal(12345, -3)          1.00      9.1±0.03ns
+F128p18/next_power_of_ten                1.00      6.3±0.03ns
+F128p18/rdiv (~1e5/~1e4, Ceil)           1.00    157.3±0.51ns
+F128p18/rdiv (~1e5/~1e4, Floor)          1.00    154.2±1.19ns
+F128p18/rdiv (~1e5/~1e4, Nearest)        1.00    159.4±1.05ns
+F128p18/rmul (~1e4, Ceil)                1.00    132.5±0.61ns
+F128p18/rmul (~1e4, Floor)               1.00    132.3±0.79ns
+F128p18/rmul (~1e4, Nearest)             1.00    134.1±0.79ns
+F128p18/rsqrt (~1e4, Ceil)               1.00    428.3±7.08ns
+F128p18/rsqrt (~1e4, Floor)              1.00    403.9±1.24ns
+F128p18/rsqrt (~1e4, Nearest)            1.00    475.3±1.03ns
+F128p18/rsqrt (adaptive, Ceil)           1.00   1469.3±3.05ns
+F128p18/rsqrt (adaptive, Floor)          1.00   1436.2±1.98ns
+F128p18/rsqrt (adaptive, Nearest)        1.00   1530.6±1.97ns
+F128p18/rsqrt (MAX, Ceil)                1.00   1393.2±9.68ns
+F128p18/rsqrt (MAX, Floor)               1.00  1335.9±10.01ns
+F128p18/rsqrt (MAX, Nearest)             1.00  1441.7±11.63ns
+F128p18/to_decimal(0) (12.345)           1.00   263.8±25.35ns
+F128p18/to_decimal(i32::MAX) (12.345)    1.00    263.2±0.13ns
+F128p18/try_from(f64) (~0.1)             1.00     59.3±0.36ns
+F128p18/try_from(f64) (~1e-12)           1.00    133.0±0.14ns
+F128p18/try_from(f64) (~1e6)             1.00     27.8±0.25ns
+F128p18/try_from(f64) (MAX)              1.00      5.9±0.00µs
+F128p18/try_from(f64) (MIN_POSITIVE)     1.00   1842.6±1.86ns
+```
 
 ## serde
+64-bit FP with precision = 9:
 ```
-F64p9/serialize 123.456 to string
-                        time:   [25.126 ns 25.184 ns 25.245 ns]
-F64p9/serialize MAX to string
-                        time:   [34.676 ns 34.691 ns 34.708 ns]
-F64p9/deserialize 123.456 from string
-                        time:   [54.896 ns 55.528 ns 56.131 ns]
-F64p9/deserialize MAX from string
-                        time:   [83.991 ns 84.684 ns 85.462 ns]
-F64p9/serialize 123.456 to f64
-                        time:   [45.702 ns 45.770 ns 45.836 ns]
-F64p9/serialize MAX to f64
-                        time:   [41.369 ns 41.417 ns 41.489 ns]
-F64p9/deserialize 123.456 from f64
-                        time:   [108.28 ns 108.35 ns 108.43 ns]
-F64p9/deserialize MAX from f64
-                        time:   [61.488 ns 61.546 ns 61.602 ns]
+F64p9/deserialize 123.456 from f64         1.00    103.7±0.24ns
+F64p9/deserialize 123.456 from string      1.00     54.8±0.18ns
+F64p9/deserialize MAX from f64             1.00     59.8±0.24ns
+F64p9/deserialize MAX from string          1.00     86.3±0.79ns
+F64p9/serialize 123.456 to f64             1.00     48.2±0.46ns
+F64p9/serialize 123.456 to string          1.00     27.5±0.29ns
+F64p9/serialize MAX to f64                 1.00     41.3±0.95ns
+F64p9/serialize MAX to string              1.00     35.3±2.63ns
+```
 
-
-F128p18/serialize 123.456 to string
-                        time:   [49.650 ns 49.752 ns 49.884 ns]
-F128p18/serialize MAX to string
-                        time:   [72.952 ns 73.113 ns 73.279 ns]
-F128p18/deserialize 123.456 from string
-                        time:   [79.037 ns 79.170 ns 79.372 ns]
-F128p18/deserialize MAX from string
-                        time:   [184.91 ns 185.20 ns 185.49 ns]
-F128p18/serialize 123.456 to f64
-                        time:   [65.507 ns 65.553 ns 65.599 ns]
-F128p18/serialize MAX to f64
-                        time:   [67.402 ns 67.455 ns 67.509 ns]
-F128p18/deserialize 123.456 from f64
-                        time:   [105.50 ns 105.71 ns 106.02 ns]
-F128p18/deserialize MAX from f64
-                        time:   [56.141 ns 56.193 ns 56.266 ns]
+128-bit FP with precision = 18:
+```
+F128p18/deserialize 123.456 from f64       1.00    103.3±0.24ns
+F128p18/deserialize 123.456 from string    1.00     70.8±0.09ns
+F128p18/deserialize MAX from f64           1.00     56.6±0.19ns
+F128p18/deserialize MAX from string        1.00    147.3±0.51ns
+F128p18/serialize 123.456 to f64           1.00     67.7±0.38ns
+F128p18/serialize 123.456 to string        1.00     51.7±0.64ns
+F128p18/serialize MAX to f64               1.00     63.6±0.74ns
+F128p18/serialize MAX to string            1.00     80.6±1.00ns
 ```

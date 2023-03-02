@@ -103,29 +103,44 @@ macro_rules! define_bench {
                 })
             });
 
-            group.bench_function("FixedPoint::try_from(f64) (MIN_POSITIVE)", |b| {
+            group.bench_function("try_from(f64) (MIN_POSITIVE)", |b| {
                 let value = black_box(f64::MIN_POSITIVE);
                 b.iter(move || $fp::try_from(value))
             });
 
-            group.bench_function("FixedPoint::try_from(f64) (MAX)", |b| {
+            group.bench_function("try_from(f64) (MAX)", |b| {
                 let value = black_box(f64::MAX);
                 b.iter(move || $fp::try_from(value))
             });
 
-            group.bench_function("FixedPoint::try_from(f64) (~1e-12)", |b| {
+            group.bench_function("try_from(f64) (~1e-12)", |b| {
                 let value = black_box(3.141592653589793e-12);
                 b.iter(move || $fp::try_from(value))
             });
 
-            group.bench_function("FixedPoint::try_from(f64) (~0.1)", |b| {
+            group.bench_function("try_from(f64) (~0.1)", |b| {
                 let value = black_box(0.3141592653589793);
                 b.iter(move || $fp::try_from(value))
             });
 
-            group.bench_function("FixedPoint::try_from(f64) (~1e6)", |b| {
+            group.bench_function("try_from(f64) (~1e6)", |b| {
                 let value = black_box(3.141592653589793e6);
                 b.iter(move || $fp::try_from(value))
+            });
+
+            group.bench_function("from_decimal(12345, -3)", |b| {
+                let decimal = black_box((12345, -3));
+                b.iter(move || $fp::from_decimal(decimal.0, decimal.1))
+            });
+
+            group.bench_function("to_decimal(0) (12.345)", |b| {
+                let value = black_box($fp::from_decimal(12345, -3).unwrap());
+                b.iter(move || value.to_decimal(0))
+            });
+
+            group.bench_function("to_decimal(i32::MAX) (12.345)", |b| {
+                let value = black_box($fp::from_decimal(12345, -3).unwrap());
+                b.iter(move || value.to_decimal(i32::MAX))
             });
 
             group.finish();

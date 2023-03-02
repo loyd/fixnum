@@ -697,6 +697,7 @@ macro_rules! impl_fixed_point {
                 let mut mantissa = self.inner;
                 let mut exponent = -Self::PRECISION;
 
+                // TODO: use binary search to optimize it.
                 while exponent < max_exponent && mantissa % 10 == 0 {
                     exponent += 1;
                     mantissa /= 10;
