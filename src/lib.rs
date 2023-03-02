@@ -674,6 +674,36 @@ macro_rules! impl_fixed_point {
                     .map(Self::from_bits)
                     .map_or_else(|| Err(ConvertError::new("too big mantissa")), Ok)
             }
+
+            /// Returns a pair `(mantissa, exponent)` where `exponent`
+            /// is in `[-PRECISION, max_exponent]`.
+            ///
+            /// Examples:
+            /// * `fp!(5.5).to_decimal(0)       // => (55, 0)`
+            /// * `fp!(5.5).to_decimal(-1)      // => (550, -1)`
+            /// * `fp!(5.5).to_decimal(1)       // => (55, 0)`
+            /// * `fp!(50).to_decimal(0)        // => (50, 0)`
+            /// * `fp!(50).to_decimal(i32::MAX) // => (5, 1)`
+            ///
+            /// # Panics
+            /// If `max_exponent` is less than `-PRECISION`.
+            pub fn to_decimal(&self, max_exponent: i32) -> ($layout, i32) {
+                assert!(max_exponent >= -Self::PRECISION);
+
+                if self.inner == 0 {
+                    return (0, 0.min(max_exponent));
+                }
+
+                let mut mantissa = self.inner;
+                let mut exponent = -Self::PRECISION;
+
+                while exponent < max_exponent && mantissa % 10 == 0 {
+                    exponent += 1;
+                    mantissa /= 10;
+                }
+
+                (mantissa, exponent)
+            }
         }
 
         impl<P: Precision> From<FixedPoint<$layout, P>> for f64 {
