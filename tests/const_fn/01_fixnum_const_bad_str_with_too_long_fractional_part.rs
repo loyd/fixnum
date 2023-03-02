@@ -3,6 +3,7 @@
 
 use fixnum::{fixnum_const, typenum::U9, FixedPoint};
 
+#[allow(dead_code)]
 const VALUE: FixedPoint<i64, U9> = fixnum_const!(0.1234567891, 9);
 
 fn main() {}
