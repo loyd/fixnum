@@ -14,7 +14,8 @@
 //! - `i16` — `i16` layout support which will be promoted to `i32` for multiplication and division.
 //! - `parity` — [`parity-scale-codec`][parity_scale_codec] support (`Encode` and `Decode`
 //!   implementations).
-//! - `serde` — support for `serde`. Enabled by default.
+//! - `serde` — support for `serde`.
+//! - `schemars` — support for `schemars`.
 //! - `std` — Enabled by default.
 //!
 //! At least one of `i128`, `i64`, `i32`, `i16` must be enabled.
@@ -164,6 +165,9 @@ pub mod ops;
 #[cfg(feature = "serde")]
 #[cfg_attr(docsrs, doc(cfg(feature = "serde")))]
 pub mod serde;
+
+#[cfg(feature = "schemars")]
+mod schemars;
 
 #[doc(hidden)]
 pub mod _priv {
