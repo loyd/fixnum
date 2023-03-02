@@ -15,8 +15,8 @@ all-features = true
 rustdoc-args = ["--cfg", "docsrs"]
 
 [[bench]]
-name = "fixed_point"
-path = "benches/fixed_point.rs"
+name = "ops"
+path = "benches/ops.rs"
 harness = false
 
 [[bench]]
