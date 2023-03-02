@@ -679,9 +679,9 @@ macro_rules! impl_fixed_point {
             /// is in `[-PRECISION, max_exponent]`.
             ///
             /// Examples:
-            /// * `fp!(5.5).to_decimal(0)       // => (55, 0)`
-            /// * `fp!(5.5).to_decimal(-1)      // => (550, -1)`
-            /// * `fp!(5.5).to_decimal(1)       // => (55, 0)`
+            /// * `fp!(5.5).to_decimal(0)       // => (55, -1)`
+            /// * `fp!(5.5).to_decimal(-1)      // => (55, -1)`
+            /// * `fp!(5.5).to_decimal(-2)      // => (550, -2)`
             /// * `fp!(50).to_decimal(0)        // => (50, 0)`
             /// * `fp!(50).to_decimal(i32::MAX) // => (5, 1)`
             ///
