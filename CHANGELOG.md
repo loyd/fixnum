@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+### Added
+- Add `FixedPoint::to_decimal` ([#37]).
+- Add the `schemars` feature ([#36]).
+
+[#37]: https://github.com/loyd/fixnum/pull/37
+[#36]: https://github.com/loyd/fixnum/pull/36
 
 ## [0.9.1] - 2022-10-06
 ### Added
