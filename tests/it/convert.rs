@@ -4,8 +4,6 @@ use proptest::prelude::*;
 
 use fixnum::ops::Bounded;
 
-mod macros;
-
 #[test]
 fn from_decimal() -> Result<()> {
     test_fixed_point! {

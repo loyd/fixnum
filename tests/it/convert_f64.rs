@@ -4,8 +4,6 @@ use proptest::prelude::*;
 
 use fixnum::*;
 
-mod macros;
-
 #[test]
 #[allow(clippy::float_cmp)]
 fn to_f64() -> Result<()> {

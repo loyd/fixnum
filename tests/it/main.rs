@@ -1,7 +1,4 @@
-#![allow(dead_code)]
-
-/// Testing helper macro. Allows to use generalized `FixedPoint` and `Layout` types in the test cases.
-#[macro_export]
+/// Allows to use generalized `FixedPoint` and `Layout` types in the test cases.
 macro_rules! test_fixed_point {
     (
         case ($( $case_pattern:ident: $case_type:ty ),* $( , )?) => $case:block,
@@ -11,7 +8,7 @@ macro_rules! test_fixed_point {
     ) => {{
         macro_rules! impl_test_case {
             () => {
-                fn test_case($( $case_pattern: $case_type ),*) -> $crate::macros::TestCaseResult {
+                fn test_case($( $case_pattern: $case_type ),*) -> $crate::TestCaseResult {
                     $case
                     Ok(())
                 }
@@ -90,15 +87,15 @@ macro_rules! test_fixed_point {
     };
     (@suite_passes {$( ($( $args:expr )*) )*}) => {
         $(
-            $crate::macros::r#impl::catch_and_augment(stringify!($( $args ),*), || {
+            $crate::r#impl::catch_and_augment(stringify!($( $args ),*), || {
                 test_case($( $args ),*)
             })?;
         )*
     };
     (@suite_fails {$( ($( $args:expr )*) )*}) => {
         $(
-            $crate::macros::r#impl::catch_and_augment(stringify!($( $args ),*), || {
-                $crate::macros::r#impl::assert_fails(|| test_case($( $args ),*));
+            $crate::r#impl::catch_and_augment(stringify!($( $args ),*), || {
+                $crate::r#impl::assert_fails(|| test_case($( $args ),*));
                 Ok(())
             })?;
         )*
@@ -108,8 +105,8 @@ macro_rules! test_fixed_point {
 use std::fmt::Display;
 
 // Use a special error based on `Display` in order to support `nostd`.
-pub(crate) type TestCaseResult = Result<(), TestCaseError>;
-pub(crate) struct TestCaseError(Box<dyn Display>);
+type TestCaseResult = Result<(), TestCaseError>;
+struct TestCaseError(Box<dyn Display>);
 
 impl<E: Display + 'static> From<E> for TestCaseError {
     fn from(error: E) -> Self {
@@ -125,7 +122,7 @@ impl From<TestCaseError> for anyhow::Error {
 }
 
 #[cfg(not(feature = "std"))]
-pub(crate) mod r#impl {
+mod r#impl {
     use anyhow::Result;
 
     use super::TestCaseResult;
@@ -141,7 +138,7 @@ pub(crate) mod r#impl {
 }
 
 #[cfg(feature = "std")]
-pub(crate) mod r#impl {
+mod r#impl {
     use std::panic::{catch_unwind, AssertUnwindSafe};
 
     use anyhow::{anyhow, Context, Result};
@@ -180,3 +177,11 @@ pub(crate) mod r#impl {
         }
     }
 }
+
+// Tests
+mod const_ctor;
+mod convert;
+mod convert_f64;
+mod convert_str;
+mod ops;
+mod serde;

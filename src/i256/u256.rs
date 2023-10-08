@@ -853,7 +853,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_counts_leading_zeros() {
+    fn leading_zeros() {
         fn t(x: U256, expected: u32) {
             assert_eq!(x.leading_zeros(), expected);
         }

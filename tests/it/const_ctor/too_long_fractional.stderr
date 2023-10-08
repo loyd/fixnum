@@ -7,7 +7,7 @@ error: constant evaluation is taking a long time
   = note: this lint makes sure the compiler doesn't get stuck due to infinite loops in const eval.
           If your compilation actually takes a long time, you can safely allow the lint.
 help: the constant being evaluated
- --> tests/const_fn/01_fixnum_const_bad_str_with_too_long_fractional_part.rs:7:36
+ --> tests/it/const_ctor/too_long_fractional.rs:7:36
   |
 7 | const VALUE: FixedPoint<i64, U9> = fixnum_const!(0.1234567891, 9);
   |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -15,7 +15,7 @@ help: the constant being evaluated
   = note: this error originates in the macro `const_assert` which comes from the expansion of the macro `fixnum_const` (in Nightly builds, run with -Z macro-backtrace for more info)
 
 note: erroneous constant used
- --> tests/const_fn/01_fixnum_const_bad_str_with_too_long_fractional_part.rs:7:36
+ --> tests/it/const_ctor/too_long_fractional.rs:7:36
   |
 7 | const VALUE: FixedPoint<i64, U9> = fixnum_const!(0.1234567891, 9);
   |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

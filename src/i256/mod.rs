@@ -195,17 +195,17 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_calculates_min() {
+    fn min() {
         assert_eq!(i128::try_from(I256::I128_MIN).unwrap(), i128::MIN);
     }
 
     #[test]
-    fn it_calculates_max() {
+    fn max() {
         assert_eq!(i128::try_from(I256::I128_MAX).unwrap(), i128::MAX);
     }
 
     #[test]
-    fn it_compares() {
+    fn cmp() {
         use core::cmp::Ordering::{self, *};
         fn t(a: i128, b: i128, ord: Ordering) {
             let a = I256::from(a);
@@ -219,7 +219,7 @@ mod tests {
     }
 
     #[test]
-    fn it_converts_i256_from_i128() {
+    fn from_i128() {
         fn t(x: i128) {
             assert_eq!(i128::try_from(I256::from(x)).unwrap(), x);
         }
@@ -233,7 +233,7 @@ mod tests {
     }
 
     #[test]
-    fn it_negates_i128() {
+    fn neg_i128() {
         fn t(x: i128) {
             assert_eq!(i128::try_from(-I256::from(x)).unwrap(), -x);
             assert_eq!(i128::try_from(-I256::from(-x)).unwrap(), x);
@@ -245,7 +245,7 @@ mod tests {
     }
 
     #[test]
-    fn it_negates_i256() {
+    fn neg_i256() {
         fn t(value: I256, expected: I256) {
             let actual: I256 = -value;
             assert_eq!(actual, expected);
@@ -270,12 +270,12 @@ mod tests {
 
     #[test]
     #[should_panic]
-    fn it_doesnt_negate_i256_min() {
+    fn neg_i256_min() {
         let _x = -I256::MIN;
     }
 
     #[test]
-    fn it_adds() {
+    fn add() {
         fn t(a: i128, b: i128, expected: i128) {
             let a = I256::from(a);
             let b = I256::from(b);
@@ -291,7 +291,7 @@ mod tests {
     }
 
     #[test]
-    fn it_subtracts() {
+    fn sub() {
         fn t(a: i128, b: i128, expected: i128) {
             let a = I256::from(a);
             let b = I256::from(b);
@@ -307,7 +307,7 @@ mod tests {
     }
 
     #[test]
-    fn it_multiplies() {
+    fn mul() {
         fn t(a: i128, b: i128, expected: i128) {
             let a = I256::from(a);
             let b = I256::from(b);
@@ -322,7 +322,7 @@ mod tests {
     }
 
     #[test]
-    fn it_divides() {
+    fn div() {
         fn t(a: i128, b: i128, expected: i128) {
             let a = I256::from(a);
             let b = I256::from(b);

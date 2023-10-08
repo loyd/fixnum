@@ -7,8 +7,6 @@ use fixnum::{
     *,
 };
 
-mod macros;
-
 #[test]
 fn cmul_overflow() -> Result<()> {
     test_fixed_point! {

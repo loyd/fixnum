@@ -4,8 +4,6 @@ use anyhow::Result;
 use derive_more::{From, Into};
 use serde::{Deserialize, Serialize};
 
-mod macros;
-
 #[test]
 fn display_and_serde() -> Result<()> {
     test_fixed_point! {

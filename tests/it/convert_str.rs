@@ -7,9 +7,7 @@ use anyhow::Result;
 #[cfg(feature = "i128")]
 use proptest::prelude::*;
 
-use self::macros::TestCaseResult;
-
-mod macros;
+use crate::TestCaseResult;
 
 #[test]
 #[allow(overflowing_literals)]
