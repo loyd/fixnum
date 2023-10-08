@@ -79,6 +79,7 @@ macro_rules! uint_full_mul_reg {
 
                     uint! { @unroll
                         for j in 0..$n_words {
+                            #[allow(clippy::redundant_closure_call)]
                             if $check(me[j], carry) {
                                 let a = me[j];
 
