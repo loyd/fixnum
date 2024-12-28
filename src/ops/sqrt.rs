@@ -1,56 +1,40 @@
-use core::mem;
+use crate::{layout::Promotion, ops::Zero};
 
-use crate::ArithmeticError;
-
-pub(crate) trait Sqrt: Sized {
-    type Error;
-
-    /// Checked square root.
-    /// For given non-negative number S returns max possible number Q such that:
-    /// `Q ≤ sqrt(S)`.
-    /// Returns `Error` for negative arguments.
-    fn sqrt(self) -> Result<Self, Self::Error>;
+pub(crate) trait Sqrt: Promotion {
+    fn sqrt(self) -> Self::Layout;
 }
 
 macro_rules! impl_sqrt {
-    ($( $int:ty ),+ $(,)?) => {
-        $( impl_sqrt!(@single $int); )*
-    };
-    (@single $int:ty) => {
-        impl Sqrt for $int {
-            type Error = ArithmeticError;
-
+    ($prom:ty) => {
+        impl Sqrt for $prom {
             /// Checked integer square root.
             /// Sqrt implementation courtesy of [`num` crate][num].
             ///
             /// [num]: https://github.com/rust-num/num-integer/blob/4d166cbb754244760e28ea4ce826d54fafd3e629/src/roots.rs#L278
             #[inline]
-            fn sqrt(self) -> Result<Self, Self::Error> {
-                #[inline]
-                const fn bits<T>() -> u32 {
-                    (mem::size_of::<T>() * 8) as _
-                }
+            fn sqrt(self) -> Self::Layout {
+                type Layout = <$prom as Promotion>::Layout;
 
                 #[cfg(feature = "std")]
                 #[inline]
-                fn guess(x: $int) -> $int {
-                    (x as f64).sqrt() as $int
+                fn guess(v: $prom) -> Layout {
+                    v.as_positive_f64().sqrt() as Layout
                 }
 
                 #[cfg(not(feature = "std"))]
                 #[inline]
-                fn guess(x: $int) -> $int {
+                fn guess(v: $prom) -> Layout {
                     #[inline]
-                    fn log2_estimate(x: $int) -> u32 {
-                        debug_assert!(x > 0);
-                        bits::<$int>() - 1 - x.leading_zeros()
+                    fn log2_estimate(v: $prom) -> u32 {
+                        debug_assert!(v > <$prom as Zero>::ZERO);
+                        (core::mem::size_of::<$prom>() as u32 * 8) - 1 - v.leading_zeros()
                     }
 
-                    1 << ((log2_estimate(x) + 1) / 2)
+                    1 << ((log2_estimate(v) + 1) / 2)
                 }
 
                 #[inline]
-                fn fixpoint(mut x: $int, f: impl Fn($int) -> $int) -> $int {
+                fn fixpoint(mut x: Layout, f: impl Fn(Layout) -> Layout) -> Layout {
                     let mut xn = f(x);
                     while x < xn {
                         x = xn;
@@ -63,30 +47,25 @@ macro_rules! impl_sqrt {
                     x
                 }
 
-                #[allow(unused_comparisons)]
-                { debug_assert!(self >= 0); }
+                debug_assert!(self >= <$prom as Zero>::ZERO);
 
-                if bits::<$int>() > 64 {
-                    // 128-bit division is slow, so do a recursive bitwise `sqrt` until it's small enough.
-                    let result = match u64::try_from(self) {
-                        Ok(x) => x.sqrt()? as _,
-                        Err(_) => {
-                            let lo = (self >> 2u32).sqrt()? << 1;
-                            let hi = lo + 1;
-                            if hi * hi <= self { hi } else { lo }
-                        }
-                    };
-                    return Ok(result);
+                if self < <$prom>::from(4i8) {
+                    return ((self > <$prom as Zero>::ZERO) as i8).into();
                 }
-                if self < 4 {
-                    return Ok((self > 0).into());
-                }
+
                 // https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method
-                let next = |x: $int| (self / x + x) >> 1;
-                Ok(fixpoint(guess(self), next))
+                let next = |x: Layout| (self.div_l(x).as_layout() + x) >> 1;
+                fixpoint(guess(self), next)
             }
         }
-    }
+    };
 }
 
-impl_sqrt!(i8, u8, i16, u16, i32, u32, i64, u64, i128, u128);
+#[cfg(feature = "i16")]
+impl_sqrt!(i32);
+#[cfg(feature = "i32")]
+impl_sqrt!(i64);
+#[cfg(feature = "i64")]
+impl_sqrt!(i128);
+#[cfg(feature = "i128")]
+impl_sqrt!(crate::i256);

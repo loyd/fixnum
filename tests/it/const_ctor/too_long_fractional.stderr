@@ -14,7 +14,7 @@ help: the constant being evaluated
   = note: `#[deny(long_running_const_eval)]` on by default
   = note: this error originates in the macro `const_assert` which comes from the expansion of the macro `fixnum_const` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-note: erroneous constant used
+note: erroneous constant encountered
  --> tests/it/const_ctor/too_long_fractional.rs:7:36
   |
 7 | const VALUE: FixedPoint<i64, U9> = fixnum_const!(0.1234567891, 9);

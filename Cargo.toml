@@ -36,7 +36,7 @@ std = ["derive_more/error"]
 i16 = []
 i32 = []
 i64 = []
-i128 = []
+i128 = ["dep:i256"]
 serde = ["dep:serde"]
 schemars = ["dep:schemars"]
 parity = ["parity-scale-codec"]
@@ -50,6 +50,7 @@ derive_more = { version = "0.99.9", default-features = false }
 parity-scale-codec = { version = "3", default-features = false, optional = true }
 static_assertions = "1.1.0"
 itoa = "1.0.1"
+i256 = { version = "=0.1.1", default-features = false, optional = true }
 
 [dev-dependencies]
 anyhow = { version = "1.0.38", default-features = false }
