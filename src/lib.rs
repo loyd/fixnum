@@ -7,7 +7,7 @@
 //! ## Features
 //! Turn them on in `Cargo.toml`:
 //!
-//! - `i128` — `i128` layout support which will be promoted to internally implemented `I256` for
+//! - `i128` — `i128` layout support which will be promoted to a polyfill for `i256` for
 //!   multiplication and division.
 //! - `i64` — `i64` layout support which will be promoted to `i128` for multiplication and division.
 //! - `i32` — `i32` layout support which will be promoted to `i64` for multiplication and division.
@@ -134,13 +134,12 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
-use core::cmp::Ord;
-use core::{fmt, i64, marker::PhantomData};
+use core::{cmp::Ord, fmt, marker::PhantomData};
 
 use typenum::Unsigned;
 
 #[cfg(feature = "i128")]
-use crate::i256::I256;
+use crate::i256_polyfill::i256;
 use crate::ops::{sqrt::Sqrt, *};
 use crate::string::Stringify;
 
@@ -148,7 +147,8 @@ mod const_fn;
 mod errors;
 mod float;
 #[cfg(feature = "i128")]
-mod i256;
+mod i256_polyfill;
+mod layout;
 mod macros;
 #[cfg(feature = "parity")]
 mod parity;
@@ -172,6 +172,7 @@ mod schemars;
 #[doc(hidden)]
 pub mod _priv {
     pub use crate::const_fn::*;
+    pub use crate::layout::*;
     pub use crate::macros::Operand;
     pub use crate::ops::*;
 }
@@ -235,9 +236,10 @@ macro_rules! impl_fixed_point {
         $(#[$attr:meta])?
         inner = $layout:tt;
         promoted_to = $promotion:tt;
-        convert = $convert:expr;
         try_from = [$($try_from:ty),*];
-    ) => {
+    ) => {const _: () = {
+        use $crate::_priv::Promotion as _;
+
         $(#[$attr])?
         impl<P: Precision> FixedPoint<$layout, P> {
             /// The number of digits in the fractional part.
@@ -247,7 +249,6 @@ macro_rules! impl_fixed_point {
 
             const COEF: $layout = const_fn::pow10(Self::PRECISION) as _;
             const NEG_COEF: $layout = -Self::COEF;
-            const COEF_PROMOTED: $promotion = $convert(Self::COEF) as _;
         }
 
         $(#[$attr])?
@@ -273,19 +274,13 @@ macro_rules! impl_fixed_point {
 
             #[inline]
             fn rmul(self, rhs: Self, mode: RoundMode) -> Result<Self> {
-                // TODO: avoid 128bit arithmetic when possible,
-                //       because LLVM doesn't replace 128bit division by const with multiplication.
-
-                let value = $promotion::from(self.inner) * $promotion::from(rhs.inner);
-                // TODO: replace with multiplication by a constant.
-                let result = value / Self::COEF_PROMOTED;
-                let loss = value - result * Self::COEF_PROMOTED;
+                let value = $promotion::from(self.inner).mul_l(rhs.inner);
+                // `|loss| < COEF`, thus it fits in the layout.
+                let (result, loss) = value.div_rem_l(Self::COEF);
 
                 let mut result =
                     $layout::try_from(result).map_err(|_| ArithmeticError::Overflow)?;
 
-                // `|loss| < COEF`, thus it fits in the layout.
-                let loss = $layout::try_from(loss).unwrap();
                 let sign = self.inner.signum() * rhs.inner.signum();
 
                 let add_signed_one = if mode == RoundMode::Nearest {
@@ -310,23 +305,16 @@ macro_rules! impl_fixed_point {
 
             #[inline]
             fn rdiv(self, rhs: Self, mode: RoundMode) -> Result<Self> {
-                // TODO: avoid 128bit arithmetic when possible,
-                //       because LLVM doesn't replace 128bit division by const with multiplication.
-
                 if rhs.inner == 0 {
                     return Err(ArithmeticError::DivisionByZero);
                 }
 
-                let numerator = $promotion::from(self.inner) * Self::COEF_PROMOTED;
-                let denominator = $promotion::from(rhs.inner);
-                let result = numerator / denominator;
-                let loss = numerator - result * denominator;
+                let numerator = $promotion::from(self.inner).mul_l(Self::COEF);
+                // `|loss| < rhs`, thus it fits in the layout.
+                let (result, loss) = numerator.div_rem_l(rhs.inner);
 
                 let mut result =
                     $layout::try_from(result).map_err(|_| ArithmeticError::Overflow)?;
-
-                // `|loss| < denominator`, thus it fits in the layout.
-                let loss = $layout::try_from(loss).unwrap();
 
                 if loss != 0 {
                     let sign = self.inner.signum() * rhs.inner.signum();
@@ -587,8 +575,6 @@ macro_rules! impl_fixed_point {
             /// * `Ceil`: `S ≥ sqrt(F)`
             /// * `Nearest`: `Floor` or `Ceil`, which one is closer to `sqrt(F)`
             ///
-            /// The fastest mode is `Floor`.
-            ///
             /// ```
             /// # #[cfg(feature = "i64")]
             /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -617,23 +603,31 @@ macro_rules! impl_fixed_point {
                 // At first we have `S_inner = S * COEF`.
                 // We'd like to gain `sqrt(S) * COEF`:
                 // `sqrt(S) * COEF = sqrt(S * COEF^2) = sqrt(S_inner * COEF)`
-                let squared = $promotion::from(self.inner) * Self::COEF_PROMOTED;
-                let lo = squared.sqrt()?;
+                let squared = $promotion::from(self.inner).mul_l(Self::COEF);
+                let lo = squared.sqrt();
 
                 let add_one = match mode {
                     RoundMode::Floor => false,
                     RoundMode::Nearest => {
-                        let lo2 = lo * lo;
-                        // (lo+1)^2 = lo^2 +2lo + 1
-                        let hi2 = lo2 + lo + lo + $promotion::ONE;
-                        squared - lo2 >= hi2 - squared
+                        // We choose to round up iff
+                        //
+                        //  (lo+1)^2 - squared <= squared - lo^2
+                        //
+                        // However, we don't want to do calculations in the promoted type,
+                        // because it can be slow (`i128` and `i256`). So, we use modular
+                        // arithmetic (with `2^bits(layout)` modulus) to avoid it.
+
+                        let lo2 = lo.wrapping_mul(lo);
+                        // hi^2 = (lo+1)^2 = lo^2 + 2lo + 1
+                        let hi2 = lo2.wrapping_add(lo).wrapping_add(lo).wrapping_add($layout::ONE);
+                        let squared = squared.as_layout();
+                        hi2.wrapping_sub(squared) <= squared.wrapping_sub(lo2)
                     },
-                    RoundMode::Ceil if lo * lo == squared => false,
-                    RoundMode::Ceil => true,
+                    RoundMode::Ceil => {
+                        lo.wrapping_mul(lo) != squared.as_layout()
+                    },
                 };
 
-                // `sqrt` can't take more bits than `self` already does, thus `unwrap()` is ok.
-                let lo = $layout::try_from(lo).unwrap();
                 let inner = if add_one {
                     lo + $layout::ONE
                 } else {
@@ -734,12 +728,7 @@ macro_rules! impl_fixed_point {
                 }
             }
         )*
-    };
-}
-
-#[cfg(any(feature = "i64", feature = "i32", feature = "i16"))]
-const fn identity<T>(x: T) -> T {
-    x
+    };};
 }
 
 #[cfg(feature = "i16")]
@@ -747,7 +736,6 @@ impl_fixed_point!(
     #[cfg_attr(docsrs, doc(cfg(feature = "i16")))]
     inner = i16;
     promoted_to = i32;
-    convert = identity;
     try_from = [i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize];
 );
 #[cfg(feature = "i32")]
@@ -755,7 +743,6 @@ impl_fixed_point!(
     #[cfg_attr(docsrs, doc(cfg(feature = "i32")))]
     inner = i32;
     promoted_to = i64;
-    convert = identity;
     try_from = [i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize];
 );
 #[cfg(feature = "i64")]
@@ -763,14 +750,12 @@ impl_fixed_point!(
     #[cfg_attr(docsrs, doc(cfg(feature = "i64")))]
     inner = i64;
     promoted_to = i128;
-    convert = identity;
     try_from = [i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize];
 );
 #[cfg(feature = "i128")]
 impl_fixed_point!(
     #[cfg_attr(docsrs, doc(cfg(feature = "i128")))]
     inner = i128;
-    promoted_to = I256;
-    convert = I256::from_i128;
+    promoted_to = i256;
     try_from = [i8, u8, i16, u16, i32, u32, i64, u64, i128, u128, isize, usize];
 );
