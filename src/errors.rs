@@ -1,10 +1,11 @@
 use core::fmt::{Display, Formatter, Result};
 
+// TODO: once MSRV becomes 1.81, use `core::error::Error` instead.
+// Also, enable doctests in CI checks even for no-std.
 #[cfg(feature = "std")]
-use derive_more::Error;
+use std::error::Error;
 
 /// Represents errors during arithmetic operations.
-#[cfg_attr(feature = "std", derive(Error))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ArithmeticError {
@@ -34,8 +35,10 @@ impl Display for ArithmeticError {
     }
 }
 
+#[cfg(feature = "std")]
+impl Error for ArithmeticError {}
+
 /// Represents errors during conversions.
-#[cfg_attr(feature = "std", derive(Error))]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ConvertError {
     reason: &'static str,
@@ -57,3 +60,6 @@ impl Display for ConvertError {
         f.write_str(self.as_str())
     }
 }
+
+#[cfg(feature = "std")]
+impl Error for ConvertError {}
