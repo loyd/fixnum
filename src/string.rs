@@ -56,7 +56,7 @@ macro_rules! impl_for {
                 let prec = Self::PRECISION as usize; // TODO: negative precision?
 
                 if EXACT {
-                    if fractional_str.len() > Self::PRECISION.abs() as usize {
+                    if fractional_str.len() > Self::PRECISION.unsigned_abs() as usize {
                         return Err(ConvertError::new("requested precision is too high"));
                     }
                 }
