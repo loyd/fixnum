@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+
+## [0.9.3] - 2025-01-18
 ### Changed
 - Replace i256 implementation to improve performance of arithmetic operations for 128-bit based `FixedPoint`.
 
@@ -175,7 +177,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/loyd/fixnum/compare/v0.9.2...HEAD
+[Unreleased]: https://github.com/loyd/fixnum/compare/v0.9.3...HEAD
+[0.9.3]: https://github.com/loyd/fixnum/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/loyd/fixnum/compare/v0.9.1...v0.9.2
 [0.9.1]: https://github.com/loyd/fixnum/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/loyd/fixnum/compare/v0.8.0...v0.9.0
