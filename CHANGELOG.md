@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+### Changed
+- Replace i256 implementation to improve performance of arithmetic operations for 128-bit based `FixedPoint`.
 
 ## [0.9.2] - 2023-03-02
 ### Added

@@ -24,7 +24,7 @@
 //! ```
 //! # #[cfg(feature = "i64")]
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! use fixnum::{FixedPoint, typenum::U9, ops::{CheckedAdd, RoundingMul, RoundMode::*, Zero}};
+//! use fixnum::{FixedPoint, typenum::U9, ops::*, fixnum};
 //!
 //! /// Signed fixed point amount over 64 bits, 9 decimal places.
 //! ///
@@ -36,15 +36,15 @@
 //! ///           = 5e-10
 //! type Amount = FixedPoint<i64, U9>;
 //!
-//! let a: Amount = "0.1".parse()?;
-//! let b: Amount = "0.2".parse()?;
-//! assert_eq!(a.cadd(b)?, "0.3".parse()?);
+//! let a: Amount = fixnum!(0.1, 9);
+//! let b: Amount = fixnum!(0.2, 9);
+//! assert_eq!(a.cadd(b)?, fixnum!(0.3, 9));
 //!
-//! let expences: Amount = "0.000000001".parse()?;
+//! let expences: Amount = fixnum!(0.000000001, 9);
 //! // 1e-9 * (Floor) 1e-9 = 0
-//! assert_eq!(expences.rmul(expences, Floor)?, Amount::ZERO);
+//! assert_eq!(expences.rmul(expences, RoundMode::Floor)?, fixnum!(0, 9));
 //! // 1e-9 * (Ceil) 1e-9 = 1e-9
-//! assert_eq!(expences.rmul(expences, Ceil)?, expences);
+//! assert_eq!(expences.rmul(expences, RoundMode::Ceil)?, expences);
 //! # Ok(()) }
 //! # #[cfg(not(feature = "i64"))]
 //! # fn main() {}
@@ -68,6 +68,7 @@
 //! | [`saturating_rmul`][saturating_rmul] | `let z: FixedPoint = x.saturating_rmul(y, RoundMode::Floor)` | Saturating [rounding][RoundMode] multiplication |
 //!
 //! ## Implementing wrapper types.
+//!
 //! It's possible to restrict the domain in order to reduce chance of mistakes.
 //! Note that convenient [`fixnum!` macro][fixnum] works with wrapper types too.
 //! ```
