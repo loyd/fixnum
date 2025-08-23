@@ -30,11 +30,13 @@ macro_rules! impl_for {
                 Self::parse_str_with_scientific::<true>(str)
             }
 
+            /// Parses a fixed-point number without scientific notation.
+            ///
+            /// Note: the input `str` must be already trimmed (no leading/trailing whitespace).
+            /// Trimming is performed by the caller (`parse_str_with_scientific`).
             fn parse_str_without_scientific<const EXACT: bool>(
                 str: &str,
             ) -> Result<Self, ConvertError> {
-                let str = str.trim();
-
                 let (integral_str, mut fractional_str) = if let Some(parts) = str.split_once('.') {
                     parts
                 } else {
@@ -103,178 +105,267 @@ macro_rules! impl_for {
             fn parse_str_with_scientific<const EXACT: bool>(
                 str: &str,
             ) -> Result<Self, ConvertError> {
-                let str = str.trim();
+                let trimmed_input = str.trim();
 
-                let (integral_and_fractional_str, exponent_str) = if let Some(exponent_char) =
-                    str.chars().find(|c| *c == 'e' || *c == 'E')
+                // Fast path: no scientific notation
+                let (mantissa_str, exponent_str) = if let Some(exponent_char) =
+                    trimmed_input.chars().find(|c| *c == 'e' || *c == 'E')
                 {
-                    if let Some(parts) = str.split_once(exponent_char) {
+                    if let Some(parts) = trimmed_input.split_once(exponent_char) {
                         parts
                     } else {
-                        // This error should never happen because `exponent_char` already found.
-                        return Err(ConvertError::new("unable to split string by exponent char"));
+                        return Err(ConvertError::new(
+                            "unable to split string by exponent char",
+                        ));
                     }
                 } else {
-                    return Self::parse_str_without_scientific::<EXACT>(str);
+                    return Self::parse_str_without_scientific::<EXACT>(trimmed_input);
                 };
 
                 let mut exponent: i32 = exponent_str
-                    .parse()
+                    .parse::<i32>()
                     .map_err(|_| ConvertError::new("can't parse exponent"))?;
 
-                let (mut integral_str, mut fractional_str) =
-                    if let Some((integral_str, fractional_str)) =
-                        integral_and_fractional_str.split_once('.')
-                    {
-                        (integral_str.to_owned(), fractional_str.to_owned())
-                    } else {
-                        (integral_and_fractional_str.to_owned(), "".to_owned())
-                    };
-
-                if !integral_str.is_empty() {
-                    let mut chars = integral_str.chars();
-                    let first_char = chars.next().expect("unreachable");
-                    if first_char == '+' || first_char == '-' {
-                        integral_str = chars.as_str().to_owned();
-                    }
-
-                    integral_str = integral_str.trim_start_matches('0').to_owned();
+                // Work with mantissa: optional sign, optional dot
+                let mut mantissa_bytes = mantissa_str.as_bytes();
+                if !mantissa_bytes.is_empty()
+                    && (mantissa_bytes[0] == b'+' || mantissa_bytes[0] == b'-')
+                {
+                    mantissa_bytes = &mantissa_bytes[1..];
                 }
 
-                let exponent_abs = exponent.abs() as usize;
-                // Main idea here is to keep one of parts empty or zero exponent.
-                if exponent >= 0 {
-                    if exponent_abs >= fractional_str.len() {
-                        integral_str.push_str(fractional_str.as_str());
-                        exponent = exponent
-                            .checked_sub(fractional_str.len() as i32) // `as i32`` is safe because `exponent.abs() as usize >= fractional_str.len()`
-                            .ok_or(ConvertError::new("too small exponent"))?;
-                        fractional_str = "".to_owned();
-                    } else {
-                        integral_str.push_str(&fractional_str[0..exponent_abs]);
-                        fractional_str = fractional_str[exponent_abs..].to_owned();
-                        exponent = 0;
-                    }
-                } else {
-                    if exponent_abs >= integral_str.len() {
-                        fractional_str.insert_str(0, integral_str.as_str());
-                        exponent = exponent
-                            .checked_add(integral_str.len() as i32) // `as i32`` is safe because `exponent.abs() as usize >= integral_str.len()`
-                            .ok_or(ConvertError::new("too large exponent"))?;
-                        integral_str = "".to_owned();
-                    } else {
-                        fractional_str.insert_str(
-                            0,
-                            &integral_str[integral_str.len() - exponent_abs..integral_str.len()],
-                        );
-                        integral_str = integral_str[..integral_str.len() - exponent_abs].to_owned();
-                        exponent = 0;
-                    }
-                }
-
-                if !integral_str.is_empty() {
-                    integral_str = integral_str.trim_start_matches('0').to_owned();
-                }
-
-                // `exponent_abs` must be reevaluated
-                let exponent_abs = exponent.abs() as usize;
-
-                debug_assert!(
-                    exponent == 0 || fractional_str.is_empty() || integral_str.is_empty()
-                );
-                let integral: $layout = if integral_str.is_empty() {
-                    debug_assert!((exponent == 0 || fractional_str.is_empty()) && exponent <= 0);
-                    0
-                } else {
-                    // If at this point `integral_str` part can't be represent as `$layout` then
-                    // it obviously can't be represented as `$layout` after multiplication by `exponent`
-                    // because `exponent` here is not less than zero.
-                    debug_assert!((exponent == 0 || fractional_str.is_empty()) && exponent >= 0);
-                    integral_str
-                        .parse()
-                        .map_err(|_| ConvertError::new("can't parse integral part"))?
+                // Split on decimal point
+                let (integral_part_digits, fractional_part_digits) =
+                    match mantissa_bytes.iter().position(|&b| b == b'.') {
+                        Some(p) => (&mantissa_bytes[..p], &mantissa_bytes[p + 1..]),
+                        None => (mantissa_bytes, &mantissa_bytes[0..0]),
                 };
+
+                // Trim integral leading zeros
+                let integral_trim_offset = integral_part_digits
+                    .iter()
+                    .position(|&b| b != b'0')
+                    .unwrap_or(integral_part_digits.len());
+                let mut integral_primary_digits = &integral_part_digits[integral_trim_offset..];
+                let mut integral_from_fractional_digits: &[u8] = &[]; // moved from fractional when exponent >= 0
+
+                let mut fractional_primary_digits: &[u8] = fractional_part_digits; // primary fractional segment
+                let mut fractional_from_integral_digits: &[u8] = &[]; // from integral when exponent < 0
+
+                // Move digits according to exponent without allocations
+                if exponent >= 0 {
+                    let digits_to_move_count = (exponent as usize).min(fractional_primary_digits.len());
+                    integral_from_fractional_digits = &fractional_primary_digits[..digits_to_move_count];
+                    fractional_primary_digits = &fractional_primary_digits[digits_to_move_count..];
+                    exponent -= digits_to_move_count as i32;
+                } else {
+                    let digits_needed_from_integral = (-exponent) as usize;
+                    if digits_needed_from_integral >= integral_primary_digits.len() {
+                        // Move entire integral into fractional
+                        fractional_from_integral_digits = fractional_primary_digits;
+                        fractional_primary_digits = integral_primary_digits;
+                        integral_primary_digits = &[];
+                        exponent += digits_needed_from_integral as i32; // == +integral_primary_digits_len (old)
+                    } else {
+                        // Split integral; tail goes to fractional front
+                        let split_index = integral_primary_digits.len() - digits_needed_from_integral;
+                        fractional_from_integral_digits = fractional_primary_digits;
+                        fractional_primary_digits = &integral_primary_digits[split_index..];
+                        integral_primary_digits = &integral_primary_digits[..split_index];
+                        exponent = 0;
+                    }
+                }
+
+                // Trim integral leading zeros again (may appear after moving)
+                if !integral_primary_digits.is_empty() {
+                    let trim_offset = integral_primary_digits
+                        .iter()
+                        .position(|&b| b != b'0')
+                        .unwrap_or(integral_primary_digits.len());
+                    integral_primary_digits = &integral_primary_digits[trim_offset..];
+                }
+                if integral_primary_digits.is_empty() && !integral_from_fractional_digits.is_empty() {
+                    let trim_offset = integral_from_fractional_digits
+                        .iter()
+                        .position(|&b| b != b'0')
+                        .unwrap_or(integral_from_fractional_digits.len());
+                    integral_from_fractional_digits = &integral_from_fractional_digits[trim_offset..];
+                }
+
+                // Helpers over two-slice sequences
+                #[inline]
+                fn sequence_len(a: &[u8], b: &[u8]) -> usize {
+                    a.len() + b.len()
+                }
+                #[inline]
+                fn get_digit_at_index(a: &[u8], b: &[u8], i: usize) -> Option<u8> {
+                    if i < a.len() {
+                        Some(a[i])
+                    } else {
+                        let j = i - a.len();
+                        if j < b.len() { Some(b[j]) } else { None }
+                    }
+                }
+                #[inline]
+                fn trim_fractional_trailing_zeros<'a>(
+                    mut a: &'a [u8],
+                    mut b: &'a [u8],
+                ) -> (&'a [u8], &'a [u8]) {
+                    if !b.is_empty() {
+                        let mut end = b.len();
+                        while end > 0 && b[end - 1] == b'0' {
+                            end -= 1;
+                        }
+                        b = &b[..end];
+                    }
+                    if b.is_empty() && !a.is_empty() {
+                        let mut end = a.len();
+                        while end > 0 && a[end - 1] == b'0' {
+                            end -= 1;
+                        }
+                        a = &a[..end];
+                    }
+                    (a, b)
+                }
+                
+
+                // Re-evaluate absolute exponent after shifts
+                let exponent_abs_usize = exponent.abs() as usize;
+
+                // Parse integral part (across two segments) or zero
+                let ten: $layout = 10;
+                let mut integral_value: $layout = 0;
+                if !integral_primary_digits.is_empty() || !integral_from_fractional_digits.is_empty() {
+                    // Ensure digits-only and accumulate
+                    for &seg in &[integral_primary_digits, integral_from_fractional_digits] {
+                        for &b in seg {
+                            if !(b'0'..=b'9').contains(&b) {
+                                return Err(ConvertError::new(
+                                    "can't parse integral part: must contain digits only",
+                                ));
+                            }
+                            let d = (b - b'0') as $layout;
+                            integral_value = integral_value
+                                .checked_mul(ten)
+                                .and_then(|v| v.checked_add(d))
+                                .ok_or(ConvertError::new("overflow: integral part"))?;
+                        }
+                    }
+                }
 
                 if EXACT {
-                    // if `fractional_str` contains trailing zeroes this error will be misleading
-                    fractional_str = fractional_str.trim_end_matches('0').to_owned();
-                    if fractional_str.len() > (Self::PRECISION.abs() + exponent) as usize {
-                        return Err(ConvertError::new("requested precision is too high"));
+                    // If `fractional_str` contains trailing zeroes this error will be misleading
+                    let (fa, fb) = trim_fractional_trailing_zeros(fractional_primary_digits, fractional_from_integral_digits);
+                    fractional_primary_digits = fa;
+                    fractional_from_integral_digits = fb;
+                    if sequence_len(fractional_primary_digits, fractional_from_integral_digits)
+                        > (Self::PRECISION.abs() + exponent) as usize
+                    {
+                        return Err(ConvertError::new("out of range: precision exceeds scale"));
                     }
                 }
 
-                let signum = if str.as_bytes()[0] == b'-' { -1 } else { 1 };
-                let last_idx = Self::PRECISION + exponent;
-                let last_idx_abs = last_idx.abs() as usize;
-                let round = if !EXACT && last_idx >= 0 && last_idx_abs < fractional_str.len() {
-                    let extra = fractional_str.as_bytes()[last_idx_abs];
-                    fractional_str = fractional_str[..last_idx_abs].to_owned();
-                    Some(signum).filter(|_| extra >= b'5')
-                } else {
-                    None
-                };
+                let signum: $layout = if trimmed_input.starts_with('-') { -1 } else { 1 };
+                let rounding_index = Self::PRECISION + exponent;
+                let rounding_index_abs = rounding_index.abs() as usize;
 
-                let ten: $layout = 10;
+                // Determine rounding digit and effective fractional length
+                let mut round_adjustment: Option<$layout> = None;
+                let mut effective_fractional_primary = fractional_primary_digits;
+                let mut effective_fractional_secondary = fractional_from_integral_digits;
+                let fractional_total_len = sequence_len(fractional_primary_digits, fractional_from_integral_digits);
+                if !EXACT && rounding_index >= 0 && rounding_index_abs < fractional_total_len {
+                    if let Some(extra) = get_digit_at_index(
+                        fractional_primary_digits,
+                        fractional_from_integral_digits,
+                        rounding_index_abs,
+                    ) {
+                        round_adjustment = Some(signum).filter(|_| extra >= b'5');
+                    }
+                    // Truncate fractional to first `last_idx_abs` digits
+                    if rounding_index_abs <= fractional_primary_digits.len() {
+                        effective_fractional_primary = &fractional_primary_digits[..rounding_index_abs];
+                        effective_fractional_secondary = &[];
+                    } else {
+                        effective_fractional_primary = fractional_primary_digits;
+                        effective_fractional_secondary =
+                            &fractional_from_integral_digits[..(rounding_index_abs - fractional_primary_digits.len())];
+                    }
+                }
+
+                // Fractional multiplier 10^(len(frac) + |exponent|)
+                let effective_fractional_len = sequence_len(effective_fractional_primary, effective_fractional_secondary);
+                let fractional_multiplier_digits: usize = effective_fractional_len + exponent_abs_usize;
                 let fractional_multiplier = ten.pow(
-                    (fractional_str.len() + exponent_abs)
-                        .try_into()
-                        .map_err(|_| ConvertError::new("too big fractional_str"))?,
+                    u32::try_from(fractional_multiplier_digits)
+                        .map_err(|_| ConvertError::new("out of range: precision exceeds scale"))?,
                 );
 
                 if EXACT && fractional_multiplier > Self::COEF {
-                    return Err(ConvertError::new("requested precision is too high"));
+                    return Err(ConvertError::new("out of range: precision exceeds scale"));
                 }
 
                 debug_assert!(fractional_multiplier <= Self::COEF);
 
-                let fractional: Option<$layout> = if !fractional_str.is_empty() {
-                    Some(
-                        fractional_str
-                            .parse()
-                            .map_err(|_| ConvertError::new("can't parse fractional part"))?,
-                    )
-                } else {
-                    None
-                };
+                // Parse fractional digits (if any)
+                let mut fractional_value_opt: Option<$layout> = None;
+                if effective_fractional_len > 0 {
+                    let mut acc: $layout = 0;
+                    for &seg in &[effective_fractional_primary, effective_fractional_secondary] {
+                        for &b in seg {
+                            if !(b'0'..=b'9').contains(&b) {
+                                return Err(ConvertError::new(
+                                    "can't parse fractional part: must contain digits only",
+                                ));
+                            }
+                            let d = (b - b'0') as $layout;
+                            acc = acc
+                                .checked_mul(ten)
+                                .and_then(|v| v.checked_add(d))
+                                .ok_or(ConvertError::new("overflow: fractional part"))?;
+                        }
+                    }
+                    fractional_value_opt = Some(acc);
+                }
 
+                // Integral multiplier 10^(PRECISION + exponent)
                 let integral_multiplier = ten.pow(
                     (Self::PRECISION + exponent)
                         .try_into()
-                        .map_err(|_| ConvertError::new("too big exponent"))?,
+                        .map_err(|_| ConvertError::new("out of range: exponent"))?,
                 );
-                let mut final_integral = integral
+
+                let mut final_integral_value = integral_value
                     .checked_mul(integral_multiplier)
-                    .ok_or(ConvertError::new("too big integral"))?;
+                    .ok_or(ConvertError::new("overflow: integral part"))?;
 
                 if signum < 0 {
-                    final_integral = -final_integral;
+                    final_integral_value = -final_integral_value;
                 }
 
-                let mut final_fractional = fractional
-                    .map(|fractional| signum * Self::COEF / fractional_multiplier * fractional);
+                let mut final_fractional_value_opt = fractional_value_opt
+                    .map(|f| signum * Self::COEF / fractional_multiplier * f);
 
-                if let Some(round) = round {
+                if let Some(round_adjust) = round_adjustment {
                     debug_assert!(!EXACT);
-                    if let Some(final_fractional_inner) = final_fractional.as_mut() {
-                        final_fractional = Some(
-                            final_fractional_inner
-                                .checked_add(round)
-                                .ok_or(ConvertError::new("requested precision is too high"))?,
-                        );
+                    if let Some(ref mut final_fractional_value) = final_fractional_value_opt {
+                        *final_fractional_value = final_fractional_value
+                            .checked_add(round_adjust)
+                            .ok_or(ConvertError::new("out of range: precision exceeds scale"))?;
                     } else {
-                        final_integral = final_integral
-                            .checked_add(round)
-                            .ok_or(ConvertError::new("too big integral"))?;
+                        final_integral_value = final_integral_value
+                            .checked_add(round_adjust)
+                            .ok_or(ConvertError::new("overflow: integral part"))?;
                     }
                 }
 
-                if let Some(&mut final_fractional) = final_fractional.as_mut() {
-                    final_integral = final_integral
-                        .checked_add(final_fractional)
-                        .ok_or(ConvertError::new("too big number"))?;
+                if let Some(final_fractional_value) = final_fractional_value_opt {
+                    final_integral_value = final_integral_value
+                        .checked_add(final_fractional_value)
+                        .ok_or(ConvertError::new("overflow: result"))?;
                 }
 
-                Ok(Self::from_bits(final_integral))
+                Ok(Self::from_bits(final_integral_value))
             }
         }
 
