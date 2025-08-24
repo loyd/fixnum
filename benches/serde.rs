@@ -64,6 +64,24 @@ macro_rules! define_bench {
                 })
             });
 
+            // Scientific notation (positive exponent)
+            group.bench_function("deserialize 1.23e4 from string", |b| {
+                let s = black_box(format!("\"1.23e4\""));
+                b.iter(move || {
+                    let fp: AsString = serde_json::from_slice(s.as_bytes()).unwrap();
+                    fp
+                })
+            });
+
+            // Scientific notation (MAX with e0)
+            group.bench_function("deserialize MAXe0 from string", |b| {
+                let s = black_box(format!("\"{}e0\"", $fp::MAX));
+                b.iter(move || {
+                    let fp: AsString = serde_json::from_slice(s.as_bytes()).unwrap();
+                    fp
+                })
+            });
+
             group.bench_function("serialize 123.456 to f64", |b| {
                 let fp = black_box(AsFloat {
                     v: fixnum!(123.456, $coef),
