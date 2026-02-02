@@ -37,12 +37,14 @@ i16 = []
 i32 = []
 i64 = []
 i128 = ["dep:i256"]
+rkyv = ["dep:rkyv"]
 serde = ["dep:serde"]
 schemars = ["dep:schemars"]
 parity = ["parity-scale-codec"]
 quick-xml = ["serde?/derive", "serde?/alloc"] # FIXME: quick-xml#473
 
 [dependencies]
+rkyv = { version = "0.8.14", optional = true }
 serde = { version = "1.0", default-features = false, optional = true }
 schemars = { version = "0.8", default-features = false, optional = true }
 typenum = "1.12.0"

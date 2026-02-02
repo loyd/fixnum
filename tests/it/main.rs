@@ -185,3 +185,4 @@ mod convert_f64;
 mod convert_str;
 mod ops;
 mod serde;
+mod rkyv;
