@@ -169,7 +169,7 @@ macro_rules! impl_op {
 ///
 /// macro_rules! fp_const {
 ///     ($value:literal) => {
-///         fixnum::fixnum_const!($value, 9);
+///         fixnum::fixnum_const!($value, 9)
 ///     };
 /// }
 ///
@@ -215,7 +215,7 @@ macro_rules! fixnum_const {
 ///
 /// macro_rules! fp {
 ///     ($val:literal) => {
-///         fixnum::fixnum!($val, 9);
+///         fixnum::fixnum!($val, 9)
 ///     };
 /// }
 ///

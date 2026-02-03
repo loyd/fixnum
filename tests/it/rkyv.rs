@@ -1,7 +1,7 @@
 #![cfg(feature = "rkyv")]
 
-use fixnum::*;
 use anyhow::Result;
+use fixnum::*;
 use rkyv::rancor::Error;
 
 #[test]
@@ -30,4 +30,3 @@ fn rkyv_basic() -> Result<()> {
     };
     Ok(())
 }
-
