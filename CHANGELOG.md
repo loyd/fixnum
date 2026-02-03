@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+
+## [0.9.5] - 2026-02-03
 ### Fixed
 - Remove `doc_auto_cfg` in order to fix docs.rs builds on Rust v1.92.
 
@@ -185,7 +187,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial release.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/loyd/fixnum/compare/v0.9.4...HEAD
+[Unreleased]: https://github.com/loyd/fixnum/compare/v0.9.5...HEAD
+[0.9.5]: https://github.com/loyd/fixnum/compare/v0.9.4...v0.9.5
 [0.9.4]: https://github.com/loyd/fixnum/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/loyd/fixnum/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/loyd/fixnum/compare/v0.9.1...v0.9.2

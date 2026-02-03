@@ -1,6 +1,6 @@
 [package]
 name = "fixnum"
-version = "0.9.4"
+version = "0.9.5"
 description = "Fixed-point numbers with explicit rounding"
 keywords = ["fixed", "decimal", "numbers"]
 authors = ["Paul Loyd <pavelko95@gmail.com>"]
