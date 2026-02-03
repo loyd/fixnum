@@ -15,6 +15,7 @@
 //! - `parity` — [`parity-scale-codec`][parity_scale_codec] support (`Encode` and `Decode`
 //!   implementations).
 //! - `serde` — support for `serde`.
+//! - `rkyv` — support for `rkyv`.
 //! - `schemars` — support for `schemars`.
 //! - `std` — Enabled by default.
 //!

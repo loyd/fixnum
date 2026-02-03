@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+### Added
+- Support for `rkyv` based (de)serialization ([#44]).
+
+[#44]: https://github.com/loyd/fixnum/pull/44
 
 ## [0.9.3] - 2025-01-18
 ### Changed
