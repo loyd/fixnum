@@ -134,7 +134,6 @@
 #![warn(rust_2018_idioms, unreachable_pub, missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 use core::{cmp::Ord, fmt, marker::PhantomData};
 
