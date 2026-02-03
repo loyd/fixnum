@@ -15,14 +15,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - run: rustc --version
     - run: cargo build --all-targets --all-features
 
   rustfmt:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - run: rustup component add rustfmt
     - run: cargo fmt --version
     - run: cargo fmt -- --check
@@ -30,7 +30,7 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - run: rustup component add clippy
     - run: cargo clippy --version
     - run: cargo clippy --features i64
@@ -41,7 +41,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - run: rustc --version
     - run: cargo test --features i64
     - run: cargo test --features i128
@@ -56,5 +56,17 @@ jobs:
   run-example:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - run: cargo run --example usage --features i64
+    - uses: actions/checkout@v4
+    - run: cargo run --example usage --features i64
+
+  docs:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -Dwarnings --cfg docsrs
+    steps:
+    - uses: actions/checkout@v4
+    - run: rustup toolchain install nightly
+    - run: rustup override set nightly
+    - run: rustup show active-toolchain -v
+    - run: cargo doc --all-features
