@@ -28,6 +28,10 @@ fn to_f64() -> Result<()> {
             (fp!(-922337203.685477581), -922337203.6854776);
             (fp!(92233720.36854775), 92233720.36854775);
             (fp!(-92233720.36854775), -92233720.36854775);
+            (fp!(1.14), 1.14);
+            (fp!(1.0131), 1.0131);
+            (fp!(1.0353), 1.0353);
+            (fp!(-1.0353), -1.0353);
         },
         fp128 {
             (fp!(0.0000000000025), 25e-13);
@@ -37,9 +41,63 @@ fn to_f64() -> Result<()> {
             (fp!(-0.000000000000000025), -25e-18);
             (fp!(2.1234567890123457), 2.1234567890123457);
             (fp!(-2.1234567890123457), -2.1234567890123457);
+            (fp!(1.8511142654), 1.8511142654);
+            (fp!(36.908491254007), 36.908491254007);
+            (fp!(69.9978429397149072), 69.99784293971491);
         },
     };
     Ok(())
+}
+
+#[test]
+#[cfg(feature = "i64")]
+#[allow(clippy::float_cmp)]
+fn to_f64_around_exact_mantissa() {
+    type FixedPoint = fixnum::FixedPoint<i64, typenum::U4>;
+
+    let exact = 1i64 << 53;
+    assert_eq!(f64::from(FixedPoint::from_bits(exact)), 900719925474.0992);
+    assert_eq!(
+        f64::from(FixedPoint::from_bits(exact + 1)),
+        900719925474.0993
+    );
+    assert_eq!(f64::from(FixedPoint::from_bits(-exact)), -900719925474.0992);
+    assert_eq!(
+        f64::from(FixedPoint::from_bits(-exact - 1)),
+        -900719925474.0993
+    );
+}
+
+#[test]
+#[cfg(feature = "i128")]
+#[allow(clippy::float_cmp)]
+fn to_f64_beyond_exact_power_of_10() {
+    type FixedPoint = fixnum::FixedPoint<i128, typenum::U23>;
+
+    assert_eq!(f64::from(FixedPoint::from_bits(1)), 1e-23);
+    assert_eq!(
+        f64::from(FixedPoint::from_bits(-123456789)),
+        -1.23456789e-15
+    );
+}
+
+#[test]
+#[allow(clippy::float_cmp)]
+fn to_f64_limits() {
+    use fixnum::ops::Bounded;
+
+    #[cfg(feature = "i64")]
+    {
+        type FixedPoint = fixnum::FixedPoint<i64, typenum::U0>;
+        assert_eq!(f64::from(FixedPoint::MIN), -9.223372036854776e18);
+        assert_eq!(f64::from(FixedPoint::MAX), 9.223372036854776e18);
+    }
+    #[cfg(feature = "i128")]
+    {
+        type FixedPoint = fixnum::FixedPoint<i128, typenum::U0>;
+        assert_eq!(f64::from(FixedPoint::MIN), -1.7014118346046923e38);
+        assert_eq!(f64::from(FixedPoint::MAX), 1.7014118346046923e38);
+    }
 }
 
 #[test]

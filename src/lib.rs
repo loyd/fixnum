@@ -712,10 +712,7 @@ macro_rules! impl_fixed_point {
 
         impl<P: Precision> From<FixedPoint<$layout, P>> for f64 {
             fn from(value: FixedPoint<$layout, P>) -> Self {
-                let coef = FixedPoint::<$layout, P>::COEF;
-                let integral = (value.inner / coef) as f64;
-                let fractional = ((value.inner % coef) as f64) / (coef as f64);
-                integral + fractional
+                float::to_f64(value.inner.into(), -FixedPoint::<$layout, P>::PRECISION)
             }
         }
 

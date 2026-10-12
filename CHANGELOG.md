@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 
 ## [Unreleased] - ReleaseDate
+### Fixed
+- `From<FixedPoint> for f64` now returns the nearest `f64`. Previously, the integral and fractional parts were rounded separately and then summed, which could be off by one ULP (e.g. `1.0353` became `1.0352999999999999`).
 
 ## [0.9.5] - 2026-02-03
 ### Fixed

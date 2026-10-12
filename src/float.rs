@@ -7,6 +7,35 @@ use crate::{
     ConvertError, FixedPoint, Precision,
 };
 
+pub(crate) fn to_f64(mantissa: i128, exponent: i32) -> f64 {
+    const MAX_EXACT_MANTISSA: u128 = 1 << f64::MANTISSA_DIGITS;
+    const MAX_EXACT_POW10: i32 = 22;
+
+    if (-MAX_EXACT_POW10..=0).contains(&exponent) && mantissa.unsigned_abs() <= MAX_EXACT_MANTISSA {
+        return mantissa as f64 / 10u128.pow(exponent.unsigned_abs()) as f64;
+    }
+
+    let mut mantissa_buf = itoa::Buffer::new();
+    let mut exponent_buf = itoa::Buffer::new();
+    let parts = [
+        mantissa_buf.format(mantissa),
+        "e",
+        exponent_buf.format(exponent),
+    ];
+
+    let mut buf = [0u8; 52];
+    let mut len = 0;
+    for part in parts {
+        buf[len..len + part.len()].copy_from_slice(part.as_bytes());
+        len += part.len();
+    }
+
+    core::str::from_utf8(&buf[..len])
+        .expect("ASCII only")
+        .parse()
+        .expect("a valid float literal")
+}
+
 macro_rules! impl_try_from_f64 {
     ($layout:tt) => {
         impl<P: Precision> TryFrom<f64> for FixedPoint<$layout, P> {
